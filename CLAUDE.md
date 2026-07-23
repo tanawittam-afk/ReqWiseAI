@@ -1,0 +1,303 @@
+@AGENTS.md
+
+# ReqWise AI
+
+A production-quality AI-assisted **requirements analysis platform**. Unstructured business
+information goes in — meeting notes, stakeholder interviews, customer messages, project
+briefs, feedback, operational problems — and structured software requirements come out,
+for Business Analysts, System Analysts, Product Managers, Developers, Designers, and QA
+to review and use.
+
+Multi-domain by design. Primary demonstration domain: **Booking and Smart Space
+Management**. Also supported: General Software, Custom Domain. Future profiles: HR,
+E-commerce, Retail, Restaurant, Healthcare.
+
+Also a portfolio artifact for Business Analyst / System Analyst roles. Where a choice is
+between more impressive engineering and more legible BA judgment, pick the one that makes
+the BA thinking visible.
+
+---
+
+## Core product principle
+
+**The AI assists the Business Analyst. It never decides.** Every rule below follows from
+this — if a change would weaken it, stop and ask.
+
+- Separate facts from assumptions, visibly
+- Keep every requirement traceable to the source text it came from
+- Human review and editing are always available
+- Nothing is ever auto-approved
+- Surface missing information rather than filling the gap
+- Surface ambiguous statements rather than resolving them silently
+- Show confidence where it helps a reviewer judge
+- Never invent an unsupported business rule
+
+---
+
+## Analysis outputs
+
+An analysis run produces all fifteen:
+
+1. Problem Statement
+2. Business Objectives
+3. Stakeholders
+4. Business Requirements
+5. Functional Requirements
+6. Non-functional Requirements
+7. User Stories
+8. Acceptance Criteria
+9. Business Rules
+10. Assumptions
+11. Risks
+12. Constraints
+13. Open Questions for Stakeholders
+14. Requirement Source References
+15. Requirement Quality Findings
+
+---
+
+## Stack
+
+Next.js (App Router) · TypeScript **strict** · Tailwind · Supabase (Postgres + Auth) ·
+Zod for schema validation · a server-side AI provider adapter · a deterministic mock AI
+provider for local development · accessible reusable UI components · unit + integration
+tests, and e2e tests on critical flows.
+
+Follow existing repository conventions where they exist. **Do not pin a dependency
+version** unless the repository already requires it.
+
+**Do not add a library beyond the list above without asking.** No state-management
+library, no component library, no ORM, no i18n package — bilingual TH/EN uses the `<T>` +
+`data-locale` CSS-swap pattern copied from `../Portfolio/site`.
+
+**Never expose an AI provider API key to the browser.** Same for the Supabase
+service-role key. If either would land in a client component, a `NEXT_PUBLIC_*` var, or a
+response body — stop.
+
+---
+
+## Architecture layers
+
+Keep these separated. The Core Requirement Engine stays domain-independent; domain
+knowledge lives only in the Domain Profile Layer.
+
+**1. Source Input Layer** — typed text, pasted meeting notes, interview transcripts,
+customer messages, plain-text file upload. PDF and DOCX are optional future work; do not
+build them unasked.
+
+**2. Core Requirement Engine** — domain-independent: information extraction, requirement
+classification, user story generation, acceptance criteria generation, ambiguity
+detection, missing-information detection, conflict detection, quality validation.
+
+**3. Domain Profile Layer** — business context injected *around* the engine, never into
+it. A profile may carry: domain name, description, terminology, typical stakeholders,
+common workflows, common business rules, required clarification categories, common risks,
+suggested non-functional requirements, domain validation rules, stakeholder question
+templates. Initial profiles: General Software · Booking and Smart Space · Custom Domain.
+*Adding a domain must never require editing the engine.*
+
+**4. Human Review Layer** — edit AI content, approve or reject individual requirements,
+mark items as needing clarification, comment, update priority and status.
+
+**5. Traceability Layer** — Business Goal → Business Requirement → Functional Requirement
+→ User Story → Acceptance Criterion → (future) Test Case.
+
+**6. Export Layer** — Markdown, JSON, CSV where appropriate, printable requirement
+document. PDF and external integrations come later.
+
+---
+
+## Data model
+
+Entities: User · Organization · Project · Domain Profile · Source Document · Source
+Segment · Analysis Run · Requirement · Requirement Relation · User Story · Acceptance
+Criterion · Risk · Assumption · Constraint · Open Question · Requirement Version · Review
+Activity.
+
+Every generated requirement supports: stable ID · requirement type · title · description ·
+priority · status · source references · confidence · review state · created and updated
+timestamps.
+
+ID format — stable, zero-padded, never renumbered once issued:
+`BR-001` · `FR-001` · `NFR-001` · `US-001` · `AC-001` · `RISK-001` · `Q-001`
+
+Traceability is the point of this product. **Do not drop IDs or source references to
+simplify a component.**
+
+### Mutability — read this before touching persistence
+
+Two different rules, easy to conflate:
+
+- **Analysis Run is immutable.** The raw validated model output is preserved exactly as
+  returned. Re-running inserts a *new* run. Never `UPDATE` a run — the before/after
+  history is a feature.
+- **Requirements are editable** — that is the whole Human Review Layer. Every edit writes
+  a **Requirement Version** row and a **Review Activity** row. History is append-only;
+  the current state is mutable.
+
+### Status workflow
+
+`Draft` → `Needs Clarification` → `Reviewed` → `Approved` → `Rejected` → `Implemented`
+
+**AI-generated requirements always start as `Draft`.** No code path may create a
+requirement in any other status.
+
+### Priority
+
+`Critical` · `High` · `Medium` · `Low` · `Unassigned`
+
+**Do not infer `Critical` without strong evidence** in the source. `Unassigned` is the
+honest default.
+
+---
+
+## AI output contract
+
+`lib/schema.ts` is the single source of truth for the analysis output contract. The
+provider adapter, the Zod validator, the UI renderer, and the Markdown/JSON/CSV exporters
+all read from it — a field name must never get a second definition.
+
+Model output is **validated before it is stored or rendered**. Never render unvalidated
+model output in the UI.
+
+A generated item looks like:
+
+```ts
+{
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  priority: "critical" | "high" | "medium" | "low" | "unassigned";
+  status: "draft";
+  sourceReferences: Array<{
+    sourceId: string;
+    excerpt: string;
+    startOffset?: number;
+    endOffset?: number;
+  }>;
+  confidence: number;
+  rationale?: string;
+}
+```
+
+### Provider rules
+
+- All model calls go through the **server-side provider adapter**. No component calls a
+  provider directly.
+- The **mock provider is deterministic** — same input, same output, no network. Local
+  development and tests run on it.
+- **Never pin a single model.** Keep an ordered fallback chain. A pinned model gets
+  retired and takes the whole app down with it — this already happened once in
+  `../Job Application Tracker Dashboard/api/match.js`.
+- **Rate-limit every route that spends money on a model call.**
+- UI language (chrome) and output language (what the model writes in) are two separate
+  controls. Do not collapse them into one toggle.
+
+---
+
+## Demo domain — Booking and Smart Space
+
+Actors: Customer · Walk-in Customer · Marketing User · Front Desk Staff · Operations
+Staff · Administrator · Management.
+
+Workflows: room search · room booking · walk-in booking · customer identity · payment ·
+check-in · QR verification · room usage · drink ordering · cancellation · refund ·
+post-service feedback · CRM campaign activation.
+
+**Assume no cancellation, refund, payment, or identity policy that is not in the source
+information.** A missing policy produces a clarification question, never a plausible
+guess. This is the sharpest test of the core principle above.
+
+---
+
+## Design direction — "Requirements Intelligence Workspace"
+
+A modern analytical workspace. Not a generic admin dashboard. Not a chatbot page.
+
+**Visual character:** dark graphite or deep navy foundation · warm off-white reading
+surfaces · electric violet and cyan accents · status colors used sparingly · subtle grid,
+connection-line, or signal-map motifs · refined borders and soft depth · limited,
+intentional glass · strong typographic hierarchy · spacious layouts · high readability for
+long requirements · smooth but restrained motion.
+
+**Signature interface** — the analysis workspace is a split layout: source information on
+the left, structured requirements on the right. Highlighting shows where a requirement
+came from; selecting a requirement highlights its source excerpt. Open questions and
+quality findings stay visible without leaving the workspace.
+
+**Components:** project command center · domain selector · source editor · requirement
+cards · quality score panel · open-question queue · traceability map · version comparison
+view · command palette · review status controls.
+
+**Avoid:** excessive gradients · excessive glassmorphism · large empty hero sections
+inside the app · generic template dashboards · chat bubbles as the primary interaction ·
+decoration that costs readability.
+
+---
+
+## Accessibility
+
+Keyboard navigation · visible focus states · readable contrast · semantic HTML · labels on
+every form control · **never communicate status by color alone** · respect reduced-motion
+preferences where practical.
+
+---
+
+## Engineering rules
+
+1. Inspect the relevant existing files before editing.
+2. Follow current repository conventions.
+3. Implement only the requested step.
+4. Do not implement future steps unless required as a minimal dependency.
+5. Do not perform unrelated refactoring — flag it, don't fix it.
+6. Reuse components before creating duplicates.
+7. Keep business logic out of presentation components.
+8. Validate all external and AI-generated data.
+9. Add tests for important logic.
+10. Never commit secrets.
+11. Update `.env.example` when adding an environment variable.
+12. Preserve unrelated user changes.
+
+### Do not touch without asking
+
+- `.env.local` and any key or secret
+- Supabase migrations already applied to the live project
+- `package-lock.json`, `node_modules/`, `.next/`
+- The `<!-- BEGIN:nextjs-agent-rules -->` block in `AGENTS.md` (tool-managed)
+
+---
+
+## Working method
+
+**Before editing:** inspect only files relevant to the current step · summarize the
+current implementation briefly · identify the minimum file set to modify.
+
+**While editing:** don't rewrite large files unnecessarily · don't duplicate documentation
+· no speculative architecture · **prefer one small complete vertical slice over several
+incomplete features**.
+
+**After editing, report:**
+
+1. What was implemented
+2. Files created or changed
+3. Important technical decisions
+4. Tests or checks executed
+5. Test results
+6. Known limitations
+7. Manual verification steps
+8. Recommended next step
+
+Write implementation reports **in Thai**, except code and technical identifiers.
+
+---
+
+## Definition of done
+
+1. `npm run build` and `npm run lint` pass clean
+2. Tests pass — unit and integration for logic, e2e for a critical flow
+3. The behavior was exercised in the running app, not just compiled
+4. Anything touching auth or data: verified as a *second* user that RLS still hides the
+   first user's rows
+5. `.env.example` updated if an environment variable was added
+6. `HANDOFF.md` reflects the current state
