@@ -267,10 +267,10 @@ their relations all land in one transaction or none do.
   and `project_is_active()` already do (§C.7's own precedent) — but the server still
   calls it on the caller's **user-scoped** client, and the function re-derives
   `auth.uid()`, membership, and archive status itself before writing anything.
-- **Display ids are allocated inside the function**, under the same project row lock
-  `next_display_id()` already takes, once per distinct `item_type` in the run (not
-  once per item) — the number a caller sees from the pure normalization layer
-  (`lib/normalization/ports.ts`) is a local placeholder, discarded here.
+- **Display ids are allocated inside the function**, as a *reserved range* per
+  `(project, prefix)` — see §C.10. The number a caller sees from the pure
+  normalization layer (`lib/normalization/ports.ts`) is a local placeholder,
+  discarded here.
 - **Local keys, not database ids, address relations and references.** The pure layer
   mints an id like `item-3` scoped to one run; the payload carries that as `local_key`
   and the function resolves it to a real `analysis_items.id` in a temp table before
@@ -280,12 +280,46 @@ their relations all land in one transaction or none do.
   persistence is ever attempted.
 - **Idempotency** — `analysis_runs.request_key`, unique per project (partial index,
   only rows written through this path carry one). A client-generated key travels with
-  the confirmation form; a resubmission with the same key returns the existing run
-  instead of writing a second one.
+  the confirmation form. A key identifies one *attempt*, so replaying it returns the
+  existing run only when the attempt is genuinely the same: same source document,
+  same actor, same provider, same output language. A key arriving with a different
+  context is a **collision and is refused** — answering it with a run about somebody
+  else's source would be a wrong answer rather than a refusal.
 - **`related_item_keys` has no relation kind of its own** in the provider contract
   (`AI-OUTPUT-CONTRACT.md`), so every edge it produces is recorded as
   `item_relations.relation_type = 'derives_from'`. This is a known simplification, not
   a claim about the specific relationship — see HANDOFF.md.
+
+---
+
+## C.10 Display id range allocation (Slice 4.1)
+
+`allocate_display_number_range(project, prefix, count)` (`20260725000012`) reserves a
+whole block of numbers for one item-type prefix, and is the only sanctioned way for
+`persist_analysis_result()` to obtain display ids.
+
+- **The lock is per `(project, prefix)` and transaction-scoped** —
+  `pg_advisory_xact_lock`, released automatically on commit or rollback. Two runs
+  writing different prefixes never block each other; two runs writing the same prefix
+  are strictly ordered.
+- **The high-water mark stays derived.** There is no counter table: the mark is
+  `max(number)` over committed `analysis_items` for that prefix, so it cannot drift
+  from the rows it describes. The reservation holds because the lock is held until the
+  caller's inserts commit.
+- **Deadlock avoidance is by ordering.** A run touches many prefixes; the RPC
+  allocates them in sorted prefix order so concurrent runs always take the locks in
+  the same sequence.
+- **Gaps are correct; collisions are not.** A rejected or deleted item leaves a
+  permanent gap — a stakeholder may already have written that number down. The
+  invariant is narrower and exact: *no two committed items in a project share a
+  display id*, enforced finally by `unique (project_id, display_id)`.
+- **Rollback semantics, stated precisely.** A transaction that fails commits no rows,
+  so the mark does not move and the next caller receives the same numbers. Nothing was
+  ever visible under those numbers, so that is not reuse.
+
+`next_display_id()` (Phase 3A) remains for single-id callers and for `verify-db.mts`
+check 7. It reads the mark without reserving anything, which is why the persistence
+path no longer uses it.
 
 ---
 

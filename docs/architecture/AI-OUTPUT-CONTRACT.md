@@ -198,7 +198,20 @@ no network, and no cost.
 - **Same input → byte-identical output.** This is assertable in a unit test, and it is what
   makes the e2e tests stable.
 
-**Coverage — the mock's Booking-and-Smart-Space fixture must produce, at minimum:**
+**Input-awareness (added slice 4.1).** The runtime mock analyses *the text it is given*.
+It segments the source document from the analysis input, matches concepts against a
+bilingual TH/EN lexicon plus vocabulary derived from the domain profile row, and emits
+citations whose offsets index into that same string. It reads the domain profile from
+the input — which the server loaded from `domain_profiles` — and never imports
+`lib/domain/profiles/*.ts` at runtime.
+
+The earlier fixture-replay behaviour was replaced because it made a citation into a
+claim about a document the user had never seen: a "valid" run was only reachable when
+the source text was byte-identical to the fixture, and every real source produced an
+`invalid` run. Implementation: `lib/providers/mock/runtime/`.
+
+**Coverage — the *contract fixture* (test-only, `lib/providers/mock/fixtures/`) must
+produce, at minimum:**
 
 - at least one item of **every one of the 14 types**, so no UI branch is unexercised
 - at least one item per `evidenceClass`, including a correctly-empty `assumed` item
@@ -207,6 +220,16 @@ no network, and no cost.
 - at least one `quality_finding` targeting an ambiguous requirement
 - source references with **correct, verifiable offsets** into the fixture source text
 - a `user_story` with its `acceptance_criterion` children linked through `relations`
+
+That fixture is exercised directly by the schema, evidence, relation and normalization
+suites. It is **not** reachable from the runtime provider — a fixture standing in for an
+analysis is the bug slice 4.1 removed.
+
+The *runtime* strategy has its own, lighter minimum for ordinary non-empty notes: a
+problem statement, business objective, stakeholder, business requirement, functional
+requirement, user story, acceptance criterion, an assumption or risk, an open question,
+and a quality finding. Fewer than 14 types is acceptable there — inventing an item type
+the text gives no basis for would be worse than omitting it.
 
 **Deliberately invalid fixtures** must also exist — an excerpt that does not match its
 offsets, an `assumed` item carrying a citation, a non-`draft` status — so that §D.8 is

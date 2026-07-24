@@ -17,13 +17,10 @@ import { GATE_MESSAGES } from "../projects/guards";
 
 /**
  * The provider-facing key for the single source document in this input. It never
- * leaves the server and carries no persisted meaning (SourceDocumentInput.key is
- * scoped to one analysis call). It is pinned to this literal because the shipped
- * mock provider is a scripted fixture for the Booking and Smart Space domain and
- * only cites this exact key — see lib/providers/mock/fixtures/booking-smart-space
- * .source.ts:15. A real provider would echo back whatever key it was given; this
- * one does not, which is a known limitation of a deterministic demo mock, not
- * something this layer should special-case around.
+ * leaves the server and carries no persisted meaning — `SourceDocumentInput.key` is
+ * scoped to one analysis call, and a provider is expected to echo back whatever key
+ * it was handed. Any stable literal works; this one reads well in a raw payload
+ * during debugging.
  */
 const ANALYSIS_SOURCE_KEY = "meeting-notes-1";
 

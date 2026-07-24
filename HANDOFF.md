@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-25 (slice 4 — deterministic mock analysis and atomic analysis
-persistence — shipped and verified against the live database)
+Last updated: 2026-07-25 (slice 4.1 — input-aware mock analysis and reserved display-id
+ranges — shipped and verified against the live database)
 
 ---
 
@@ -14,7 +14,7 @@ persistence — shipped and verified against the live database)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 4. Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 4.1. Working tree clean.
 - Nothing is blocked.
 
 **Next up: requirement editing / review workflow** — approve, reject, request
@@ -26,20 +26,27 @@ were built in slice 3.
 Slice 4 shipped: the "Analyze requirements" confirmation flow on the source detail page,
 `persist_analysis_result()` (a SECURITY DEFINER RPC — no service role in the request
 path), the read-only Analysis Result split-view workspace, and idempotent submission.
-`lib/analysis/{input,persist,queries,highlight,production-ports}.ts` plus
-`lib/analysis/run-analysis.ts` (Phase 2, now Node-runnable — see below) are the layer to
-build review actions against; `getAnalysisRun` in `lib/analysis/queries.ts` already loads
-everything a review screen would need per item.
+Slice 4.1 then made the mock **input-aware** and replaced the implicit display-id
+allocation with reserved ranges. `lib/analysis/{input,persist,queries,highlight,
+production-ports}.ts` plus `lib/analysis/run-analysis.ts` are the layer to build review
+actions against; `getAnalysisRun` in `lib/analysis/queries.ts` already loads everything a
+review screen would need per item.
+
+**How the mock behaves now (slice 4.1):** it analyses whatever text it is given.
+Generation rules live in `lib/providers/mock/runtime/` — `segments.ts` (offsets),
+`lexicon.ts` (bilingual TH/EN concepts + profile-derived vocabulary), `strategy.ts`
+(item shaping). Ordinary meeting notes typed into the browser produce a valid run with
+exact citations. The 14-type fixture in `lib/providers/mock/fixtures/` is now **test-only**
+— schema, evidence, relation and normalization suites — and is unreachable at runtime.
 
 **Known limitations to know about before touching this area:**
-- The shipped mock provider (`lib/providers/mock/mock-provider.ts`) is a scripted fixture
-  for `booking_smart_space` — it ignores the actual source text and always cites
-  `lib/providers/mock/fixtures/booking-smart-space.source.ts`'s own text at its own
-  offsets. A `valid` run is therefore only reachable when the analysed source's raw text
-  is **byte-identical** to that fixture. Any other text (including the same content
-  retyped through the browser, which submits `<textarea>` newlines as CRLF — see below)
-  correctly produces an `invalid` run. This is not a bug to fix in this area; it is what
-  "deterministic mock, not a real analyzer" means until a real provider is wired in.
+- The runtime mock is **rule-based, not a model**. It recognises a fixed concept list
+  (booking, staff, customer, payment, cancellation, refund, notification, check-in,
+  reporting, plus "unresolved" and "obligation" markers) in Thai and English, and takes
+  the rest of its guidance from the domain profile row. Text in another language, or
+  about a concept outside that list, still produces a valid analysis, but the
+  requirements it extracts will be generic — it falls back to "first stated obligation"
+  rather than understanding the sentence.
 - `related_item_keys` carries no relation kind in the AI output contract, so every edge
   it produces is persisted as `item_relations.relation_type = 'derives_from'`, regardless
   of the real relationship (e.g. an acceptance criterion "verifying" a user story is also
@@ -54,8 +61,15 @@ everything a review screen would need per item.
   run the real pipeline under Node's native TypeScript stripping. Purely mechanical;
   Next's bundler resolves both forms identically, and `npm test`/`build` are unaffected.
 
+**Display ids since 4.1:** `persist_analysis_result()` reserves a *range* per
+`(project, prefix)` through `allocate_display_number_range()`, under a transaction-scoped
+advisory lock, allocating prefixes in sorted order so concurrent runs cannot deadlock.
+`next_display_id()` still exists for single-id callers but reserves nothing, which is why
+the persistence path no longer uses it. Gaps are correct; the invariant is that no two
+*committed* items in a project share a display id. See DATA-MODEL.md §C.10.
+
 **The database is real.** A hosted Supabase project is linked (`rgfwtflsvnlgfiuoxowm`),
-all 11 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
+all 12 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
 gitignored — never commit it.
 
 ```bash
@@ -63,7 +77,7 @@ npm run dev                  # http://localhost:3000
 npm run verify:db            # 8/8 schema checks (slice 1, check 3 updated in slice 3)
 npm run verify:projects      # 10/10 project lifecycle checks (slice 2)
 npm run verify:sources       # 18/18 source, lock and revision checks (slice 3)
-npm run verify:analysis      # 20/20 analysis persistence checks (slice 4)
+npm run verify:analysis      # 25/25 analysis, allocation and idempotency checks (4 + 4.1)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
@@ -83,12 +97,26 @@ npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN
   in the Supabase dashboard if needed), owning one demo project.
 - Slice 3 added a second: `slice3.demo@reqwise.dev` / `Slice3Demo!2026`, owning the
   project *Smart Space intake — slice 3* with two revisions of one document (revision 1
-  locked by an analysis run, revision 2 editable), and now also *Browser verification —
-  matches mock fixture* under that same account (slice 4), a source whose raw text is
-  byte-identical to the mock's fixture — analysing it is the only way to see a `valid`
-  run with real items through the browser rather than through `verify:analysis`.
+  locked by an analysis run, revision 2 editable). Slice 4.1 added the source
+  *ประชุมเก็บความต้องการระบบจองห้องประชุม* to it, **typed into the browser form**, with two
+  analysis runs over it. That is the demo to open: any ordinary notes now analyse, so the
+  earlier "matches mock fixture" source is no longer special.
 - The stray account `tanawittam@gmail.com`, created accidentally during slice-3 browser
   verification, was identified, audited and removed on 2026-07-24. No longer present.
+
+### Browser demo input, and what it should produce
+
+```text
+ลูกค้าต้องการจองห้องประชุมผ่านเว็บไซต์ โดยเลือกสาขา ห้อง วันที่ และเวลาได้
+พนักงานต้องเห็นรายการจองและตรวจสอบลูกค้าที่มาเช็กอิน
+ยังไม่ได้ข้อสรุปเรื่องการยกเลิก การคืนเงิน และช่องทางแจ้งเตือน
+```
+
+18 items: a booking business requirement citing line 1, a staff functional requirement
+citing line 2, both customer and staff stakeholders, and — the part that matters —
+cancellation, refund and notification appearing as **open questions citing line 3**,
+never as requirements. Payment and customer identity arrive as profile-raised questions
+with no citation at all.
 
 ## Verbatim text — one caveat worth knowing
 
@@ -98,6 +126,19 @@ it in either direction, and every offset is measured against the *stored* text, 
 `rawText.substring(start, end)` holds. Do not "fix" this by normalising on write — that
 would be an intentional edit of evidence, and it would move every offset after the first
 newline.
+
+The definition that keeps this coherent, in one line:
+
+> **server-received text = database-stored text = the text offsets are validated against**
+
+Since slice 4.1 the provider is on the same side of that equality: it segments the text
+handed to it on the analysis input — which `buildAnalysisInput` read from the database —
+and every citation offset it emits indexes into that exact string. Three lines typed in
+the browser arrive as 192 characters, not 190, and both the citation and the highlight
+agree with the 192. `lib/providers/mock/runtime/segments.ts` handles CRLF, LF and lone
+CR without rewriting any of them, and never locates an excerpt with `indexOf` — each
+segment carries its own offsets, so a document containing the same sentence twice cites
+the occurrence that was actually chosen.
 
 ---
 

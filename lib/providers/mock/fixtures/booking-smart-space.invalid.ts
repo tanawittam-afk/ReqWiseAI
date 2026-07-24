@@ -9,8 +9,8 @@
  * test can attribute the rejection to that one cause.
  */
 
-import { PROVIDER_SCHEMA_VERSION } from "../../../contracts/provider-output";
-import { BOOKING_SOURCE_KEY, citation } from "./booking-smart-space.source";
+import { PROVIDER_SCHEMA_VERSION } from "../../../contracts/provider-output.ts";
+import { BOOKING_SOURCE_KEY, citation } from "./booking-smart-space.source.ts";
 
 const okReference = () => citation("จองซ้ำห้องเดียวกันสองรายในเวลาเดียวกัน");
 

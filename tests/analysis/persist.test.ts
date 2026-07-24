@@ -111,4 +111,30 @@ describe("persistAnalysisResult", () => {
     expect(outcome.error).toMatch(/archived/i);
     expect(outcome.error).not.toMatch(/policy|table|analysis_runs/i);
   });
+
+  it("explains an idempotency collision without leaking the other analysis", async () => {
+    const result: RunAnalysisResult = { status: "provider_error", error: "x" };
+    const client = clientWith({
+      error: { message: "this request identifier has already been used for a different analysis" },
+    });
+    const outcome = await persistAnalysisResult(client, PROJECT, SOURCE, "reused-key-1", bookingInput(), result);
+
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.error).toMatch(/already used/i);
+    expect(outcome.error).toMatch(/reload/i);
+    // Nothing about the run it collided with.
+    expect(outcome.error).not.toMatch(/run|source|identifier|analysis_runs/i);
+  });
+
+  it("sends the output language, so a collision on a different language is detectable", async () => {
+    const result: RunAnalysisResult = { status: "provider_error", error: "x" };
+    const client = clientWith({ data: { run_id: "r", validation_status: "provider_error", duplicate: false } });
+    const input = { ...bookingInput(), outputLang: "en" as const };
+    await persistAnalysisResult(client, PROJECT, SOURCE, "request-key-lang", input, result);
+
+    expect(client.rpcCalls[0].args.p_output_lang).toBe("en");
+    expect(client.rpcCalls[0].args.p_source).toBe(SOURCE);
+    expect(client.rpcCalls[0].args.p_provider).toBe("mock");
+  });
 });

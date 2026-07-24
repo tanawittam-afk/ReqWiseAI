@@ -49,6 +49,11 @@ function translate(detail: string): string {
     return "This project or source is not available.";
   }
   if (/authentication required/i.test(detail)) return "Your session has expired. Sign in again.";
+  // The key was already spent on a different analysis. Reloading mints a new one,
+  // which is the honest fix — retrying this exact request never will be.
+  if (/already been used for a different analysis/i.test(detail)) {
+    return "This request was already used for a different analysis. Reload the page and try again.";
+  }
   return "The analysis could not be saved. Try again.";
 }
 

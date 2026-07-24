@@ -18,6 +18,7 @@ Schema, constraints, RLS, and workspace bootstrap for the 12-table model in
 | `20260724000009_source_kind_operational.sql` | Adds `operational_notes` to the `source_kind` enum |
 | `20260724000010_analysis_persistence.sql` | `analysis_runs.request_key` (idempotency) + `persist_analysis_result()`, the atomic RPC that writes a run and its items, references and relations in one transaction |
 | `20260724000011_analysis_persistence_guards.sql` | Defense-in-depth: `persist_analysis_result()` also refuses an `assumed` item carrying a source reference, mirroring `lib/validation/evidence.ts` at the write boundary |
+| `20260725000012_display_id_ranges.sql` | `allocate_display_number_range()` — reserves a block of display numbers per `(project, prefix)` under a transaction-scoped advisory lock; `persist_analysis_result()` switches to it and binds an idempotency key to the context it was first used with |
 
 `seed.sql` seeds the two domain profiles — identity **and** content. It is **generated**
 from `lib/domain/profiles/*.ts` by `npm run seed:profiles`; never hand-edit it.
@@ -72,12 +73,20 @@ Then prove the invariants (these are the acceptance checks, not yet run):
    existing run instead of writing a second one. `analysis_items` has no INSERT policy at
    all, so even a correctly-shaped direct client insert is refused — the RPC is the only
    door.
+10. **Display id ranges and idempotency context** — `allocate_display_number_range()`
+    refuses a count below 1, a malformed prefix and a non-member, and reserves a whole
+    block under a per-`(project, prefix)` transaction lock. Two *genuinely concurrent*
+    persists into one project produce non-overlapping blocks per prefix, and the
+    high-water mark afterwards equals the last committed number. A transaction that
+    rolls back leaves the mark untouched and no orphan item behind. A request key
+    replayed with the same context returns the original run and writes nothing new; the
+    same key with a different source, or a different output language, is refused.
 
 ### Running the checks
 
 Checks 1–7 are `npm run verify:db`, the project lifecycle is `npm run verify:projects`,
-check 8 is `npm run verify:sources`, and check 9 is `npm run verify:analysis` — 8, 10, 18
-and 20 assertions respectively, all against the linked project. Verification rows cannot
+check 8 is `npm run verify:sources`, and checks 9–10 are `npm run verify:analysis` — 8,
+10, 18 and 25 assertions respectively, all against the linked project. Verification rows cannot
 be removed through the API (the immutability triggers refuse DELETE even for the service
 role, which is the schema working); clear them with
 `npx supabase db query --linked -f scripts/verify-db-cleanup.sql`. Disabling triggers is a
