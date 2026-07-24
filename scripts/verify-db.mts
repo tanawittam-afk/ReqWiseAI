@@ -226,29 +226,16 @@ async function main(): Promise<void> {
   });
 
   // --- 3. immutability -----------------------------------------------------
-  await check("3. immutable tables reject UPDATE and DELETE", async () => {
-    // Two different refusals, and they do not look alike. RLS has no UPDATE policy on
-    // this table, so PostgREST matches zero rows and returns success with an empty
-    // set — no error. The trigger is what raises, and only the service role gets far
-    // enough to hear it.
-    const { data: updatedRows, error: updateError } = await clientA
+  await check("3. sources freeze on analysis; runs are immutable outright", async () => {
+    // Slice 3 narrowed this rule deliberately (20260724000008). A source used to be
+    // write-once, which was right while a source arrived already analysed and wrong
+    // once a BA could paste notes and re-read them before running anything. What is
+    // immutable now is a revision something *cites* — which is what this checks.
+    const { error: editError } = await clientA
       .from("source_documents")
-      .update({ title: "edited" })
-      .eq("id", sourceA)
-      .select("id");
-    assert(
-      updateError || (updatedRows ?? []).length === 0,
-      "RLS allowed a user to UPDATE an immutable source document",
-    );
-    const updateSource = updateError
-      ? updateError.message.split("\n")[0]
-      : "no rows matched (no UPDATE policy)";
-
-    // service role bypasses RLS — the trigger must still refuse.
-    const adminUpdate = refused(
-      await admin.from("source_documents").update({ title: "edited" }).eq("id", sourceA),
-      "updating a source document as service role",
-    );
+      .update({ title: "edited before any analysis" })
+      .eq("id", sourceA);
+    assert(!editError, `an unanalysed source refused a legitimate edit: ${editError?.message}`);
 
     const { data: run, error: runError } = await admin
       .from("analysis_runs")
@@ -266,11 +253,30 @@ async function main(): Promise<void> {
     assert(!runError, `analysis_run insert failed: ${runError?.message}`);
     runA = run.id;
 
+    // The run now cites the source, so the source is frozen — for its owner and for
+    // the service role alike, because this one is a trigger rather than a policy.
+    const userFrozen = refused(
+      await clientA.from("source_documents").update({ title: "edited after analysis" }).eq("id", sourceA),
+      "editing a source that an analysis run cites",
+    );
+    const adminFrozen = refused(
+      await admin.from("source_documents").update({ title: "edited after analysis" }).eq("id", sourceA),
+      "editing a cited source as service role",
+    );
+    const deleteFrozen = refused(
+      await admin.from("source_documents").delete().eq("id", sourceA),
+      "deleting a source as service role",
+    );
+
     const updateRun = refused(
       await admin.from("analysis_runs").update({ provider: "gemini" }).eq("id", runA),
       "updating an analysis run",
     );
-    return `source update refused (user: ${updateSource}; service role: ${adminUpdate}), run update refused (${updateRun})`;
+    return (
+      `unanalysed edit allowed; after analysis frozen (user: ${userFrozen}; ` +
+      `service role: ${adminFrozen}); delete refused (${deleteFrozen}); ` +
+      `run update refused (${updateRun})`
+    );
   });
 
   // --- 4. the AI never decides --------------------------------------------

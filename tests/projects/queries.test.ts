@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 import { countProjects, getProject, listProjects } from "../../lib/projects/queries";
-import { fakeSupabase, type Row } from "./fake-supabase";
+import { fakeSupabase, type Row } from "../fake-supabase";
 
 const BOOKING = { key: "booking_smart_space", name: "Booking and Smart Space" };
 

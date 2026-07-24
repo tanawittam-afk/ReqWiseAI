@@ -13,6 +13,9 @@ Schema, constraints, RLS, and workspace bootstrap for the 12-table model in
 | `20260724000004_workspace_bootstrap.sql` | `handle_new_user` — personal org + membership on sign-up |
 | `20260724000005_review_and_versioning.sql` | Insert-draft rule, status-transition guard, auto-versioning, `review_item()`, DB-backed display-id allocator |
 | `20260724000006_rls.sql` | Membership helpers + per-table policies |
+| `20260724000007_project_lifecycle.sql` | Project intake fields, archive/restore lifecycle, column guard; removes the project DELETE policy |
+| `20260724000008_source_revisions.sql` | Source revision identity (`document_key`, `revision_number`, `supersedes_…`), metadata, archived-project and lock guards, source UPDATE policy |
+| `20260724000009_source_kind_operational.sql` | Adds `operational_notes` to the `source_kind` enum |
 
 `seed.sql` seeds the two domain profiles — identity **and** content. It is **generated**
 from `lib/domain/profiles/*.ts` by `npm run seed:profiles`; never hand-edit it.
@@ -37,8 +40,10 @@ Then prove the invariants (these are the acceptance checks, not yet run):
    and one `organization_members(role='owner')` exist for them.
 2. **RLS isolation** — as a second user, `select` the first user's `projects`,
    `analysis_items`, etc. → zero rows.
-3. **Immutability** — `update source_documents ...` and `update analysis_runs ...` →
-   both rejected by trigger; likewise `delete` on `item_versions` / `review_activities`.
+3. **Immutability** — `update analysis_runs ...` is rejected by trigger, likewise `delete`
+   on `item_versions` / `review_activities`. `source_documents` is **narrower since Slice
+   3**: an unreferenced revision may be edited, a revision cited by any `analysis_runs`
+   row is frozen outright, and no revision may ever be deleted. See check 8.
 4. **AI cannot decide** — `insert into analysis_items(... status='approved')` → rejected;
    a direct `update analysis_items set status='approved'` → rejected (must go through
    `review_item()`).
@@ -52,3 +57,18 @@ Then prove the invariants (these are the acceptance checks, not yet run):
    inserting returns the same id both times. Numbers are never reused, and a rejected
    or deleted item leaves a permanent gap — a gap is correct behaviour, not a defect,
    because a stakeholder may already have written that number down.
+8. **Source revisions** — a source is editable until an `analysis_runs` row cites it, then
+   frozen; editing a frozen revision inserts revision N+1 sharing its `document_key`, and
+   the original row and the run that cites it are unchanged. A forged `revision_number`, a
+   number that skips, a duplicate, a predecessor in another project, and any write under an
+   archived project are all rejected by trigger.
+
+### Running the checks
+
+Checks 1–7 are `npm run verify:db`, the project lifecycle is `npm run verify:projects`,
+and check 8 is `npm run verify:sources` — 8, 10 and 18 assertions respectively, all
+against the linked project. Verification rows cannot be removed through the API (the
+immutability triggers refuse DELETE even for the service role, which is the schema
+working); clear them with
+`npx supabase db query --linked -f scripts/verify-db-cleanup.sql`. Disabling triggers is a
+maintenance operation and never part of an application workflow.

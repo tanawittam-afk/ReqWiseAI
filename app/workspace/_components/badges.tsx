@@ -7,6 +7,7 @@
  */
 
 import type { ProjectStatus } from "@/lib/contracts/project";
+import { SOURCE_KIND_LABELS, type SourceKind } from "@/lib/contracts/source";
 
 export function StatusBadge({ status }: { status: ProjectStatus }) {
   const archived = status === "archived";
@@ -40,6 +41,42 @@ export function LangBadge({ lang }: { lang: string }) {
   return (
     <span className="rounded-md border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-text-faint">
       {lang === "th" ? "TH" : "EN"}
+    </span>
+  );
+}
+
+export function SourceKindBadge({ kind }: { kind: SourceKind }) {
+  return (
+    <span className="rounded-md border border-border-soft bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-muted">
+      {SOURCE_KIND_LABELS[kind]}
+    </span>
+  );
+}
+
+/**
+ * Locked is a state with consequences, so it says so in words. The unlocked case says
+ * "Editable" rather than showing nothing: an absent badge reads as "unknown", and the
+ * whole point of the lock is that a person can tell at a glance which one they have.
+ */
+export function LockBadge({ locked }: { locked: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+        locked
+          ? "border-signal-border bg-signal-soft text-signal"
+          : "border-border-soft bg-surface-muted text-text-muted"
+      }`}
+    >
+      <span aria-hidden="true">{locked ? "◆" : "◇"}</span>
+      {locked ? "Analysed — locked" : "Editable"}
+    </span>
+  );
+}
+
+export function RevisionBadge({ revision }: { revision: number }) {
+  return (
+    <span className="rounded-md border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-text-faint">
+      rev {revision}
     </span>
   );
 }

@@ -17,7 +17,7 @@ simplifications" justifies every collapse.
 | 3 | `organization_members` | Who may reach an organization, and as what role | Mutable role |
 | 4 | `projects` | A unit of analysis work; owns sources, runs, items. Names its domain profile | Mutable |
 | 5 | `domain_profiles` | Business context as **data**: terminology, stakeholders, workflows, rules, clarification categories, risks, suggested NFRs, validation rules, question templates | Seeded; admin-mutable |
-| 6 | `source_documents` | The raw business input, verbatim | **Immutable** |
+| 6 | `source_documents` | The raw business input, verbatim. Revisioned: `document_key` + `revision_number` | **Editable until analysed, then frozen** |
 | 7 | `analysis_runs` | One execution: provider, model, prompt version, raw output, validated output, validation status | **Immutable** |
 | 8 | `analysis_items` | Every structured output, discriminated by `item_type` | **Mutable — the review surface** |
 | 9 | `item_source_references` | Vertical traceability: item → exact excerpt in a source | Insert/delete with item edits |
@@ -82,10 +82,36 @@ exchange for RLS that stays cheap and readable.**
 
 ## C.3 Immutability rules
 
-**`source_documents`** — insert and select only. No UPDATE, no DELETE policy exists.
-Analysis items reference character offsets into `raw_text`; if the text could change, every
-stored highlight would silently point at the wrong words. Correcting a source means adding
-a new source document, not editing the old one.
+**`source_documents`** — revisioned audit evidence. Never deleted; frozen once cited.
+*(Narrowed in Slice 3, migration `20260724000008_source_revisions.sql`.)*
+
+The reason offsets must not move has not changed. What changed is the observation that a
+source is not evidence of anything until something cites it:
+
+- **Before any analysis run references it**, a revision may be edited in place. Nothing
+  points at its offsets yet, so nothing can be invalidated. This is the ordinary case —
+  a BA pastes notes, re-reads them, fixes a typo.
+- **The moment an `analysis_runs` row references it**, the revision is permanently frozen:
+  `raw_text`, `title`, `kind` and metadata alike. A citation is a snapshot of how the
+  document read at that moment, not of its body alone.
+- **Editing a frozen revision creates revision N+1** — a new row sharing the predecessor's
+  `document_key`, with `revision_number = N+1` and `supersedes_source_document_id` pointing
+  back. The earlier revision, and every run that cites it, are untouched.
+- **No revision is ever hard-deleted**, frozen or not. RLS has no DELETE policy and
+  `source_documents_no_delete` refuses even the service role. Permanent purge is a future
+  privileged retention workflow, not a user action and not a manual trigger-disabling step.
+- **An archived project is read-only**: no source may be added, edited or superseded under
+  it until it is restored (`guard_source_document_insert` / `guard_source_document_update`).
+
+"Locked" is **not a column**. It is `exists (select 1 from analysis_runs where
+source_document_id = …)`, exposed as `source_document_is_locked(uuid)`. A stored boolean
+could drift from the runs it claims to describe; a derived one cannot.
+
+`raw_text` is stored **verbatim** — never trimmed, re-wrapped, whitespace-collapsed or
+newline-normalised. One caveat worth knowing: browsers submit `<textarea>` newlines as CRLF
+per the HTML spec, so text typed with LF arrives as CRLF and is stored that way. The server
+does not alter it in either direction, and offsets are always measured against the stored
+text, so `rawText.substring(start, end)` holds.
 
 **`analysis_runs`** — insert and select only. Stores both:
 - `raw_provider_output` — exactly what the provider returned, unmodified
@@ -183,9 +209,9 @@ is_org_member(org uuid) -- true if auth.uid() is in organization_members for org
 | `profiles` | self | self | self | ✗ |
 | `organizations` | member | ✗ (trigger only) | owner | ✗ |
 | `organization_members` | member of same org | ✗ (trigger only) | ✗ | ✗ |
-| `projects` | `is_org_member` | `is_org_member` | `is_org_member` | owner |
+| `projects` | `is_org_member` | `is_org_member` | `is_org_member` | **✗** (archive instead) |
 | `domain_profiles` | any authenticated | ✗ | ✗ | ✗ |
-| `source_documents` | project's org | project's org | **✗** | **✗** |
+| `source_documents` | project's org | project's org (active project only) | project's org, **unlocked revision, active project** | **✗** |
 | `analysis_runs` | project's org | project's org | **✗** | **✗** |
 | `analysis_items` | project's org | service only | project's org | soft delete only |
 | `item_source_references` | project's org | with parent item | ✗ | with parent item |

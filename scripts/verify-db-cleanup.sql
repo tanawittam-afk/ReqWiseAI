@@ -1,4 +1,5 @@
--- Removes everything scripts/verify-db.mts creates.
+-- Removes everything scripts/verify-db.mts, verify-projects.mts and verify-sources.mts
+-- create.
 --
 --   npx supabase db query --linked -f scripts/verify-db-cleanup.sql
 --
@@ -26,7 +27,9 @@ alter table review_activities disable trigger user;
 -- no delete path at all, which is the point of this file.
 delete from projects
  where name like 'Verification project%'
-    or name like 'Slice 2 verification project%';
+    or name like 'Slice 2 verification project%'
+    or name like 'Slice 3 %'
+    or name like 'User B''s project%';
 
 alter table source_documents  enable trigger user;
 alter table analysis_runs     enable trigger user;
@@ -34,7 +37,9 @@ alter table item_versions     enable trigger user;
 alter table review_activities enable trigger user;
 
 -- Cascades to profiles and organization_members.
-delete from auth.users where email like 'reqwise-verify-%@example.com';
+delete from auth.users
+ where email like 'reqwise-verify-%@example.com'
+    or email like 'reqwise-src-%@example.com';
 
 -- Personal organizations are not owned by a user row, so they outlive the cascade.
 delete from organizations o

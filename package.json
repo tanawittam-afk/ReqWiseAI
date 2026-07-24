@@ -13,7 +13,8 @@
     "verify:projects": "node scripts/verify-projects.mts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "verify:sources": "node scripts/verify-sources.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

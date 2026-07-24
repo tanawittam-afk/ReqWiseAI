@@ -15,7 +15,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
-import { DomainBadge, LangBadge, StatusBadge, formatDate } from "../../_components/badges";
+import { listSources } from "@/lib/sources/queries";
+import type { SourceSummary } from "@/lib/sources/types";
+import {
+  DomainBadge,
+  LangBadge,
+  LockBadge,
+  RevisionBadge,
+  StatusBadge,
+  formatDate,
+} from "../../_components/badges";
 import { ArchiveControls } from "./archive-controls";
 
 export const metadata = { title: "Project — ReqWise AI" };
@@ -34,6 +43,9 @@ export default async function ProjectOverviewPage({
   const project = await getProject(supabase, projectId);
   if (!project) notFound();
 
+  // The five most recent documents, so the overview shows the work rather than
+  // describing it. The full set lives one click away.
+  const recentSources = await listSources(supabase, projectId, { limit: 5 });
   const archived = project.status === "archived";
 
   return (
@@ -110,16 +122,59 @@ export default async function ProjectOverviewPage({
             </div>
           </section>
 
-          {archived ? null : (
-            <section className="rounded-[var(--radius-panel)] border border-accent-border bg-accent-soft px-5 py-4">
-              <h2 className="text-sm font-semibold text-text">
-                Next step — add source information
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-text-muted">
-                Paste the meeting notes, interview or client message this project is about.
-                Requirements are only ever generated from text you supply.
-              </p>
-              <p className="mt-2 text-xs text-text-faint">Available in the next slice.</p>
+          {recentSources.length === 0 ? (
+            archived ? (
+              <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface-muted px-5 py-4">
+                <h2 className="text-sm font-semibold text-text">No source documents</h2>
+                <p className="mt-1 text-sm leading-relaxed text-text-muted">
+                  This project was archived before any source information was added.
+                </p>
+              </section>
+            ) : (
+              <section className="rounded-[var(--radius-panel)] border border-accent-border bg-accent-soft px-5 py-4">
+                <h2 className="text-sm font-semibold text-text">
+                  Next step — add source information
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-text-muted">
+                  Paste the meeting notes, interview or client message this project is
+                  about. Requirements are only ever generated from text you supply.
+                </p>
+                <Link
+                  href={`/workspace/projects/${projectId}/sources/new`}
+                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4
+                             text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+                >
+                  Add source information
+                </Link>
+              </section>
+            )
+          ) : (
+            <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-soft px-5 py-3">
+                <h2 className="text-sm font-semibold text-text">Recent sources</h2>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/workspace/projects/${projectId}/sources`}
+                    className="text-xs font-medium text-accent underline underline-offset-2"
+                  >
+                    View all {project.sourceDocumentCount}
+                  </Link>
+                  {archived ? null : (
+                    <Link
+                      href={`/workspace/projects/${projectId}/sources/new`}
+                      className="rounded-md border border-border-soft px-2.5 py-1.5 text-xs font-medium
+                                 text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+                    >
+                      Add source
+                    </Link>
+                  )}
+                </div>
+              </div>
+              <ul className="flex flex-col divide-y divide-[var(--border)]">
+                {recentSources.map((source) => (
+                  <SourceRow key={source.id} projectId={projectId} source={source} />
+                ))}
+              </ul>
             </section>
           )}
         </div>
@@ -146,6 +201,34 @@ export default async function ProjectOverviewPage({
         </aside>
       </div>
     </main>
+  );
+}
+
+/** One line per document: what it is, which revision, and whether it can still move. */
+function SourceRow({
+  projectId,
+  source,
+}: {
+  projectId: string;
+  source: SourceSummary;
+}) {
+  return (
+    <li>
+      <Link
+        href={`/workspace/projects/${projectId}/sources/${source.id}`}
+        className="flex min-h-11 flex-col gap-1.5 px-5 py-3 transition-colors hover:bg-surface-hover
+                   sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+      >
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-sm font-medium text-text">{source.title}</span>
+          <span className="truncate text-xs text-text-faint">{source.preview}</span>
+        </span>
+        <span className="flex shrink-0 flex-wrap items-center gap-1.5">
+          <RevisionBadge revision={source.revisionNumber} />
+          <LockBadge locked={source.locked} />
+        </span>
+      </Link>
+    </li>
   );
 }
 

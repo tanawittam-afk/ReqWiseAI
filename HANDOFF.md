@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-24 (slice 2 — project creation, list and the archive lifecycle —
-shipped and verified against the live database)
+Last updated: 2026-07-24 (slice 3 — source documents, editing, locking and the revision
+lifecycle — shipped and verified against the live database)
 
 ---
 
@@ -14,24 +14,33 @@ shipped and verified against the live database)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 2. Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 3. Working tree clean.
 - Nothing is blocked.
 
-**Next up: vertical slice 3 — Add source document**
-(`docs/architecture/ARCHITECTURE.md` §E, slice 3). Paste or type text, store it
-**immutably**, render it back verbatim. The project overview already links to it as the
-next step, and `projects.output_lang` is already stored per project. An archived project
-must be refused: guard on `project.status` before any write, the same way the UI already
-hides the action.
+**Next up: vertical slice 4 — the analysis run**
+(`docs/architecture/ARCHITECTURE.md` §E). Everything upstream of the provider now exists:
+a project owns revisioned sources, `projects.output_lang` says which language to answer
+in, the domain profile is loadable from the database, and `lib/analysis/run-analysis.ts`
+plus the mock provider have been unit-tested since Phase 2. What slice 4 adds is the
+button, the `analysis_runs` insert, and persisting `analysis_items` — note that
+`analysis_items` has **no INSERT policy**, so items are written server-side with the
+service role (Phase 3A open decision #3), while the run row itself is user-scoped.
+
+Two things slice 3 leaves ready for it:
+- `assertProjectIsActive` (`lib/projects/guards.ts`) is the shared gate — reuse it before
+  starting a run rather than re-deriving the rule.
+- Locking is automatic. The moment a run row cites a source, that revision freezes; no
+  extra call is needed and no flag has to be maintained.
 
 **The database is real.** A hosted Supabase project is linked (`rgfwtflsvnlgfiuoxowm`),
-all 7 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
+all 9 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
 gitignored — never commit it.
 
 ```bash
 npm run dev                  # http://localhost:3000
-npm run verify:db            # 8/8 schema checks (slice 1)
+npm run verify:db            # 8/8 schema checks (slice 1, check 3 updated in slice 3)
 npm run verify:projects      # 10/10 project lifecycle checks (slice 2)
+npm run verify:sources       # 18/18 source, lock and revision checks (slice 3)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
@@ -49,6 +58,22 @@ npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN
   browser, and it does not appear anywhere in the project request path.
 - A dev account exists: `slice1-demo@example.com` (password not recorded here — reset it
   in the Supabase dashboard if needed), owning one demo project.
+- Slice 3 added a second: `slice3.demo@reqwise.dev` / `Slice3Demo!2026`, owning the
+  project *Smart Space intake — slice 3* with two revisions of one document (revision 1
+  locked by an analysis run, revision 2 editable). Handy for exercising the locked state
+  without re-running the setup.
+- **A stray account `tanawittam@gmail.com` was created on 2026-07-24 by an errant browser
+  click during slice-3 verification** (Chrome autofilled the sign-up form). It owns no
+  projects. Delete it in the Supabase dashboard, or leave it — it is inert either way.
+
+## Verbatim text — one caveat worth knowing
+
+Browsers submit `<textarea>` newlines as **CRLF**, per the HTML spec. Text typed with LF
+therefore arrives at the server as CRLF and is stored that way. The server never rewrites
+it in either direction, and every offset is measured against the *stored* text, so
+`rawText.substring(start, end)` holds. Do not "fix" this by normalising on write — that
+would be an intentional edit of evidence, and it would move every offset after the first
+newline.
 
 ---
 
@@ -154,10 +179,21 @@ but the seam must exist from the start so the engine never learns domain facts.
       `archive_project()` / `restore_project()` as the only status path.
       `/workspace/projects`, `/new` and `/[projectId]` are the UI;
       `lib/contracts/project.ts` + `lib/projects/` are the logic.
-- [ ] **Phase 3C+ — remaining vertical slices.** add source → run mock
-      analysis (persist run + items + refs in one transaction) → workspace split-pane →
-      edit item → review/approve → export. Slice order in
-      `docs/architecture/ARCHITECTURE.md` §E.
+- [x] **Slice 3 — Source documents, editing, locking and revisions (2026-07-24). VERIFIED
+      AT RUNTIME (18/18) AND IN THE BROWSER.** Migration
+      `20260724000008_source_revisions.sql` turns `source_documents` into revisioned
+      evidence (`document_key`, `revision_number`, `supersedes_source_document_id`,
+      `metadata`, `updated_at`), replaces the blanket no-UPDATE trigger with
+      `guard_source_document_update` (frozen once cited, identity columns pinned,
+      archived project refused), adds `guard_source_document_insert` (chain integrity +
+      archived project), the derived `source_document_is_locked()` /
+      `project_is_active()` helpers, and a source UPDATE policy;
+      `20260724000009` adds the `operational_notes` enum value.
+      `/…/sources`, `/sources/new`, `/sources/[sourceId]` and `/edit` are the UI;
+      `lib/contracts/source.ts` + `lib/sources/` + `lib/projects/guards.ts` are the logic.
+- [ ] **Phase 3C+ — remaining vertical slices.** run mock analysis (persist run + items +
+      refs in one transaction) → workspace split-pane → edit item → review/approve →
+      export. Slice order in `docs/architecture/ARCHITECTURE.md` §E.
 - [ ] **Phase 4 — Review & QA → deploy.** Vercel deploy is a protected action; needs
       explicit approval and env vars set in the dashboard, never committed.
 
@@ -233,6 +269,52 @@ triggers refuse DELETE for the service role too, and a `projects` cascade hits t
 user triggers for the duration of the delete. That is a maintenance operation the
 application can never perform.
 
+## Runtime verification (2026-07-24) — slice 3, 18/18 PASS
+
+`npm run verify:sources` (`scripts/verify-sources.mts`), same shape, two fresh users. The
+analysis run that locks a revision is created by the script itself, through the ordinary
+user-scoped RLS path — no application backdoor was added to make locking testable.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | A user adds a source to their own active project | PASS |
+| 2 | A first source is revision 1; a forged `revision_number` is refused | PASS |
+| 3 | Raw text round-trips character for character; offsets survive | PASS |
+| 4 | User B sees user A's source neither by list nor by direct id | PASS |
+| 5 | User B cannot add a source to user A's project | PASS |
+| 6 | An unanalysed source is edited in place and stays revision 1 | PASS |
+| 7 | An archived project refuses a new source | PASS |
+| 8 | An archived project refuses an edit to an existing source | PASS |
+| 9 | An analysis run locks the revision it references | PASS |
+| 10 | A locked revision refuses every edit — text, title and metadata | PASS |
+| 11 | No source can be hard-deleted; the trigger refuses the service role too | PASS |
+| 12 | Revision 2 can be created from a locked revision 1 | PASS |
+| 13 | Revision 2 cites revision 1, keeps `document_key`; skipping numbers is refused | PASS |
+| 14 | A revision cannot cross projects | PASS |
+| 15 | A duplicate revision number is refused | PASS |
+| 16 | The original run still cites revision 1; revision 1 is unchanged | PASS |
+| 17 | User B cannot create a revision of user A's source | PASS |
+| 18 | Cross-organization insert and a forged `created_by` are both refused | PASS |
+
+`verify:db` check 3 was **rewritten**, not relaxed: it used to assert that
+`source_documents` refuses every UPDATE, which slice 3 deliberately changed. It now
+asserts the narrower rule — an unanalysed source accepts a legitimate edit, and the same
+row refuses one the moment a run cites it, for the owner and the service role alike.
+
+Slice-3 UI, verified in the browser against the same database: sign in → create a project
+→ add a source whose text carries leading spaces, a three-newline run, a tab, Thai and
+English, and a trailing newline → redirect to the detail view → the text renders verbatim
+under `white-space: pre-wrap` and `substring()` addressing still lands on the right words
+→ the overview count moves to 1 and the Recent sources panel appears → edit in place (same
+row, still revision 1) → lock the source with a run → the detail view switches to
+"Analysed — locked", explains why, and offers *Create revision 2* → creating it writes a
+new row (revision 2, editable, `Analysis runs 0`) while revision 1 keeps its text and
+gains a "newer revision exists" link → archive the project → the banner appears with the
+reason, Add source disappears, `/sources/new` refuses to render a form → **a form opened
+while the project was still active and submitted after archiving was refused server-side
+and wrote no row** → restore → actions return → sign out → all four source routes `307` to
+`/sign-in` with `next` preserved.
+
 ## Open decisions and known consequences
 
 1. **`analysis_runs` is write-once** (no pending→complete row) → no streaming/long-run
@@ -246,15 +328,23 @@ application can never perform.
    `projects_delete_owner` RLS policy dropped so no delete path exists at all. Restore is
    owner-only. Hard purge remains out of scope (it would need the maintenance path in
    `scripts/verify-db-cleanup.sql`, which disables the immutability triggers).
-4. **`next_display_id()` is a high-water mark, not a sequence.** Calling it twice without
+4. **A source is frozen by citation, not by age — RESOLVED in slice 3.** `source_documents`
+   was originally write-once, which made "fix a typo before running anything" impossible.
+   The rule is now: editable until an `analysis_runs` row references the revision, frozen
+   permanently after, and editing a frozen revision inserts revision N+1 chained to it.
+   Deletion is still impossible in every state. Lock state is **derived**
+   (`source_document_is_locked()`), never stored, so it cannot drift from the runs it
+   describes. Consequence: a project accumulates one row per revision and the list shows
+   all of them — a history view that groups by `document_key` is a later slice's job.
+5. **`next_display_id()` is a high-water mark, not a sequence.** Calling it twice without
    inserting returns the same id. Correct for preserving gaps from rejected items;
    allocate → insert → allocate. Documented in `DATA-MODEL.md` §C.1 and
    `supabase/README.md`; do not "fix" the function to close gaps.
-5. **Only Booking and Smart Space can be selected as a domain.** General Software and
+6. **Only Booking and Smart Space can be selected as a domain.** General Software and
    Custom Domain render as *Coming soon* and are disabled — `lib/domain/availability.ts`
    holds that list, and it is an application concern, never an engine branch
    (ARCHITECTURE §B.2). Custom Domain has no `domain_profiles` row at all.
-6. **Archive/restore are RPCs, not updates.** `guard_project_update` rejects any direct
+7. **Archive/restore are RPCs, not updates.** `guard_project_update` rejects any direct
    write to `status` / `archived_*`; the functions set a transaction-local flag, exactly
    like `review_item()`. Both are `SECURITY INVOKER`, so RLS still applies and the actor
    always comes from `auth.uid()`.
