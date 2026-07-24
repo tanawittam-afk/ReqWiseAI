@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-24 (slice 3 — source documents, editing, locking and the revision
-lifecycle — shipped and verified against the live database)
+Last updated: 2026-07-25 (slice 4 — deterministic mock analysis and atomic analysis
+persistence — shipped and verified against the live database)
 
 ---
 
@@ -14,26 +14,48 @@ lifecycle — shipped and verified against the live database)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 3. Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 4. Working tree clean.
 - Nothing is blocked.
 
-**Next up: vertical slice 4 — the analysis run**
-(`docs/architecture/ARCHITECTURE.md` §E). Everything upstream of the provider now exists:
-a project owns revisioned sources, `projects.output_lang` says which language to answer
-in, the domain profile is loadable from the database, and `lib/analysis/run-analysis.ts`
-plus the mock provider have been unit-tested since Phase 2. What slice 4 adds is the
-button, the `analysis_runs` insert, and persisting `analysis_items` — note that
-`analysis_items` has **no INSERT policy**, so items are written server-side with the
-service role (Phase 3A open decision #3), while the run row itself is user-scoped.
+**Next up: requirement editing / review workflow** — approve, reject, request
+clarification, edit an item's content. The database side is already built and proven
+(`review_item()`, versioning trigger, all in `20260724000005`, since Phase 3A) — this
+slice is purely the UI plus the server actions that call it, symmetrical to how sources
+were built in slice 3.
 
-Two things slice 3 leaves ready for it:
-- `assertProjectIsActive` (`lib/projects/guards.ts`) is the shared gate — reuse it before
-  starting a run rather than re-deriving the rule.
-- Locking is automatic. The moment a run row cites a source, that revision freezes; no
-  extra call is needed and no flag has to be maintained.
+Slice 4 shipped: the "Analyze requirements" confirmation flow on the source detail page,
+`persist_analysis_result()` (a SECURITY DEFINER RPC — no service role in the request
+path), the read-only Analysis Result split-view workspace, and idempotent submission.
+`lib/analysis/{input,persist,queries,highlight,production-ports}.ts` plus
+`lib/analysis/run-analysis.ts` (Phase 2, now Node-runnable — see below) are the layer to
+build review actions against; `getAnalysisRun` in `lib/analysis/queries.ts` already loads
+everything a review screen would need per item.
+
+**Known limitations to know about before touching this area:**
+- The shipped mock provider (`lib/providers/mock/mock-provider.ts`) is a scripted fixture
+  for `booking_smart_space` — it ignores the actual source text and always cites
+  `lib/providers/mock/fixtures/booking-smart-space.source.ts`'s own text at its own
+  offsets. A `valid` run is therefore only reachable when the analysed source's raw text
+  is **byte-identical** to that fixture. Any other text (including the same content
+  retyped through the browser, which submits `<textarea>` newlines as CRLF — see below)
+  correctly produces an `invalid` run. This is not a bug to fix in this area; it is what
+  "deterministic mock, not a real analyzer" means until a real provider is wired in.
+- `related_item_keys` carries no relation kind in the AI output contract, so every edge
+  it produces is persisted as `item_relations.relation_type = 'derives_from'`, regardless
+  of the real relationship (e.g. an acceptance criterion "verifying" a user story is also
+  recorded as `derives_from`). Fine for traceability navigation today; would need either
+  a provider-supplied relation kind or a lookup table if the UI ever needs to *say* what
+  kind of link it is.
+- Several Phase 2 pure-core files (`lib/analysis/run-analysis.ts`,
+  `lib/validation/*.ts`, `lib/normalization/*.ts`, `lib/providers/mock/**`,
+  `lib/contracts/{provider-output,item-types,normalized}.ts`) now have explicit `.ts`
+  extensions on their relative value-imports, extending the pattern
+  `lib/domain/load-profile.ts` started — required so `scripts/verify-analysis.mts` can
+  run the real pipeline under Node's native TypeScript stripping. Purely mechanical;
+  Next's bundler resolves both forms identically, and `npm test`/`build` are unaffected.
 
 **The database is real.** A hosted Supabase project is linked (`rgfwtflsvnlgfiuoxowm`),
-all 9 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
+all 11 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
 gitignored — never commit it.
 
 ```bash
@@ -41,6 +63,7 @@ npm run dev                  # http://localhost:3000
 npm run verify:db            # 8/8 schema checks (slice 1, check 3 updated in slice 3)
 npm run verify:projects      # 10/10 project lifecycle checks (slice 2)
 npm run verify:sources       # 18/18 source, lock and revision checks (slice 3)
+npm run verify:analysis      # 20/20 analysis persistence checks (slice 4)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
@@ -60,11 +83,12 @@ npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN
   in the Supabase dashboard if needed), owning one demo project.
 - Slice 3 added a second: `slice3.demo@reqwise.dev` / `Slice3Demo!2026`, owning the
   project *Smart Space intake — slice 3* with two revisions of one document (revision 1
-  locked by an analysis run, revision 2 editable). Handy for exercising the locked state
-  without re-running the setup.
-- **A stray account `tanawittam@gmail.com` was created on 2026-07-24 by an errant browser
-  click during slice-3 verification** (Chrome autofilled the sign-up form). It owns no
-  projects. Delete it in the Supabase dashboard, or leave it — it is inert either way.
+  locked by an analysis run, revision 2 editable), and now also *Browser verification —
+  matches mock fixture* under that same account (slice 4), a source whose raw text is
+  byte-identical to the mock's fixture — analysing it is the only way to see a `valid`
+  run with real items through the browser rather than through `verify:analysis`.
+- The stray account `tanawittam@gmail.com`, created accidentally during slice-3 browser
+  verification, was identified, audited and removed on 2026-07-24. No longer present.
 
 ## Verbatim text — one caveat worth knowing
 

@@ -12,7 +12,7 @@
 
 import type { ProviderItem, ProviderOutput } from "../contracts/provider-output";
 import type { ValidationIssue } from "../contracts/validation-result";
-import { QUALITY_RULE_ITEM_TYPES } from "../contracts/item-types";
+import { QUALITY_RULE_ITEM_TYPES } from "../contracts/item-types.ts";
 
 function hasText(value: string | undefined): boolean {
   return typeof value === "string" && value.trim().length > 0;

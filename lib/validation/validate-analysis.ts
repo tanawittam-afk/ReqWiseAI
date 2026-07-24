@@ -16,16 +16,16 @@ import {
   PROVIDER_SCHEMA_VERSION,
   providerOutputSchema,
   type ProviderOutput,
-} from "../contracts/provider-output";
+} from "../contracts/provider-output.ts";
 import {
   fail,
   ok,
   type ValidationIssue,
   type ValidationResult,
-} from "../contracts/validation-result";
-import { checkEvidence } from "./evidence";
-import { checkDuplicateKeys, checkRelationKeys } from "./structure";
-import { checkSourceReferences, type OffsetVerification } from "./source-references";
+} from "../contracts/validation-result.ts";
+import { checkEvidence } from "./evidence.ts";
+import { checkDuplicateKeys, checkRelationKeys } from "./structure.ts";
+import { checkSourceReferences, type OffsetVerification } from "./source-references.ts";
 
 export type ValidatedAnalysis = {
   output: ProviderOutput;

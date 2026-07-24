@@ -12,7 +12,7 @@ import type {
   ItemType,
   Priority,
 } from "./item-types";
-import type { INITIAL_STATUS } from "./item-types";
+import type { INITIAL_STATUS } from "./item-types.ts";
 
 export type ItemStatus =
   | "draft"

@@ -9,10 +9,10 @@
 import type { AnalysisInput } from "../contracts/analysis-input";
 import type { NormalizedAnalysis } from "../contracts/normalized";
 import type { ValidationIssue } from "../contracts/validation-result";
-import { normalizeAnalysis } from "../normalization/normalize";
+import { normalizeAnalysis } from "../normalization/normalize.ts";
 import type { NormalizationPorts } from "../normalization/ports";
 import type { AiProvider } from "../providers/types";
-import { validateAnalysis } from "../validation/validate-analysis";
+import { validateAnalysis } from "../validation/validate-analysis.ts";
 
 export type RunAnalysisResult =
   | { status: "valid"; raw: unknown; analysis: NormalizedAnalysis }

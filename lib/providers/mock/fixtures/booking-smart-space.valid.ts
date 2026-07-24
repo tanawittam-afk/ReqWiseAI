@@ -11,8 +11,8 @@
  * assert that it does.
  */
 
-import { PROVIDER_SCHEMA_VERSION } from "../../../contracts/provider-output";
-import { citation } from "./booking-smart-space.source";
+import { PROVIDER_SCHEMA_VERSION } from "../../../contracts/provider-output.ts";
+import { citation } from "./booking-smart-space.source.ts";
 
 export const bookingValidOutput = {
   schema_version: PROVIDER_SCHEMA_VERSION,

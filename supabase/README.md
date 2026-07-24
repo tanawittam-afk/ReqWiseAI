@@ -16,6 +16,8 @@ Schema, constraints, RLS, and workspace bootstrap for the 12-table model in
 | `20260724000007_project_lifecycle.sql` | Project intake fields, archive/restore lifecycle, column guard; removes the project DELETE policy |
 | `20260724000008_source_revisions.sql` | Source revision identity (`document_key`, `revision_number`, `supersedes_…`), metadata, archived-project and lock guards, source UPDATE policy |
 | `20260724000009_source_kind_operational.sql` | Adds `operational_notes` to the `source_kind` enum |
+| `20260724000010_analysis_persistence.sql` | `analysis_runs.request_key` (idempotency) + `persist_analysis_result()`, the atomic RPC that writes a run and its items, references and relations in one transaction |
+| `20260724000011_analysis_persistence_guards.sql` | Defense-in-depth: `persist_analysis_result()` also refuses an `assumed` item carrying a source reference, mirroring `lib/validation/evidence.ts` at the write boundary |
 
 `seed.sql` seeds the two domain profiles — identity **and** content. It is **generated**
 from `lib/domain/profiles/*.ts` by `npm run seed:profiles`; never hand-edit it.
@@ -62,13 +64,21 @@ Then prove the invariants (these are the acceptance checks, not yet run):
    the original row and the run that cites it are unchanged. A forged `revision_number`, a
    number that skips, a duplicate, a predecessor in another project, and any write under an
    archived project are all rejected by trigger.
+9. **Atomic analysis persistence** — `persist_analysis_result()` writes a run and, when
+   valid, all of its items/references/relations in one transaction; an invalid or
+   provider-error outcome writes the run alone with zero items. A malformed item payload
+   (e.g. an unknown `item_type`) rolls back the run insert too — nothing partial survives.
+   Display ids are unique and continue across runs; the same idempotency key returns the
+   existing run instead of writing a second one. `analysis_items` has no INSERT policy at
+   all, so even a correctly-shaped direct client insert is refused — the RPC is the only
+   door.
 
 ### Running the checks
 
 Checks 1–7 are `npm run verify:db`, the project lifecycle is `npm run verify:projects`,
-and check 8 is `npm run verify:sources` — 8, 10 and 18 assertions respectively, all
-against the linked project. Verification rows cannot be removed through the API (the
-immutability triggers refuse DELETE even for the service role, which is the schema
-working); clear them with
+check 8 is `npm run verify:sources`, and check 9 is `npm run verify:analysis` — 8, 10, 18
+and 20 assertions respectively, all against the linked project. Verification rows cannot
+be removed through the API (the immutability triggers refuse DELETE even for the service
+role, which is the schema working); clear them with
 `npx supabase db query --linked -f scripts/verify-db-cleanup.sql`. Disabling triggers is a
 maintenance operation and never part of an application workflow.

@@ -21,7 +21,7 @@ import {
   PROVIDER_KEY_MAX_LENGTH,
   PROVIDER_KEY_PATTERN,
   QUALITY_FINDING_KINDS,
-} from "./item-types";
+} from "./item-types.ts";
 
 const providerKey = z
   .string()

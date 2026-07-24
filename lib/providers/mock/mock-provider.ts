@@ -13,7 +13,7 @@
 
 import type { AnalysisInput } from "../../contracts/analysis-input";
 import type { AiProvider } from "../types";
-import { bookingValidOutput } from "./fixtures/booking-smart-space.valid";
+import { bookingValidOutput } from "./fixtures/booking-smart-space.valid.ts";
 
 /**
  * Deep clone so a caller cannot mutate the shared fixture between runs and quietly

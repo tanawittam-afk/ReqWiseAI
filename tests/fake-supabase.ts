@@ -48,6 +48,17 @@ class FakeQuery implements PromiseLike<Result> {
     return this;
   }
 
+  /** `null` behaves like `.eq(column, null)` — strict equality already covers it. */
+  is(column: string, value: unknown) {
+    this.filters.push([column, value]);
+    return this;
+  }
+
+  in(column: string, values: unknown[]) {
+    this.filters.push([column, { __in: values }]);
+    return this;
+  }
+
   order(column: string, options?: { ascending?: boolean }) {
     this.sort = { column, ascending: options?.ascending ?? true };
     return this;
@@ -80,7 +91,12 @@ class FakeQuery implements PromiseLike<Result> {
 
   private matched(): Row[] {
     let rows = this.rows.filter((row) =>
-      this.filters.every(([col, value]) => row[col] === value),
+      this.filters.every(([col, value]) => {
+        if (value && typeof value === "object" && "__in" in (value as object)) {
+          return (value as { __in: unknown[] }).__in.includes(row[col]);
+        }
+        return row[col] === value;
+      }),
     );
 
     if (this.sort) {
@@ -137,21 +153,36 @@ class FakeQuery implements PromiseLike<Result> {
 export type FakeClient = SupabaseClient & {
   /** Every write the code under test issued, in order. */
   writes: Array<{ table: string; kind: string; payload: Row }>;
+  /** Every RPC the code under test called, in order. */
+  rpcCalls: Array<{ name: string; args: Row }>;
 };
 
 export function fakeSupabase(
   tables: Record<string, Row[]>,
-  options: { failTable?: string; failWith?: string; userId?: string | null } = {},
+  options: {
+    failTable?: string;
+    failWith?: string;
+    userId?: string | null;
+    /** Canned response for `client.rpc(name, args)`, keyed by function name. */
+    rpc?: Record<string, { data?: unknown; error?: { message: string } | null }>;
+  } = {},
 ): FakeClient {
   const writes: Array<{ table: string; kind: string; payload: Row }> = [];
+  const rpcCalls: Array<{ name: string; args: Row }> = [];
   const userId = options.userId === undefined ? "user-1" : options.userId;
 
   return {
     writes,
+    rpcCalls,
     from(table: string) {
       const failWith = options.failTable === table ? (options.failWith ?? "boom") : null;
       tables[table] ??= [];
       return new FakeQuery(table, tables[table], failWith, writes);
+    },
+    async rpc(name: string, args: Row = {}) {
+      rpcCalls.push({ name, args });
+      const canned = options.rpc?.[name];
+      return canned ?? { data: null, error: { message: `no fake response configured for rpc "${name}"` } };
     },
     auth: {
       async getUser() {

@@ -11,7 +11,7 @@
  */
 
 import type { ItemType } from "../contracts/item-types";
-import { DISPLAY_ID_PREFIX } from "../contracts/item-types";
+import { DISPLAY_ID_PREFIX } from "../contracts/item-types.ts";
 
 export interface IdFactory {
   /** `kind` is a namespace hint (`item`, `source_reference`), not a type system. */

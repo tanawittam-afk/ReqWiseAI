@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
+import { listAnalysisRuns } from "@/lib/analysis/queries";
 import {
   LockBadge,
   RevisionBadge,
@@ -25,6 +26,12 @@ import {
 } from "../../../../_components/badges";
 
 export const metadata = { title: "Source — ReqWise AI" };
+
+const STATUS_LABEL: Record<string, string> = {
+  valid: "Completed",
+  invalid: "Invalid output",
+  provider_error: "Provider error",
+};
 
 export default async function SourceDetailPage({
   params,
@@ -39,6 +46,8 @@ export default async function SourceDetailPage({
     getSource(supabase, projectId, sourceId),
   ]);
   if (!project || !source) notFound();
+
+  const runs = await listAnalysisRuns(supabase, projectId, sourceId);
 
   const archived = project.status === "archived";
   const base = `/workspace/projects/${projectId}/sources`;
@@ -167,6 +176,53 @@ export default async function SourceDetailPage({
               >
                 Open revision {source.revisionNumber - 1}
               </Link>
+            </section>
+          ) : null}
+
+          {canWrite ? (
+            <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-accent-border bg-accent-soft p-4">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-accent">
+                Analysis
+              </h2>
+              <p className="text-xs leading-relaxed text-text-muted">
+                {source.locked
+                  ? "You can run this again — each run is kept separately."
+                  : "This will lock revision " + source.revisionNumber + " once the run is created."}
+              </p>
+              <Link
+                href={`${base}/${source.id}/analyze`}
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm
+                           font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+              >
+                Analyze requirements
+              </Link>
+            </section>
+          ) : null}
+
+          {runs.length > 0 ? (
+            <section className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
+                Analysis history
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {runs.map((run) => (
+                  <li key={run.id}>
+                    <Link
+                      href={`/workspace/projects/${projectId}/analyses/${run.id}`}
+                      className="flex flex-col gap-0.5 rounded-lg border border-border-soft px-3 py-2 text-xs
+                                 transition-colors hover:border-accent-border hover:bg-accent-soft"
+                    >
+                      <span className="flex items-center justify-between gap-2 font-medium text-text">
+                        {STATUS_LABEL[run.validationStatus] ?? run.validationStatus}
+                        <span className="font-mono text-[11px] text-text-faint">
+                          {run.itemCount} item{run.itemCount === 1 ? "" : "s"}
+                        </span>
+                      </span>
+                      <span className="text-text-faint">{formatDate(run.createdAt)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </section>
           ) : null}
 

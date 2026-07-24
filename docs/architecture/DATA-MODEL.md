@@ -256,6 +256,39 @@ reading the policy and agreeing with it.
 
 ---
 
+## C.9 Atomic analysis persistence (Slice 4)
+
+`persist_analysis_result()` (`20260724000010`/`...011`) is the one door an analysis
+run's output is written through — a run, its items, their source references, and
+their relations all land in one transaction or none do.
+
+- **No service role in the request path.** The function is `SECURITY DEFINER`, owned
+  by the migration role, so it bypasses RLS the same way `source_document_is_locked()`
+  and `project_is_active()` already do (§C.7's own precedent) — but the server still
+  calls it on the caller's **user-scoped** client, and the function re-derives
+  `auth.uid()`, membership, and archive status itself before writing anything.
+- **Display ids are allocated inside the function**, under the same project row lock
+  `next_display_id()` already takes, once per distinct `item_type` in the run (not
+  once per item) — the number a caller sees from the pure normalization layer
+  (`lib/normalization/ports.ts`) is a local placeholder, discarded here.
+- **Local keys, not database ids, address relations and references.** The pure layer
+  mints an id like `item-3` scoped to one run; the payload carries that as `local_key`
+  and the function resolves it to a real `analysis_items.id` in a temp table before
+  wiring up `item_source_references` and `item_relations`. A `local_key` that fails to
+  resolve produces `NULL` into a `not null` column and rolls back the whole run — a
+  safety net, since `validateAnalysis()` already guarantees every key resolves before
+  persistence is ever attempted.
+- **Idempotency** — `analysis_runs.request_key`, unique per project (partial index,
+  only rows written through this path carry one). A client-generated key travels with
+  the confirmation form; a resubmission with the same key returns the existing run
+  instead of writing a second one.
+- **`related_item_keys` has no relation kind of its own** in the provider contract
+  (`AI-OUTPUT-CONTRACT.md`), so every edge it produces is recorded as
+  `item_relations.relation_type = 'derives_from'`. This is a known simplification, not
+  a claim about the specific relationship — see HANDOFF.md.
+
+---
+
 ## Deliberate simplifications (17 concepts → 12 tables)
 
 | Concept in the spec | Where it lives | Why not its own table |

@@ -13,16 +13,16 @@ import type { SourceDocumentInput } from "../contracts/analysis-input";
 import {
   INITIAL_STATUS,
   INITIAL_VERSION_NO,
-} from "../contracts/item-types";
+} from "../contracts/item-types.ts";
 import {
   LOW_CONFIDENCE_THRESHOLD,
   type NormalizedAnalysis,
   type NormalizedItem,
   type NormalizedSourceReference,
-} from "../contracts/normalized";
+} from "../contracts/normalized.ts";
 import type { ProviderItem } from "../contracts/provider-output";
 import type { ValidatedAnalysis } from "../validation/validate-analysis";
-import { refSlot } from "../validation/source-references";
+import { refSlot } from "../validation/source-references.ts";
 import type { NormalizationPorts } from "./ports";
 
 /** Type-specific fields, as a plain record for JSONB persistence. */
