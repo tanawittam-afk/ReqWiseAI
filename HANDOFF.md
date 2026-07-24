@@ -3,7 +3,40 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-24
+Last updated: 2026-07-24 (Phase 3A committed **and verified against a live database**;
+Phase 3B / slice 1 shipped)
+
+---
+
+## ▶️ RESUME HERE
+
+**Where you are:** in a dedicated git worktree, on branch `reqwise-ai`.
+
+- **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
+  at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
+- **Branch:** `reqwise-ai` · **HEAD:** `bf148b3` (Phase 3B). Working tree clean.
+- Nothing is blocked. Both open decisions from yesterday are resolved.
+
+**Next up: vertical slice 2 — Project create** (`docs/architecture/ARCHITECTURE.md` §E).
+Project list + create form, domain profile chosen at creation from the seeded
+`domain_profiles`. Done when: the project appears for its creator only, and
+`project.organization_id` is the personal org. `lib/domain/load-profile.ts` already
+loads a profile by key or id and validates it — reuse it, do not re-query inline.
+
+**The database is real now.** A hosted Supabase project is linked
+(`rgfwtflsvnlgfiuoxowm`), all 6 migrations are applied, and the seed is loaded.
+`.env.local` holds the keys and is gitignored — never commit it.
+
+```bash
+npm run dev                  # http://localhost:3000
+npm run verify:db            # 8/8 runtime checks against the live schema
+npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
+npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
+```
+
+A dev account exists: `slice1-demo@example.com` (password not recorded here — reset it
+in the Supabase dashboard if needed). Public sign-up **rejects `@example.com`**; Supabase
+blocks that domain, so use a real address in the UI, or create users with the admin API.
 
 ---
 
@@ -78,31 +111,94 @@ but the seam must exist from the start so the engine never learns domain facts.
       `lib/analysis`, plus `tests/`. **57 tests pass · typecheck · lint · build all
       clean.** Added deps: `zod` (runtime), `vitest` + `@vitest/coverage-v8` (dev).
       No DB, no Supabase, no auth, no UI, no API route, no commit.
-- [ ] **Phase 3 (was Schema + UX) — parallel.** `supabase/schema.sql`, RLS
-      across the 12 tables; the split-pane Requirements Intelligence Workspace. The
-      display-ID allocator (`lib/normalization/ports.ts`) is built to be swapped for a
-      DB-backed sequence here.
-- [ ] **Phase 3 — Vertical slices (DevBAmooTam).** auth → analyze (mock provider first) →
-      review/approve → traceability → export.
+- [x] **Phase 3A — Database schema, constraints, RLS, workspace bootstrap
+      (2026-07-24). COMMITTED `595a62f` · APPLIED · VERIFIED AT RUNTIME.**
+      `supabase/migrations/` (6 ordered files) + generated `seed.sql` + `config.toml` +
+      `README.md` + `.env.example`. 12 tables, immutability triggers, auto-versioning,
+      `review_item()`, DB-backed display-id allocator, membership-based RLS,
+      `handle_new_user` bootstrap. Applied to the hosted project with
+      `supabase db push`; seed applied with `supabase db query -f`.
+      **`npm run verify:db` → 8/8 PASS** (see "Runtime verification" below).
+- [x] **Domain-profile source of truth — RESOLVED (2026-07-24).** Authored in
+      `lib/domain/profiles/*.ts` → `supabase/seed.sql` **generated** by
+      `npm run seed:profiles` (`scripts/generate-profile-seed.mts`, Node native TS
+      stripping, no new dependency) → the app loads content **from the database** via
+      `lib/domain/load-profile.ts`, validated by `domainProfileSchema`
+      (`lib/domain/profile-schema.ts`). `tests/domain/seed-sync.test.ts` fails the build
+      if the seed drifts from the TypeScript. Never hand-edit `seed.sql`.
+- [x] **Phase 3B — Supabase clients + auth slice (2026-07-24). COMMITTED `bf148b3` ·
+      VERIFIED IN THE BROWSER.** `lib/supabase/{env,client,server,admin}.ts`, `proxy.ts`
+      (session refresh + route protection — Next 16 deprecated `middleware.ts`), auth
+      Server Actions, sign-in / sign-up pages, and a `/workspace` shell that renders the
+      organization the bootstrap trigger created. 61 tests · typecheck · lint · build
+      clean.
+- [ ] **Phase 3C+ — remaining vertical slices.** project create → add source → run mock
+      analysis (persist run + items + refs in one transaction) → workspace split-pane →
+      edit item → review/approve → export. Slice order in
+      `docs/architecture/ARCHITECTURE.md` §E.
 - [ ] **Phase 4 — Review & QA → deploy.** Vercel deploy is a protected action; needs
       explicit approval and env vars set in the dashboard, never committed.
 
-## Environment (not yet configured)
+## Environment
 
-Nothing is wired up yet. When Phase 3 starts, `.env.local` will need:
+`.env.example` is tracked (`.gitignore` has `!.env.example`); the real `.env.local`
+exists on this machine, is gitignored, and holds live keys:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=   # server only — never NEXT_PUBLIC_
-AI_PROVIDER=mock             # mock | gemini — mock is the local default
-GEMINI_API_KEY=              # server only
+NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY   # browser-safe, RLS applies
+SUPABASE_SERVICE_ROLE_KEY              # server only — never NEXT_PUBLIC_
+SUPABASE_ACCESS_TOKEN / _PROJECT_REF   # supabase CLI only, not read by the app
+AI_PROVIDER=mock                       # mock | gemini
+GEMINI_API_KEY=                        # server only, empty until the real provider
 ```
 
-`.env.example` does not exist yet — `CLAUDE.md` requires it to be created and kept in
-step as soon as the first variable is actually used.
+The hosted Supabase project is **live and linked** (ref `rgfwtflsvnlgfiuoxowm`). No
+Docker is needed: `supabase link` + `supabase db push` work against the remote, and
+`supabase db query --linked -f <file>` runs a SQL file. The CLI reads
+`SUPABASE_ACCESS_TOKEN` from the environment, which npm scripts do **not** load from
+`.env.local` — export it first (`set -a; . ./.env.local; set +a`).
 
-The Supabase project itself has not been created yet.
+## Runtime verification (2026-07-24) — 8/8 PASS
+
+`npm run verify:db` (`scripts/verify-db.mts`) creates two real users through the admin
+API and asserts, against the live database:
+
+| # | Check | Result |
+|---|---|---|
+| 0 | Seeded profile loads through `loadDomainProfileByKey` and validates | 4 terms, 8 workflows |
+| 1 | Sign-up bootstraps exactly one personal org + owner membership + profile | PASS |
+| 2 | Tenant isolation — user B sees 0 rows, cross-tenant insert refused | PASS |
+| 3 | `source_documents` / `analysis_runs` reject UPDATE, **service role included** | PASS |
+| 4 | Insert with `status='approved'` refused; direct status UPDATE refused | PASS |
+| 5 | Editing an item snapshots the OLD state and bumps `version_no` | PASS |
+| 6 | `review_item()` audits every transition; `approved → draft` refused | PASS |
+| 7 | Display ids allocate per project and per type (BR-002 → BR-003, US-001) | PASS |
+
+Slice-1 UI, verified in the browser against the same database: signed-out `/workspace`
+→ `307 /sign-in?next=%2Fworkspace`; sign-in → workspace showing
+"Tanawit's workspace · owner · personal"; sign-out → back to `/sign-in`, route protected
+again.
+
+Cleanup: verification rows **cannot** be deleted through the API — the immutability
+triggers refuse DELETE for the service role too, and a `projects` cascade hits them. Use
+`npx supabase db query --linked -f scripts/verify-db-cleanup.sql`, which disables the
+user triggers for the duration of the delete. That is a maintenance operation the
+application can never perform.
+
+## Open decisions and known consequences
+
+1. **`analysis_runs` is write-once** (no pending→complete row) → no streaming/long-run
+   support. Accepted for MVP; revisit before the real Gemini provider ships.
+2. **`analysis_items` has no INSERT RLS policy** — items are written only server-side with
+   the service-role client during a run (`lib/supabase/admin.ts`), never the anon client.
+3. **Nothing under a project can be deleted.** The immutability triggers make
+   `delete from projects` fail on cascade, so "delete project" is not implementable as
+   the schema stands. Either add a soft-delete column or let the triggers permit cascade
+   deletes — a product decision, not a bug. Same reason a user row cannot be removed once
+   they own a project.
+4. **`next_display_id()` is a high-water mark, not a sequence.** Calling it twice without
+   inserting returns the same id. Correct for preserving gaps from rejected items;
+   allocate → insert → allocate.
 
 ## Gotchas already known
 
@@ -112,10 +208,41 @@ The Supabase project itself has not been created yet.
 - **Never pin one Gemini model.** `../Job Application Tracker Dashboard/api/match.js`
   died on a 503/404 when its pinned model was retired; it now carries an ordered
   fallback chain. Copy that, not a single model string.
-- Repo-wide: this work started on branch `portfolio-custom-lottie` with unrelated
-  uncommitted changes present. Give ReqWise AI its own branch before the first commit,
-  and stage paths explicitly — never `git add .`.
+- **Two worktrees now.** ReqWise AI lives in its own worktree/branch, isolated from the
+  portfolio work:
+  - `C:/Users/User/Desktop/Claude Code` → branch `portfolio-custom-lottie` (HEAD
+    `5b78f36`) — the original repo with 36 unrelated uncommitted files. **Do not build
+    ReqWise here.**
+  - `C:/Users/User/Desktop/ReqWiseAI-worktree` → branch `reqwise-ai` (HEAD `bf148b3`) —
+    **build here.** Project root is the nested `ReqWiseAI/` folder.
+- **Supabase rejects `@example.com` on public sign-up** ("Email address is invalid"). The
+  admin API does not, which is why the verification script can use it. Use a real address
+  in the UI.
+- **`middleware.ts` is deprecated in Next 16** — the file is `proxy.ts` and exports
+  `proxy`. Both files present is a build error, not a warning.
+- **`"use server"` modules may only export async functions.** `AuthState` and
+  `emptyAuthState` live in `app/auth/state.ts` for exactly that reason; moving them back
+  into `actions.ts` breaks the build.
+- **Node runs the `.mts` scripts directly** (native type stripping). Value imports they
+  reach must carry an explicit `.ts` extension — that is why
+  `lib/domain/profiles/index.ts` and `lib/domain/load-profile.ts` have them, and why
+  `tsconfig.json` sets `allowImportingTsExtensions`.
+- Stage paths explicitly — never `git add .` / `-A`.
+- **Never pin one Gemini model.** `../Job Application Tracker Dashboard/api/match.js`
+  died on a retired pinned model; keep an ordered fallback chain (also in `CLAUDE.md`).
+- `create-next-app` rejected the capital-letter name → scaffolded `reqwise-ai`, folder
+  renamed to `ReqWiseAI`; `package.json` name stays `reqwise-ai`. Don't "fix" it.
 
-## Git
+## Git — current state (2026-07-24 EOD)
 
-Nothing committed yet. `ReqWiseAI/` is entirely untracked.
+Branch `reqwise-ai`, working tree clean:
+
+| Commit | Phase |
+|---|---|
+| `bf148b3` | 3B — supabase clients, email auth, protected routes |
+| `595a62f` | 3A — database schema, constraints, RLS, workspace bootstrap |
+| `97f9e23` | 2 — analysis contracts and the deterministic mock provider |
+
+- Nothing pushed. No remote git work done, and no Vercel deploy (Phase 4, and a
+  protected action — it needs explicit approval plus env vars set in the dashboard).
+- Stage paths explicitly on every commit.
