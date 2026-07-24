@@ -118,6 +118,24 @@ cancellation, refund and notification appearing as **open questions citing line 
 never as requirements. Payment and customer identity arrive as profile-raised questions
 with no citation at all.
 
+### Housekeeping — verification rows have accumulated
+
+As of 2026-07-25 the linked project holds **66 accounts (64 throwaway + 2 real)**, 81
+projects, 58 analysis runs and 426 analysis items. Almost all of it is residue from
+`verify:*` runs, which create a fresh user pair and project set every time and cannot
+clean up after themselves — the immutability triggers refuse DELETE even for the service
+role, which is the schema working as designed.
+
+Harmless, but worth clearing before a demo so the dashboards read honestly:
+
+```bash
+npx supabase db query --linked -f scripts/verify-db-cleanup.sql
+```
+
+It matches only the verification naming patterns (`reqwise-verify-*`, `reqwise-src-*`,
+`reqwise-analysis-*`, and the `Slice N …` project names) and leaves the two real demo
+accounts and their projects untouched.
+
 ## Verbatim text — one caveat worth knowing
 
 Browsers submit `<textarea>` newlines as **CRLF**, per the HTML spec. Text typed with LF
