@@ -1,0 +1,17 @@
+# Minimal Supabase local config. Present so that, once Docker + the Supabase CLI are
+# available, `supabase start` / `supabase db reset` apply the migrations in this repo
+# without further setup. Adjust ports if they clash locally.
+
+project_id = "reqwise-ai"
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+# Local email/password sign-in is enough for the MVP auth slice.
