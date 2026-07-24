@@ -20,7 +20,13 @@ alter table review_activities disable trigger user;
 
 -- Cascades to source_documents, analysis_runs, analysis_items, item_versions,
 -- item_source_references, item_relations and review_activities.
-delete from projects where name = 'Verification project';
+--
+-- The projects_guard_update trigger only fires on UPDATE, so a delete needs no
+-- special handling here — but the archive lifecycle means the application itself has
+-- no delete path at all, which is the point of this file.
+delete from projects
+ where name like 'Verification project%'
+    or name like 'Slice 2 verification project%';
 
 alter table source_documents  enable trigger user;
 alter table analysis_runs     enable trigger user;

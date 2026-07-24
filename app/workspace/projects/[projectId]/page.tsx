@@ -1,0 +1,181 @@
+/**
+ * Project overview.
+ *
+ * Two columns on desktop, mirroring the create screen: the project's own content on
+ * the left, its metadata and lifecycle in a right-hand inspector — the same seam the
+ * analysis workspace will use for requirement metadata, so the shape is established
+ * once rather than invented twice.
+ *
+ * `getProject` returns null both for a project that does not exist and for one that
+ * belongs to somebody else — RLS makes those indistinguishable — and both render the
+ * same not-found page. Nothing here confirms another tenant's project exists.
+ */
+
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getProject } from "@/lib/projects/queries";
+import { DomainBadge, LangBadge, StatusBadge, formatDate } from "../../_components/badges";
+import { ArchiveControls } from "./archive-controls";
+
+export const metadata = { title: "Project — ReqWise AI" };
+
+export default async function ProjectOverviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { projectId } = await params;
+  const { error } = await searchParams;
+
+  const supabase = await createClient();
+  const project = await getProject(supabase, projectId);
+  if (!project) notFound();
+
+  const archived = project.status === "archived";
+
+  return (
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
+      <header className="flex flex-col gap-2">
+        <Link
+          href="/workspace/projects"
+          className="w-fit text-xs text-text-faint transition-colors hover:text-text-muted"
+        >
+          ← Projects
+        </Link>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
+            {project.name}
+          </h1>
+          <StatusBadge status={project.status} />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {project.domain ? <DomainBadge name={project.domain.name} /> : null}
+          <LangBadge lang={project.outputLang} />
+        </div>
+      </header>
+
+      {error ? (
+        <p
+          role="alert"
+          className="rounded-lg border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
+        >
+          {error === "archive"
+            ? "The project could not be archived."
+            : "The project could not be restored. Only a workspace owner can restore."}
+        </p>
+      ) : null}
+
+      {archived ? (
+        <section
+          role="status"
+          className="flex flex-col gap-1 rounded-lg border border-warn-border bg-warn-soft px-4 py-3"
+        >
+          <p className="text-sm font-semibold text-warn">
+            This project is archived — read-only
+          </p>
+          <p className="text-xs leading-relaxed text-text-muted">
+            Nothing was deleted: sources, analysis runs and review history are all intact.
+            Restore the project to work on it again.
+            {project.archiveReason ? ` Reason given: “${project.archiveReason}”.` : ""}
+          </p>
+        </section>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="flex flex-col gap-4">
+          <section className="grid gap-3 sm:grid-cols-3">
+            <Stat label="Source documents" value={project.sourceDocumentCount} />
+            <Stat label="Analysis runs" value={project.analysisRunCount} />
+            <Stat label="Requirements" value={project.analysisItemCount} />
+          </section>
+
+          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
+            <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
+              Project brief
+            </h2>
+            <div className="flex flex-col divide-y divide-[var(--border)]">
+              <Row label="Description" value={project.description} />
+              <Row label="Business objective" value={project.businessObjective} />
+              <Row
+                label="Known stakeholders"
+                value={
+                  project.knownStakeholders.length > 0
+                    ? project.knownStakeholders.join(" · ")
+                    : null
+                }
+              />
+            </div>
+          </section>
+
+          {archived ? null : (
+            <section className="rounded-[var(--radius-panel)] border border-accent-border bg-accent-soft px-5 py-4">
+              <h2 className="text-sm font-semibold text-text">
+                Next step — add source information
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-text-muted">
+                Paste the meeting notes, interview or client message this project is about.
+                Requirements are only ever generated from text you supply.
+              </p>
+              <p className="mt-2 text-xs text-text-faint">Available in the next slice.</p>
+            </section>
+          )}
+        </div>
+
+        {/* Inspector — metadata and lifecycle, kept out of the reading column. */}
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
+          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
+              Details
+            </h2>
+            <dl className="mt-3 flex flex-col gap-2 text-sm">
+              <Meta label="Domain" value={project.domain?.name ?? "—"} />
+              <Meta label="Output" value={project.outputLang === "th" ? "Thai" : "English"} />
+              <Meta label="Status" value={archived ? "Archived" : "Active"} />
+              <Meta label="Created" value={formatDate(project.createdAt)} />
+              <Meta label="Updated" value={formatDate(project.updatedAt)} />
+              {archived && project.archivedAt ? (
+                <Meta label="Archived" value={formatDate(project.archivedAt)} />
+              ) : null}
+            </dl>
+          </section>
+
+          <ArchiveControls projectId={project.id} archived={archived} />
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-3">
+      <p className="text-xl font-semibold text-text">{value}</p>
+      <p className="text-xs text-text-faint">{label}</p>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:gap-6">
+      <span className="w-44 shrink-0 text-xs font-medium uppercase tracking-wide text-text-faint">
+        {label}
+      </span>
+      <span className={`text-sm leading-relaxed ${value ? "text-text" : "text-text-faint"}`}>
+        {value ?? "Not provided"}
+      </span>
+    </div>
+  );
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-xs text-text-faint">{label}</dt>
+      <dd className="truncate text-right text-sm text-text">{value}</dd>
+    </div>
+  );
+}

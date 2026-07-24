@@ -46,5 +46,9 @@ Then prove the invariants (these are the acceptance checks, not yet run):
    state and `version_no` bumps.
 6. **Review audit** — `select review_item(id,'approve','reviewed'...)` after moving to
    `reviewed`; assert a `review_activities` row was written with `actor_id = auth.uid()`.
-7. **Display ids** — `select next_display_id(project,'business_requirement')` twice →
-   `BR-001`, `BR-002`; gaps from rejected items are preserved.
+7. **Display ids** — `next_display_id()` is a **monotonic high-water mark, not a
+   sequence**. It returns one past the highest number already stored for that project
+   and type, so the pattern is allocate → insert → allocate: calling it twice without
+   inserting returns the same id both times. Numbers are never reused, and a rejected
+   or deleted item leaves a permanent gap — a gap is correct behaviour, not a defect,
+   because a stakeholder may already have written that number down.

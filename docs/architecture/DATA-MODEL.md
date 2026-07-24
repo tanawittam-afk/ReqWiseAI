@@ -42,9 +42,15 @@ types in one table without the table becoming a bag of nullable columns.
 `analysis_items.human_key` — `BR-001`, `FR-001`, `NFR-001`, `US-001`, `AC-001`,
 `RISK-001`, `Q-001`, plus proposed `PS-`, `OBJ-`, `STK-`, `RULE-`, `ASM-`, `CON-`, `QF-`.
 
-Sequence is **per project, per type**, allocated at insert, `UNIQUE (project_id,
-human_key)`. Never renumbered, never reused — a rejected `FR-004` leaves a permanent gap,
-because a stakeholder may have written that number down.
+Allocated **per project, per type** at insert, `UNIQUE (project_id, human_key)`.
+
+Not a gap-free sequence — a **monotonic high-water identifier**. `next_display_id()`
+returns one past the highest number stored for that project and type, so the caller must
+allocate, insert, then allocate again; calling it twice without an insert in between
+returns the same id. Numbers are never renumbered and never reused, and a rejected
+`FR-004` leaves a permanent gap, because a stakeholder may have written that number down.
+Gaps are correct output. *(Verified at runtime 2026-07-24: `BR-002 → BR-003`, and
+`US-001` for a fresh type in the same project.)*
 
 ---
 

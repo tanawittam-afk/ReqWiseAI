@@ -1,26 +1,166 @@
 @import "tailwindcss";
 
+/*
+ * ReqWise AI — a desktop-class productivity workspace.
+ *
+ * Light-first, warm rather than clinical: a long review session is reading work, and
+ * pure white on pure grey is tiring. Depth comes from borders and small background
+ * shifts, not from elevation — shadows are reserved for things that genuinely float
+ * (popovers, dialogs).
+ *
+ * Dark mode is prepared, not shipped: the same token names are redefined under
+ * [data-theme="dark"] so nothing has to be re-plumbed later, and no automatic
+ * prefers-color-scheme switch is wired up, because an untested dark theme is worse
+ * than none.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 1. application background — the desk the work sits on */
+  --app: #f5f3f0;
+  /* 2. navigation / toolbar layer */
+  --chrome: #efece8;
+  --chrome-hover: #e6e2dc;
+  /* 3. workspace surface, 4. cards and editable blocks */
+  --surface: #ffffff;
+  --surface-muted: #faf9f7;
+  --surface-hover: #f4f2ef;
+
+  --border: #e4e0da;
+  --border-strong: #d3cec6;
+
+  --text: #1b1a18;
+  --text-muted: #56514a;
+  --text-faint: #8b857c;
+
+  /* Primary product accent — indigo/violet. */
+  --accent: #5348d9;
+  --accent-hover: #443ac2;
+  --accent-soft: #eeecfb;
+  --accent-border: #cdc7f4;
+  --on-accent: #ffffff;
+
+  /* Secondary analytical accent — used for domain and evidence, never for state. */
+  --signal: #10708c;
+  --signal-soft: #e6f2f6;
+  --signal-border: #bcdae4;
+
+  --ok: #14724a;
+  --ok-soft: #e7f4ed;
+  --ok-border: #b8ddc8;
+  --warn: #8a5a00;
+  --warn-soft: #fbf1de;
+  --warn-border: #ecd6a8;
+  --danger: #ad2b1c;
+  --danger-soft: #fbeceb;
+  --danger-border: #efc4bf;
+
+  --radius-panel: 14px;
+  --radius-card: 10px;
+
+  /* Legacy tokens from the scaffold, still referenced by the marketing/auth pages. */
+  --background: var(--app);
+  --foreground: var(--text);
+}
+
+[data-theme="dark"] {
+  --app: #16161a;
+  --chrome: #1d1d22;
+  --chrome-hover: #26262c;
+  --surface: #1f1f25;
+  --surface-muted: #24242b;
+  --surface-hover: #2a2a32;
+  --border: #32323b;
+  --border-strong: #43434f;
+  --text: #f2f0ed;
+  --text-muted: #b4afa7;
+  --text-faint: #837e76;
+  --accent: #8b7cf6;
+  --accent-hover: #9b8ef8;
+  --accent-soft: #241f45;
+  --accent-border: #3b3370;
+  --on-accent: #14122b;
+  --signal: #5cc4dc;
+  --signal-soft: #12303a;
+  --signal-border: #1f4c5b;
+  --ok: #6ee7b7;
+  --ok-soft: #10312a;
+  --ok-border: #1c5343;
+  --warn: #f3c164;
+  --warn-soft: #33280f;
+  --warn-border: #55411a;
+  --danger: #f2a49b;
+  --danger-soft: #3a1c19;
+  --danger-border: #5c2b26;
 }
 
 @theme inline {
+  --color-app: var(--app);
+  --color-chrome: var(--chrome);
+  --color-chrome-hover: var(--chrome-hover);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-hover: var(--surface-hover);
+  --color-border-soft: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-border: var(--accent-border);
+  --color-on-accent: var(--on-accent);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-signal-border: var(--signal-border);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-border: var(--warn-border);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* System-first, so the app reads as native on macOS, iPadOS and Windows alike. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  /* Trackpad and touch scrolling should feel continuous, never stepped. */
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--app);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One focus ring for the whole application, visible on every surface. Keyboard use is
+   a first-class input method here, not an afterthought. */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

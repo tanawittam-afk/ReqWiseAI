@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "seed:profiles": "node scripts/generate-profile-seed.mts",
     "verify:db": "node scripts/verify-db.mts",
+    "verify:projects": "node scripts/verify-projects.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

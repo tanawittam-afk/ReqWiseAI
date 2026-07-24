@@ -6,7 +6,9 @@
 
 import type { DomainProfile } from "../domain/types";
 
-export type OutputLang = "th" | "en";
+/** Mirrors the `output_lang` enum in 20260724000001_enums.sql. */
+export const OUTPUT_LANGS = ["th", "en"] as const;
+export type OutputLang = (typeof OUTPUT_LANGS)[number];
 
 export type SourceDocumentInput = {
   /** Provider-facing key. Stable within one analysis input. */

@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-24 (Phase 3A committed **and verified against a live database**;
-Phase 3B / slice 1 shipped)
+Last updated: 2026-07-24 (slice 2 — project creation, list and the archive lifecycle —
+shipped and verified against the live database)
 
 ---
 
@@ -14,29 +14,41 @@ Phase 3B / slice 1 shipped)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** `bf148b3` (Phase 3B). Working tree clean.
-- Nothing is blocked. Both open decisions from yesterday are resolved.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 2. Working tree clean.
+- Nothing is blocked.
 
-**Next up: vertical slice 2 — Project create** (`docs/architecture/ARCHITECTURE.md` §E).
-Project list + create form, domain profile chosen at creation from the seeded
-`domain_profiles`. Done when: the project appears for its creator only, and
-`project.organization_id` is the personal org. `lib/domain/load-profile.ts` already
-loads a profile by key or id and validates it — reuse it, do not re-query inline.
+**Next up: vertical slice 3 — Add source document**
+(`docs/architecture/ARCHITECTURE.md` §E, slice 3). Paste or type text, store it
+**immutably**, render it back verbatim. The project overview already links to it as the
+next step, and `projects.output_lang` is already stored per project. An archived project
+must be refused: guard on `project.status` before any write, the same way the UI already
+hides the action.
 
-**The database is real now.** A hosted Supabase project is linked
-(`rgfwtflsvnlgfiuoxowm`), all 6 migrations are applied, and the seed is loaded.
-`.env.local` holds the keys and is gitignored — never commit it.
+**The database is real.** A hosted Supabase project is linked (`rgfwtflsvnlgfiuoxowm`),
+all 7 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
+gitignored — never commit it.
 
 ```bash
 npm run dev                  # http://localhost:3000
-npm run verify:db            # 8/8 runtime checks against the live schema
+npm run verify:db            # 8/8 schema checks (slice 1)
+npm run verify:projects      # 10/10 project lifecycle checks (slice 2)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
 
-A dev account exists: `slice1-demo@example.com` (password not recorded here — reset it
-in the Supabase dashboard if needed). Public sign-up **rejects `@example.com`**; Supabase
-blocks that domain, so use a real address in the UI, or create users with the admin API.
+## Auth — development notes
+
+- Supabase **rejects reserved domains such as `@example.com` on public sign-up**
+  ("Email address is invalid"). Use a real address when testing the UI. Do **not** relax
+  the validation to accommodate a fake one — the rule is the provider's, and weakening
+  anything on our side to work around it would ship to production.
+- The **admin API accepts them**, which is how the verification scripts create their
+  throwaway users. That path is service-role and stays server-side.
+- The **service-role key must never reach the browser** — no `NEXT_PUBLIC_` prefix, no
+  client component import. `lib/supabase/admin.ts` throws if it is constructed in a
+  browser, and it does not appear anywhere in the project request path.
+- A dev account exists: `slice1-demo@example.com` (password not recorded here — reset it
+  in the Supabase dashboard if needed), owning one demo project.
 
 ---
 
@@ -132,7 +144,17 @@ but the seam must exist from the start so the engine never learns domain facts.
       Server Actions, sign-in / sign-up pages, and a `/workspace` shell that renders the
       organization the bootstrap trigger created. 61 tests · typecheck · lint · build
       clean.
-- [ ] **Phase 3C+ — remaining vertical slices.** project create → add source → run mock
+- [x] **Slice 2 — Project creation, list and archive lifecycle (2026-07-24). VERIFIED
+      AT RUNTIME (10/10) AND IN THE BROWSER.** Migration
+      `20260724000007_project_lifecycle.sql` adds the project intake fields
+      (`output_lang`, `business_objective`, `known_stakeholders`) and the archive
+      lifecycle (`status`, `archived_at`, `archived_by`, `archive_reason`), a
+      `guard_project_update` trigger that pins organization / creator / domain profile /
+      created_at and makes an archived project read-only, and
+      `archive_project()` / `restore_project()` as the only status path.
+      `/workspace/projects`, `/new` and `/[projectId]` are the UI;
+      `lib/contracts/project.ts` + `lib/projects/` are the logic.
+- [ ] **Phase 3C+ — remaining vertical slices.** add source → run mock
       analysis (persist run + items + refs in one transaction) → workspace split-pane →
       edit item → review/approve → export. Slice order in
       `docs/architecture/ARCHITECTURE.md` §E.
@@ -179,6 +201,32 @@ Slice-1 UI, verified in the browser against the same database: signed-out `/work
 "Tanawit's workspace · owner · personal"; sign-out → back to `/sign-in`, route protected
 again.
 
+## Runtime verification (2026-07-24) — slice 2, 10/10 PASS
+
+`npm run verify:projects` (`scripts/verify-projects.mts`), same shape, two fresh users:
+
+| # | Check | Result |
+|---|---|---|
+| 1 | A user creates a project in their own personal workspace | PASS |
+| 2 | Creating in another user's organization is refused by RLS | PASS |
+| 3 | User B sees user A's project neither by list nor by direct id | PASS |
+| 4 | A project is born `active`; a direct status UPDATE is refused | PASS |
+| 5 | `archive_project()` records `archived_at` + `archived_by` from the JWT | PASS |
+| 6 | An archived project keeps every field and refuses edits | PASS |
+| 7 | Only an owner restores; restore clears all archive metadata | PASS |
+| 8 | A project cannot be hard-deleted (no DELETE policy exists) | PASS |
+| 9 | A built-in domain profile is readable, not writable | PASS |
+| 10 | organization / creator / domain profile are immutable; rename still works | PASS |
+
+Slice-2 UI, verified in the browser against the same database: sign in → empty state →
+create (name trimmed, 3 stakeholders parsed from a textarea, blank line dropped) →
+redirect to the overview → archive with a reason → project leaves the Active list
+(`0 active · 1 archived`) → Archived filter shows it → read-only banner with the reason →
+restore → banner gone and the next-step block returns → sign out → `/workspace`,
+`/workspace/projects` and `/workspace/projects/new` all `307` to `/sign-in` with `next`
+preserved. A whitespace-only name was rejected with a field-level message and created no
+row (`select count(*) from projects` stayed 0).
+
 Cleanup: verification rows **cannot** be deleted through the API — the immutability
 triggers refuse DELETE for the service role too, and a `projects` cascade hits them. Use
 `npx supabase db query --linked -f scripts/verify-db-cleanup.sql`, which disables the
@@ -191,14 +239,25 @@ application can never perform.
    support. Accepted for MVP; revisit before the real Gemini provider ships.
 2. **`analysis_items` has no INSERT RLS policy** — items are written only server-side with
    the service-role client during a run (`lib/supabase/admin.ts`), never the anon client.
-3. **Nothing under a project can be deleted.** The immutability triggers make
-   `delete from projects` fail on cascade, so "delete project" is not implementable as
-   the schema stands. Either add a soft-delete column or let the triggers permit cascade
-   deletes — a product decision, not a bug. Same reason a user row cannot be removed once
-   they own a project.
+3. **Nothing under a project can be deleted — RESOLVED in slice 2 by archiving.** The
+   immutability triggers make a `delete from projects` cascade fail, so the product
+   decision is that projects are archived, never deleted: `status = 'archived'` with
+   `archived_at` / `archived_by` / `archive_reason`, every child row untouched, and the
+   `projects_delete_owner` RLS policy dropped so no delete path exists at all. Restore is
+   owner-only. Hard purge remains out of scope (it would need the maintenance path in
+   `scripts/verify-db-cleanup.sql`, which disables the immutability triggers).
 4. **`next_display_id()` is a high-water mark, not a sequence.** Calling it twice without
    inserting returns the same id. Correct for preserving gaps from rejected items;
-   allocate → insert → allocate.
+   allocate → insert → allocate. Documented in `DATA-MODEL.md` §C.1 and
+   `supabase/README.md`; do not "fix" the function to close gaps.
+5. **Only Booking and Smart Space can be selected as a domain.** General Software and
+   Custom Domain render as *Coming soon* and are disabled — `lib/domain/availability.ts`
+   holds that list, and it is an application concern, never an engine branch
+   (ARCHITECTURE §B.2). Custom Domain has no `domain_profiles` row at all.
+6. **Archive/restore are RPCs, not updates.** `guard_project_update` rejects any direct
+   write to `status` / `archived_*`; the functions set a transaction-local flag, exactly
+   like `review_item()`. Both are `SECURITY INVOKER`, so RLS still applies and the actor
+   always comes from `auth.uid()`.
 
 ## Gotchas already known
 

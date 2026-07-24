@@ -1,0 +1,52 @@
+"use client";
+
+/**
+ * The compact toolbar.
+ *
+ * Stays visually identical between project pages — only the context label changes —
+ * so moving around the app feels like changing workspaces inside one window rather
+ * than loading new pages. Search and the command palette are placeholders for the
+ * slices that will own them; they are shown disabled rather than hidden so the shape
+ * of the finished toolbar is legible now.
+ */
+
+import { usePathname } from "next/navigation";
+
+function contextLabel(pathname: string): string {
+  if (pathname === "/workspace/projects/new") return "New project";
+  if (pathname.startsWith("/workspace/projects/")) return "Project";
+  if (pathname.startsWith("/workspace/projects")) return "Projects";
+  return "Workspace";
+}
+
+export function Toolbar({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  return (
+    <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border-soft bg-chrome/85 px-4 py-2.5 backdrop-blur-md sm:px-6">
+      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
+        <span className="hidden text-text-faint sm:inline">ReqWise AI</span>
+        <span aria-hidden="true" className="hidden text-text-faint sm:inline">
+          /
+        </span>
+        <span className="truncate font-medium text-text">{contextLabel(pathname)}</span>
+      </nav>
+
+      <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          disabled
+          title="Search and command palette arrive with the analysis workspace"
+          className="hidden h-9 items-center gap-2 rounded-lg border border-border-soft bg-surface px-3 text-sm text-text-faint sm:flex"
+        >
+          <span aria-hidden="true">⌕</span>
+          <span>Search</span>
+          <kbd className="ml-2 rounded border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px]">
+            ⌘K
+          </kbd>
+        </button>
+        {children}
+      </div>
+    </header>
+  );
+}

@@ -61,6 +61,27 @@ export async function loadDomainProfileByKey(
   return toProfile(data);
 }
 
+/**
+ * Identity of every active profile, for the domain picker.
+ *
+ * Content is deliberately not parsed here — the picker shows a name and a sentence,
+ * and refusing to list a domain because its `content` blob failed validation would be
+ * a worse failure than showing it. Full validation happens in `toProfile` when a
+ * profile is actually used to run an analysis.
+ */
+export async function listDomainProfileOptions(
+  client: SupabaseClient,
+): Promise<Array<{ id: string; key: string; name: string; description: string }>> {
+  const { data, error } = await client
+    .from("domain_profiles")
+    .select("id, key, name, description")
+    .eq("is_active", true)
+    .order("key");
+
+  if (error) throw new Error(`could not list domain profiles: ${error.message}`);
+  return (data ?? []) as Array<{ id: string; key: string; name: string; description: string }>;
+}
+
 /** By primary key — what `projects.domain_profile_id` holds. */
 export async function loadDomainProfileById(
   client: SupabaseClient,
