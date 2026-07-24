@@ -12,7 +12,9 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DomainProfile } from "./types";
-import { domainProfileSchema } from "./profile-schema";
+// Explicit .ts extension so scripts/verify-db.mts can exercise this loader under
+// Node's native type stripping. See lib/domain/profiles/index.ts.
+import { domainProfileSchema } from "./profile-schema.ts";
 
 type DomainProfileRow = {
   id: string;
