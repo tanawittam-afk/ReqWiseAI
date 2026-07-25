@@ -19,6 +19,8 @@ Schema, constraints, RLS, and workspace bootstrap for the 12-table model in
 | `20260724000010_analysis_persistence.sql` | `analysis_runs.request_key` (idempotency) + `persist_analysis_result()`, the atomic RPC that writes a run and its items, references and relations in one transaction |
 | `20260724000011_analysis_persistence_guards.sql` | Defense-in-depth: `persist_analysis_result()` also refuses an `assumed` item carrying a source reference, mirroring `lib/validation/evidence.ts` at the write boundary |
 | `20260725000012_display_id_ranges.sql` | `allocate_display_number_range()` — reserves a block of display numbers per `(project, prefix)` under a transaction-scoped advisory lock; `persist_analysis_result()` switches to it and binds an idempotency key to the context it was first used with |
+| `20260725000013_item_editing_and_review.sql` | Slice 5: `is_reviewable_item_type()`; the tightened transition table (approved and rejected are terminal); a rewritten `guard_item_update()` that pins the identity and evidence columns, populates `change_reason`, and resets a stale review to draft on edit; the narrow `edit_analysis_item()` RPC; and `review_item()` replaced with project / item-type / note / expected-status checks |
+| `20260725000014_conflict_error_code.sql` | Raises both conflicts as `PT409` rather than `serialization_failure` — PostgREST **retries** 40001 as a transient fault, which turned a lost update into "upstream request timeout" instead of a refusal |
 
 `seed.sql` seeds the two domain profiles — identity **and** content. It is **generated**
 from `lib/domain/profiles/*.ts` by `npm run seed:profiles`; never hand-edit it.

@@ -20,8 +20,9 @@
  * and group is `lib/analysis/workspace-view.ts`, tested without a browser.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { AnalysisRunDetail } from "@/lib/analysis/queries";
+import type { ItemHistory } from "@/lib/review/history";
 import {
   EMPTY_FILTERS,
   ISSUE_TYPES,
@@ -41,12 +42,22 @@ import { SummaryBar } from "./_components/summary-bar";
 
 type Pane = "source" | "requirements" | "inspector";
 
+const EMPTY_HISTORY: ItemHistory = { versions: [], activities: [] };
+
 export function AnalysisWorkspace({
   source,
   run,
+  history,
+  canReview,
+  currentUserId,
 }: {
   source: SourceDetail;
   run: AnalysisRunDetail;
+  /** Every item's versions and activities, loaded with the page. Keyed by item id. */
+  history: Record<string, ItemHistory>;
+  /** False for an archived project: the record stays readable, nothing is writable. */
+  canReview: boolean;
+  currentUserId: string | null;
 }) {
   /*
    * Open on the first row the list actually shows, not the first row the database
@@ -67,16 +78,47 @@ export function AnalysisWorkspace({
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [pane, setPane] = useState<Pane>("requirements");
   const [scrollSignal, setScrollSignal] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  /** A selection deferred because an unsaved edit would have been discarded by it. */
+  const [blockedSelection, setBlockedSelection] = useState<string | null>(null);
 
   const { requirements, issues } = useMemo(() => partitionItems(run.items), [run.items]);
   const summary = useMemo(() => runSummary(run.items), [run.items]);
   const selected = run.items.find((item) => item.id === selectedId) ?? null;
+  const blocked = run.items.find((item) => item.id === blockedSelection) ?? null;
+
+  /*
+   * Switching panels keeps the form mounted (the panes are shown and hidden, not
+   * mounted and unmounted), so a pending edit survives that on its own. Selecting a
+   * *different* requirement is the move that would discard it — the edit form is keyed
+   * by item id — so that is the one the workspace intercepts.
+   */
+  const requestSelect = useCallback(
+    (id: string) => {
+      if (editing && dirty && id !== selectedId) {
+        setBlockedSelection(id);
+        return;
+      }
+      setSelectedId(id);
+      setEditing(false);
+      setDirty(false);
+    },
+    [editing, dirty, selectedId],
+  );
+
+  function discardAndSelect() {
+    if (blockedSelection) setSelectedId(blockedSelection);
+    setBlockedSelection(null);
+    setEditing(false);
+    setDirty(false);
+  }
 
   /** Relations name items by display id; selection works in ids. */
   function selectByDisplayId(displayId: string) {
     const target = run.items.find((item) => item.displayId === displayId);
     if (!target) return;
-    setSelectedId(target.id);
+    requestSelect(target.id);
     // Follow the link onto the tab that actually holds it, or the row stays invisible.
     setTab(ISSUE_TYPES.includes(target.type) ? "issues" : "requirements");
   }
@@ -100,6 +142,32 @@ export function AnalysisWorkspace({
         inspectorOpen={inspectorOpen}
         onToggleInspector={() => setInspectorOpen((open) => !open)}
       />
+
+      {/* An unsaved edit is never dropped silently (docs/design/INTERFACE.md §12). */}
+      {blocked ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-2 border-b border-warn-border bg-warn-soft px-3 py-2 text-[12.5px] text-warn"
+        >
+          <span>
+            You have unsaved changes. Opening {blocked.displayId} will discard them.
+          </span>
+          <button
+            type="button"
+            onClick={discardAndSelect}
+            className="ml-auto min-h-9 rounded-lg border border-warn-border px-2.5 font-medium transition-colors duration-150 hover:border-warn"
+          >
+            Discard and open {blocked.displayId}
+          </button>
+          <button
+            type="button"
+            onClick={() => setBlockedSelection(null)}
+            className="min-h-9 rounded-lg px-2.5 font-medium underline underline-offset-2"
+          >
+            Keep editing
+          </button>
+        </div>
+      ) : null}
 
       {/* One panel at a time below lg — a portrait tablet cannot hold three readable columns. */}
       <div
@@ -139,7 +207,7 @@ export function AnalysisWorkspace({
           filters={filters}
           onFiltersChange={setFilters}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={requestSelect}
           className={`${pane === "requirements" ? "flex" : "hidden"} flex-1 lg:flex`}
         />
 
@@ -147,6 +215,14 @@ export function AnalysisWorkspace({
             inspector never loses its tab or scroll position when the layout changes. */}
         <Inspector
           item={selected}
+          history={(selected && history[selected.id]) || EMPTY_HISTORY}
+          projectId={run.projectId}
+          runId={run.id}
+          canReview={canReview}
+          currentUserId={currentUserId}
+          editing={editing}
+          onEditingChange={setEditing}
+          onDirtyChange={setDirty}
           onSelectDisplayId={selectByDisplayId}
           onClose={() => setInspectorOpen(false)}
           className={`${pane === "inspector" ? "flex" : "hidden"} flex-1 ${

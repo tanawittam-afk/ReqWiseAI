@@ -136,9 +136,15 @@ because the application is never granted the privilege to try.
 
 `analysis_items` holds the **current** state. `item_versions` holds the history.
 
-- A **significant edit** — change to `title`, `description`, `priority`, `item_type`, or
-  `attributes` — writes an `item_versions` row **capturing the state before the edit**,
-  then updates the item and bumps `analysis_items.version_no`.
+- A **significant edit** — change to `title`, `description`, `priority` or `attributes` —
+  writes an `item_versions` row **capturing the state before the edit**, then updates the
+  item and bumps `analysis_items.version_no`.
+- **Since Slice 5 `item_type` is not on that list — it cannot change at all**, along with
+  `display_id`, `provider_key`, `analysis_run_id`, `evidence_class`, `origin`,
+  `confidence`, `rationale` and `created_at`. `guard_item_update()` raises on any of them,
+  for every role and every path. A type change would move the item's display prefix and
+  break every citation that already names it; the rest describe what the analysis *found*,
+  and a version history of claims nobody made is worse than no history at all.
 - Non-significant changes (`status`, `review_state`) do **not** create a version — they
   create a `review_activities` row instead. Status is review history, not content history.
 - `item_versions` records `version_no`, full `snapshot` JSONB, `changed_by`,
@@ -167,10 +173,72 @@ Enforced invariants:
    from the JWT, never from the request body.
 3. **AI never transitions anything.** The analysis service may only insert items at
    `status = 'draft'`; a CHECK constraint on insert-time status enforces it.
-4. Valid transitions: `draft → needs_clarification | reviewed | rejected` ·
-   `needs_clarification → draft | reviewed | rejected` · `reviewed → approved | rejected |
-   needs_clarification` · `approved → implemented | needs_clarification` ·
-   `rejected → draft`. Enforced by trigger, so an API bug cannot skip review.
+4. Valid transitions **as tightened by Slice 5** (`is_valid_status_transition`,
+   20260725000013):
+
+   | From | To |
+   |---|---|
+   | `draft` | `reviewed` · `needs_clarification` · `rejected` |
+   | `needs_clarification` | `reviewed` · `rejected` |
+   | `reviewed` | `approved` · `needs_clarification` · `rejected` |
+   | `approved` | — terminal in the MVP |
+   | `rejected` | — terminal in the MVP |
+
+   Enforced by trigger, so an API bug cannot skip review. Three edges the Phase 3A table
+   allowed were **withdrawn**: `approved → implemented`, `approved → needs_clarification`
+   and `rejected → draft`. The `implemented` enum label survives (dropping an enum label
+   rewrites every dependent row) and is simply unreachable until a later slice re-opens
+   it deliberately. Reopening an approved requirement is a **change-request** workflow,
+   not a status flip, and is out of scope.
+
+5. **Returning to `draft` is not a review decision.** It appears nowhere in the table
+   above, because nobody chooses it from a menu: it is what *editing* does to a review
+   that no longer describes the text. See C.11.
+
+---
+
+## C.11 Human review, editing and concurrency (Slice 5)
+
+Four rules, all enforced in the database so they hold on every path — the RPC, a
+hand-rolled PostgREST call, or psql — and not only in the path the application happens
+to use.
+
+**1. A review does not survive a material edit.** Editing an item whose status is
+`reviewed` or `needs_clarification` resets it to `draft` and appends a
+`review_activities` row (`activity_type = 'edit'`) recording the reset. This happens
+inside `guard_item_update()`, in the same transaction as the content write and the
+version snapshot, so an item can never read "reviewed" while holding text nobody
+reviewed. Editing a `draft` leaves it a draft and writes no activity.
+
+**2. Approved and rejected items are frozen.** Both the RPC and the trigger refuse a
+content change, so the freeze survives a client that bypasses the RPC.
+
+**3. Optimistic concurrency.** `edit_analysis_item(p_expected_version, …)` refuses the
+write when the row has moved on; `review_item(p_expected_status, …)` does the same for a
+decision taken against a state that has since changed. Both raise **`PT409`**, *not*
+`serialization_failure` (40001) — PostgREST treats 40001 as a transient fault and
+**retries** it, which turned a lost update into an "upstream request timeout" instead of
+a refusal (fixed in 20260725000014; `scripts/verify-review.mts` check 26 is what caught
+it). `PT409` is PostgREST's convention for "answer with HTTP 409 Conflict", which is what
+has actually happened, and it is never retried.
+
+**4. Only twelve of the fourteen item types take this workflow.** `open_question` and
+`quality_finding` are observations *about* the analysis rather than claims it makes:
+a question is answered and a finding is acknowledged, neither is "approved".
+`is_reviewable_item_type()` refuses both in the RPCs and in the trigger; the UI labels
+them *Question workflow coming next* / *Quality review workflow coming next*.
+
+Editing runs through `edit_analysis_item` — a narrow `SECURITY DEFINER` RPC whose
+signature accepts the item id, an expected version, the three editable fields and an
+optional change reason, and **nothing else**. The parameters a function does not accept
+are the ones no client can forge: there is no `status`, no `actor`, no `version_no`, no
+evidence and no snapshot in its argument list. It re-derives membership, project status,
+item type and current version from the database under `auth.uid()`.
+
+`item_versions.change_reason` is populated by passing the reason through the
+transaction-local setting `reqwise.change_reason`, which the trigger reads when it writes
+the snapshot. Transaction-local, so a pooled connection cannot leak one edit's reason
+into the next.
 
 ---
 

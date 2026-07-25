@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-25 (slice 4.2 — the three-panel Analysis Workspace — shipped and
-verified in the browser at four viewport widths)
+Last updated: 2026-07-25 (slice 5 — requirement editing, human review, approval and
+version history — shipped, 30/30 runtime checks, verified end to end in the browser)
 
 ---
 
@@ -14,23 +14,54 @@ verified in the browser at four viewport widths)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 4.2. Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 5. Working tree clean.
 - Nothing is blocked.
 
-**Next up: slice 5 — requirement editing / review workflow** — approve, reject, request
-clarification, edit an item's content. The database side is already built and proven
-(`review_item()`, versioning trigger, all in `20260724000005`, since Phase 3A) — this
-slice is purely the UI plus the server actions that call it, symmetrical to how sources
-were built in slice 3.
+**Next up: slice 6 — the two deferred workflows, then export.** The obvious candidates,
+in the order they unblock each other:
 
-**It lands inside the Inspector that slice 4.2 just finished.**
-`_components/inspector.tsx` today has exactly three tabs — Details · Evidence · Relations.
-**History** and **Notes** were deliberately left out, not forgotten: `item_versions` and
-`review_activities` hold nothing in a read-only build, and an empty tab that promises data
-is worse than an absent one. Slice 5 adds them, plus the action row. The row list already
-renders review status (`Draft` / `Unassigned` chips come from real columns), so a
-successful review action only has to invalidate the run query for the whole screen to
-update.
+1. **Open-question answering** and **quality-finding acknowledge/dismiss.** Both types
+   are deliberately read-only today and say so in the UI (*Question workflow coming
+   next* / *Quality review workflow coming next*). `is_reviewable_item_type()` refuses
+   them in `edit_analysis_item()`, in `review_item()` and in `guard_item_update()`, so
+   opening either one is a **deliberate migration**, never a UI change: decide what
+   "answered" means for a question (a text answer? a link to the requirement it became?)
+   before touching the database.
+2. **Change requests against an approved requirement.** `approved` and `rejected` are
+   terminal in the MVP — a decision the product made, not a limitation. Reopening one
+   should be a new object with its own audit trail, not a status flip that erases the
+   record of what was approved.
+3. **Export**, and then the real Gemini provider.
+
+Everything slice 5 built lands in `lib/review/` (service + history), `lib/contracts/
+review.ts`, the run route's `actions.ts` / `form-state.ts`, and the inspector's
+`_components/{item-edit-form,review-actions,history-panel}.tsx`. A new workflow should
+follow the same shape: a narrow RPC, a contract that refuses forged fields, a service
+that translates refusals into sentences, and a runtime script that proves the database
+refuses at all.
+
+**Notes tab: still deliberately absent.** There is no note that is not either a change
+reason (on a version) or a review comment (on an activity), so a Notes tab would either
+duplicate History or promise a data model that does not exist.
+
+**Slice 5 shipped the human-in-the-loop workflow.** Open a run → select an item → edit it
+→ save a new version → mark reviewed / needs clarification → approve or reject → read the
+version history and the review timeline. Two migrations (`20260725000013`, `…14`), both
+applied. The rules that matter, all enforced in the database rather than only in the UI:
+
+- **A review does not survive a material edit.** Editing a `reviewed` or
+  `needs_clarification` item resets it to `draft` and appends an `edit` activity — in the
+  same transaction as the content write and the version snapshot, inside
+  `guard_item_update()`, so it holds on every path and not just the app's.
+- **`approved` and `rejected` are terminal.** Three edges the Phase 3A table allowed were
+  withdrawn (`approved → implemented`, `approved → needs_clarification`,
+  `rejected → draft`). The `implemented` enum label survives but is unreachable.
+- **Identity and evidence are pinned.** `item_type`, `display_id`, `provider_key`,
+  `analysis_run_id`, `evidence_class`, `origin`, `confidence`, `rationale` and
+  `created_at` cannot change at all, for any role, on any path.
+- **Optimistic concurrency** on both operations (`expectedVersion` / `expectedStatus`).
+- **`open_question` and `quality_finding` are excluded** from this workflow in the UI, the
+  service *and* the RPC boundary — see the slice-6 note above.
 
 **Slice 4.2 shipped the interface direction.** The owner supplied a *Final Interface
 Direction — Three-Panel Requirements Workspace* plus a rendered reference; both are now
@@ -104,6 +135,7 @@ npm run verify:db            # 8/8 schema checks (slice 1, check 3 updated in sl
 npm run verify:projects      # 10/10 project lifecycle checks (slice 2)
 npm run verify:sources       # 18/18 source, lock and revision checks (slice 3)
 npm run verify:analysis      # 25/25 analysis, allocation and idempotency checks (4 + 4.1)
+npm run verify:review        # 30/30 editing, review, versioning and concurrency (slice 5)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
@@ -312,6 +344,16 @@ but the seam must exist from the start so the engine never learns domain facts.
       carries the direction's 9 navigation entries (only Workspace and Projects `ready`),
       the toolbar gained *Analysis* and *Source* breadcrumbs. **233 tests · typecheck ·
       lint · build · `verify:analysis` 25/25 all clean.**
+- [x] **Slice 5 — Requirement editing, human review, approval, version history
+      (2026-07-25). VERIFIED AT RUNTIME (30/30) AND IN THE BROWSER.** Migrations
+      `20260725000013_item_editing_and_review.sql` (reviewable types, tightened
+      transitions, rewritten `guard_item_update()`, `edit_analysis_item()`, replaced
+      `review_item()`) and `20260725000014_conflict_error_code.sql` (`PT409` instead of
+      `serialization_failure`). `lib/contracts/review.ts` + `lib/review/{service,history}.ts`
+      are the logic; the run route's `actions.ts` / `form-state.ts` and the inspector's
+      `_components/{item-edit-form,review-actions,history-panel}.tsx` are the UI.
+      **297 tests · typecheck · lint · build clean; all five runtime scripts green
+      (8/8 · 10/10 · 18/18 · 25/25 · 30/30).**
 - [ ] **Phase 3C+ — remaining vertical slices.** run mock analysis (persist run + items +
       refs in one transaction) → workspace split-pane → edit item → review/approve →
       export. Slice order in `docs/architecture/ARCHITECTURE.md` §E.
@@ -475,6 +517,86 @@ resolve against the iframe viewport, so the breakpoints are genuinely exercised 
 is not a device-emulation test: no touch input, no mobile UA, no device pixel ratio. If
 mobile ever becomes a real target, re-test on a real device.
 
+## Runtime verification (2026-07-25) — slice 5 review workflow, 30/30 PASS
+
+`npm run verify:review`, against the live database, on authenticated users' own clients.
+The service role appears only to build fixtures — and twice deliberately pointed *at* a
+rule, to prove that even it is refused.
+
+Editing (1–8): a member edits their own draft; title, description and priority are
+written; one `item_versions` snapshot appears with its actor and change reason;
+`version_no` goes 1 → 2; the snapshot holds the pre-edit title, priority **and** status;
+the analysis run's raw output is unchanged character for character; the item's source
+references are unchanged; a draft edit stays a draft and writes no activity.
+
+Review reset (9–10): editing a `needs_clarification` item and editing a `reviewed` item
+each return it to `draft` and append an `edit` activity carrying the real transition.
+
+Refusals (11–16): an approved item cannot be edited through the RPC *or* directly; a
+rejected item likewise; a stale `expectedVersion` is refused and does not advance the
+version; a non-member is refused by the RPC and matches no row directly; an archived
+project refuses both paths while staying fully readable; a direct status UPDATE is
+refused for a member **and** for the service role.
+
+Transitions (17–22): `draft → reviewed` succeeds and is audited; clarification and
+rejection each require a real note (whitespace does not count) and the refused attempt
+leaves the status alone; `reviewed → approved` succeeds while `draft → approved` is
+refused; `approved → draft`, `approved → needs_clarification` and `rejected → draft` are
+all refused.
+
+Scope and concurrency (23–30): an open question and a quality finding can be neither
+approved, reviewed nor edited; an archived project refuses review; **two concurrent edits
+against the same version produce exactly one write, one snapshot and one refusal**;
+review activities and item versions cannot be updated or deleted even by the service
+role; a cross-project id is a miss under the route's project; a cross-organization edit,
+review and read are all refused with nothing but "not found".
+
+## Browser verification (2026-07-25) — slice 5, the full review flow
+
+Signed in as the slice-3 demo user, on the Thai meeting-notes run, at 1920 px.
+
+Edit → history: selected the draft **FR-002**, opened the inline inspector form (visible
+labels, live character counts 24/300 · 59/4000 · 0/500, `expectedVersion` 1), changed the
+statement and priority with a change reason, saved. The row became **Critical · Draft ·
+v2**; History showed *v2 Current* over *v1* with the pre-edit title, "High", "Draft at the
+time", *Changed next: Statement, Priority* and the reason.
+
+Review loop: requested clarification with a required note → status **Needs clarification**
+and the actions correctly narrowed to Edit / Mark reviewed / Reject. Edited it → back to
+**Draft v3** with a *Returned to draft after edit* activity reading *Needs clarification →
+Draft*. Marked reviewed → **Approve** appeared. Edited the reviewed item → back to
+**Draft** again. Marked reviewed, then approved: the confirmation named the three
+consequences (a human decision, read-only for the release, the analysis run unchanged) and
+carried no note field. After approval the item is **Approved · read-only** with only
+*View history* left. Evidence still cites characters 384–408, ◆ Verified, and the source
+panel still highlights that exact span — four edits and an approval later.
+
+Archived project (the real test, not the rendered one): opened a clarification form while
+the project was active, archived the project in a second tab, then submitted the stale
+form. The server refused it — *"This project is archived and read-only. Restore it to make
+changes."*, item still Draft v1, and nothing in the message names a table, function,
+policy or SQLSTATE. Reloading showed the inspector with **no write actions at all** and
+the full four-version history plus review timeline still readable. The project was then
+restored.
+
+Route protection: `/workspace`, the project page and the analysis run each redirect to
+`/sign-in?next=…` with the target preserved when requested without credentials.
+
+⚠️ **Two honest caveats.** (1) Route protection was checked with same-origin
+`fetch(..., { credentials: "omit" })` rather than by signing out, because signing out
+would need the account password typed in — the session was left intact. (2) The tablet
+checks used the same-origin iframe method described in the slice 4.2 section: real media
+queries, but not device emulation.
+
+## Responsive verification (2026-07-25) — slice 5 at 834 px
+
+Segmented control present; **BR-002 stayed selected across every Source ⇄ Requirements ⇄
+Inspector switch**; every review action measured exactly **44 px** tall; no horizontal
+overflow (834/834). A pending edit **survives a panel switch** (the panes are shown and
+hidden, not mounted and unmounted) and selecting a *different* requirement raises
+*"You have unsaved changes. Opening OBJ-002 will discard them."* with *Discard and open* /
+*Keep editing*, rather than discarding silently.
+
 ## Open decisions and known consequences
 
 1. **`analysis_runs` is write-once** (no pending→complete row) → no streaming/long-run
@@ -511,6 +633,18 @@ mobile ever becomes a real target, re-test on a real device.
 
 ## Gotchas already known
 
+- **A `"use server"` module may only export async functions — and breaking that rule
+  compiles.** Exporting `EMPTY_REVIEW_STATE` from `actions.ts` passed typecheck, lint and
+  `next build`, then arrived at the client as `undefined`, so the first
+  `state.fieldErrors` read threw into an error boundary the moment somebody pressed Edit.
+  Plain data for a form's initial state goes in a sibling module — `form-state.ts` next to
+  the actions, the pattern `sources/form-state.ts` already established. **This is the case
+  for browser verification**: nothing else in the toolchain catches it.
+- **PostgREST retries `serialization_failure` (40001).** A version conflict raised with
+  that code came back as "upstream request timeout" after a long wait instead of a
+  refusal. Conflicts are permanent answers: raise `PT409`, PostgREST's convention for
+  HTTP 409, which is never retried. Cost one extra migration (20260725000014) to fix,
+  because an applied migration is never edited.
 - **`md:flex-none` in `app/workspace/layout.tsx` is load-bearing — do not "simplify" it.**
   The root layout's `<body>` is `min-h-full flex flex-col`, so the workspace root is a flex
   item; `flex: 1 1 0%` resolves its height from the flex algorithm and **silently makes

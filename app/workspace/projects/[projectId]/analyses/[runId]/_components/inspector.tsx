@@ -1,21 +1,27 @@
 "use client";
 
 /**
- * The right panel: everything known about the selected item, without a modal.
+ * The right panel: everything known about the selected item, and every decision that
+ * can be taken about it — without a modal.
  *
  * Review work is repetitive — select, read, judge, select again — and a dialog that has
  * to be dismissed between every item taxes exactly that loop (docs/design/INTERFACE.md
- * §5). Three sections keep the panel shallow: what it says, what it rests on, and what
- * it connects to.
+ * §5). Four sections keep the panel shallow: what it says, what it rests on, what it
+ * connects to, and what has happened to it.
  *
- * History and Notes are deliberately absent: `item_versions` and `review_activities`
- * hold nothing until the review slice writes to them, and a tab that promises data it
- * cannot show is worse than one that isn't there yet.
+ * Notes remain absent: there is no note that is not either a change reason (on a
+ * version) or a review comment (on an activity), so a Notes tab would either duplicate
+ * History or promise a data model that does not exist.
  */
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
+import type { ItemHistory } from "@/lib/review/history";
+import { isReviewableItemType, isTerminalStatus } from "@/lib/contracts/review";
 import { FieldLabel, FieldValue, PanelHeader, PanelTitle } from "./panel";
+import { HistoryPanel } from "./history-panel";
+import { ItemEditForm } from "./item-edit-form";
+import { ReviewActions } from "./review-actions";
 import {
   EVIDENCE_LABEL,
   ORIGIN_LABEL,
@@ -26,22 +32,39 @@ import {
   labelFor,
 } from "./labels";
 
-const TABS = ["details", "evidence", "relations"] as const;
+const TABS = ["details", "evidence", "relations", "history"] as const;
 type InspectorTab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<InspectorTab, string> = {
   details: "Details",
   evidence: "Evidence",
   relations: "Relations",
+  history: "History",
 };
 
 export function Inspector({
   item,
+  history,
+  projectId,
+  runId,
+  canReview,
+  currentUserId,
+  editing,
+  onEditingChange,
+  onDirtyChange,
   onSelectDisplayId,
   onClose,
   className = "",
 }: {
   item: AnalysisItemView | null;
+  history: ItemHistory;
+  projectId: string;
+  runId: string;
+  canReview: boolean;
+  currentUserId: string | null;
+  editing: boolean;
+  onEditingChange: (editing: boolean) => void;
+  onDirtyChange: (dirty: boolean) => void;
   onSelectDisplayId: (displayId: string) => void;
   onClose?: () => void;
   className?: string;
@@ -56,6 +79,8 @@ export function Inspector({
     setLastItemId(item?.id ?? null);
     setTab("details");
   }
+
+  const stopEditing = useCallback(() => onEditingChange(false), [onEditingChange]);
 
   return (
     <section
@@ -107,12 +132,57 @@ export function Inspector({
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
-            {tab === "details" ? <Details item={item} /> : null}
+            {tab === "details" ? (
+              editing ? (
+                <ItemEditForm
+                  key={item.id}
+                  item={item}
+                  projectId={projectId}
+                  runId={runId}
+                  onDone={stopEditing}
+                  onDirtyChange={onDirtyChange}
+                />
+              ) : (
+                <Details item={item} />
+              )
+            ) : null}
             {tab === "evidence" ? <Evidence item={item} /> : null}
             {tab === "relations" ? (
               <Relations item={item} onSelectDisplayId={onSelectDisplayId} />
             ) : null}
+            {tab === "history" ? (
+              <HistoryPanel
+                history={history}
+                current={{
+                  versionNo: item.versionNo,
+                  title: item.title,
+                  priority: item.priority,
+                  status: item.status,
+                }}
+                currentUserId={currentUserId}
+              />
+            ) : null}
           </div>
+
+          {/* The decision sits at the foot of the panel, in view whichever tab is open —
+              a reviewer who has just read the evidence should not have to navigate back
+              to Details to act on it. Hidden only while the edit form owns the panel. */}
+          {!editing ? (
+            <div className="border-t border-border-soft bg-surface-muted px-4 py-3">
+              <ReviewActions
+                key={item.id}
+                item={item}
+                projectId={projectId}
+                runId={runId}
+                canReview={canReview}
+                onEdit={() => {
+                  setTab("details");
+                  onEditingChange(true);
+                }}
+                onShowHistory={() => setTab("history")}
+              />
+            </div>
+          ) : null}
         </>
       )}
     </section>
@@ -120,6 +190,7 @@ export function Inspector({
 }
 
 function Details({ item }: { item: AnalysisItemView }) {
+  const deferred = !isReviewableItemType(item.type);
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-1.5">
@@ -127,6 +198,7 @@ function Details({ item }: { item: AnalysisItemView }) {
         <Chip>{labelFor(STATUS_LABEL, item.status)}</Chip>
         <Chip>{labelFor(PRIORITY_LABEL, item.priority)}</Chip>
         <Chip tone="signal">Confidence {confidencePercent(item.confidence)}</Chip>
+        <Chip>Version {item.versionNo}</Chip>
       </div>
 
       <div className="flex flex-col gap-1">
@@ -161,8 +233,12 @@ function Details({ item }: { item: AnalysisItemView }) {
         </div>
       ) : null}
 
-      <p className="text-[11px] text-text-faint">
-        Read-only. Editing, review and version history arrive in the next slice.
+      <p className="text-[11px] leading-relaxed text-text-faint">
+        {deferred
+          ? "Type, evidence, origin and confidence describe what the analysis found and are never edited."
+          : isTerminalStatus(item.status)
+            ? "This requirement is closed. Its statement, description and priority are frozen; type, evidence and confidence were never editable."
+            : "Statement, description and priority can be edited. Type, evidence, origin and confidence describe what the analysis found and are never edited."}
       </p>
     </div>
   );

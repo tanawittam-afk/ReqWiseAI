@@ -39,6 +39,13 @@ export type AnalysisItemView = {
   confidence: number;
   rationale: string | null;
   attributes: Record<string, unknown> | null;
+  /**
+   * The version the reader is looking at. Carried into the edit form and sent back as
+   * `expectedVersion`: an edit is only safe to apply to the state it was composed
+   * against (docs/architecture/DATA-MODEL.md §C.5).
+   */
+  versionNo: number;
+  updatedAt: string;
   sourceReferences: AnalysisSourceReferenceView[];
   relatedDisplayIds: string[];
 };
@@ -139,7 +146,7 @@ export async function getAnalysisRun(
     .from("analysis_items")
     .select(
       "id, display_id, provider_key, item_type, title, description, priority, status, " +
-        "evidence_class, origin, confidence, rationale, attributes",
+        "evidence_class, origin, confidence, rationale, attributes, version_no, updated_at",
     )
     .eq("analysis_run_id", runId)
     .is("deleted_at", null)
@@ -161,6 +168,8 @@ export async function getAnalysisRun(
     confidence: number;
     rationale: string | null;
     attributes: Record<string, unknown> | null;
+    version_no: number;
+    updated_at: string;
   };
   const items_ = ((itemRows ?? []) as unknown) as ItemRow[];
 
@@ -218,6 +227,8 @@ export async function getAnalysisRun(
     confidence: row.confidence,
     rationale: row.rationale ?? null,
     attributes: row.attributes ?? null,
+    versionNo: row.version_no,
+    updatedAt: row.updated_at,
     sourceReferences: refsByItem.get(row.id) ?? [],
     relatedDisplayIds: relatedByItem.get(row.id) ?? [],
   }));

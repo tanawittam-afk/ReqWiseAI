@@ -38,6 +38,8 @@ function item(overrides: Partial<AnalysisItemView> & { type: ItemType }): Analys
     confidence: 0.8,
     rationale: null,
     attributes: null,
+    versionNo: 1,
+    updatedAt: "2026-07-25T00:00:00.000Z",
     sourceReferences: [],
     relatedDisplayIds: [],
     ...overrides,

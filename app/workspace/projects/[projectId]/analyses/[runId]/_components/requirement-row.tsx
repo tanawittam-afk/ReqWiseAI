@@ -20,6 +20,17 @@ import {
   labelFor,
 } from "./labels";
 
+/**
+ * Review status carries a tone as well as its word — the word is what conveys the
+ * state, the tone is what makes a screenful scannable. Never the tone alone.
+ */
+const STATUS_TONE: Record<string, string> = {
+  needs_clarification: "text-warn",
+  reviewed: "text-signal",
+  approved: "text-ok",
+  rejected: "text-danger",
+};
+
 /** The most useful line of evidence to show inline, in order of directness. */
 function supportingLine(item: AnalysisItemView): string {
   const excerpt = item.sourceReferences[0]?.excerpt?.trim();
@@ -70,7 +81,11 @@ export function RequirementRow({
         <Dot />
         <span>{labelFor(PRIORITY_LABEL, item.priority)}</span>
         <Dot />
-        <span>{labelFor(STATUS_LABEL, item.status)}</span>
+        <span className={STATUS_TONE[item.status] ?? ""}>{labelFor(STATUS_LABEL, item.status)}</span>
+        <Dot />
+        <span className="tabular-nums" title={`Version ${item.versionNo}`}>
+          v{item.versionNo}
+        </span>
         {cited ? (
           <span className="inline-flex items-center gap-1 text-signal">
             <span aria-hidden="true">◆</span>

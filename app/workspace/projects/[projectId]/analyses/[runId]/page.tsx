@@ -1,9 +1,16 @@
 /**
- * Analysis result — read-only for this slice (CLAUDE.md §19: no edit, review, approve
- * or reject UI yet).
+ * Analysis result — the review surface.
  *
  * `getAnalysisRun` filters on the route's project id as well as the run id, so a run
  * id from another tenant's project is a miss, exactly like the source detail page.
+ *
+ * The whole run's version history and review timeline are loaded here, in two extra
+ * queries, rather than fetched per item from the client: it keeps the History tab
+ * server-rendered, and it keeps authorization in one place — RLS decides what these
+ * queries return exactly as it decides what the items query returns.
+ *
+ * `canReview` is a UI convenience and nothing more. An archived project is refused by
+ * `edit_analysis_item` and `review_item` regardless of what the page renders.
  */
 
 import Link from "next/link";
@@ -12,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
 import { getAnalysisRun } from "@/lib/analysis/queries";
+import { getRunHistory } from "@/lib/review/history";
 import { formatDate } from "../../../../_components/badges";
 import { AnalysisWorkspace } from "./workspace";
 
@@ -69,12 +77,23 @@ export default async function AnalysisResultPage({
    * and no page padding here — a productivity application, not a document
    * (docs/design/INTERFACE.md §1).
    */
+  const [history, { data: userData }] = await Promise.all([
+    getRunHistory(supabase, projectId, run.items),
+    supabase.auth.getUser(),
+  ]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
         <Header projectId={projectId} source={source} createdAt={run.createdAt} />
       </div>
-      <AnalysisWorkspace source={source} run={run} />
+      <AnalysisWorkspace
+        source={source}
+        run={run}
+        history={history}
+        canReview={project.status === "active"}
+        currentUserId={userData.user?.id ?? null}
+      />
     </div>
   );
 }
