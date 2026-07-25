@@ -779,10 +779,11 @@ hidden, not mounted and unmounted) and selecting a *different* requirement raise
 - **Two worktrees now.** ReqWise AI lives in its own worktree/branch, isolated from the
   portfolio work:
   - `C:/Users/User/Desktop/Claude Code` → branch `portfolio-custom-lottie` (HEAD
-    `5b78f36`) — the original repo with 36 unrelated uncommitted files. **Do not build
-    ReqWise here.**
-  - `C:/Users/User/Desktop/ReqWiseAI-worktree` → branch `reqwise-ai` (HEAD `bf148b3`) —
-    **build here.** Project root is the nested `ReqWiseAI/` folder.
+    `5b78f36`) — the original repo with ~40 unrelated uncommitted files, unchanged
+    since 2026-07-24 and none of them ours. **Do not build ReqWise here.**
+  - `C:/Users/User/Desktop/ReqWiseAI-worktree` → branch `reqwise-ai` (HEAD = the latest
+    slice; see the Git table below) — **build here.** Project root is the nested
+    `ReqWiseAI/` folder.
 - **Supabase rejects `@example.com` on public sign-up** ("Email address is invalid"). The
   admin API does not, which is why the verification script can use it. Use a real address
   in the UI.
@@ -807,7 +808,10 @@ Branch `reqwise-ai`, working tree clean:
 
 | Commit | Phase |
 |---|---|
-| `7df5455` | 4.2 — three-panel Analysis Workspace (this slice) |
+| `9575ec6` | 6A — open-question resolution + quality-finding workflow (HEAD) |
+| `89a1337` | 5 — requirement editing, human review, approval, version history |
+| `c194adf` | docs — records 4.2's own hash (a commit cannot contain it) |
+| `7df5455` | 4.2 — three-panel Analysis Workspace |
 | `e668026` | 4.1 — input-aware mock, reserved display-id ranges |
 | `bf148b3` | 3B — supabase clients, email auth, protected routes |
 | `595a62f` | 3A — database schema, constraints, RLS, workspace bootstrap |
