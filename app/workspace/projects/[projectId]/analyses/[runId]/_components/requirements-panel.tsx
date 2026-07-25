@@ -18,7 +18,6 @@ import { useMemo, useState } from "react";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import { EVIDENCE_CLASSES, PRIORITIES, type ItemType } from "@/lib/contracts/item-types";
 import {
-  GROUP_MODES,
   filterItems,
   groupItems,
   groupStats,
@@ -27,6 +26,7 @@ import {
   type ItemFilters,
   type WorkspaceTab,
 } from "@/lib/analysis/workspace-view";
+import { WORKFLOW_STATE_LABEL, type WorkflowState } from "@/lib/contracts/workflow";
 import { EVIDENCE_LABEL, PRIORITY_LABEL, STATUS_LABEL, TYPE_LABEL, confidencePercent, labelFor } from "./labels";
 import { RequirementRow } from "./requirement-row";
 
@@ -35,11 +35,23 @@ const GROUP_MODE_LABEL: Record<GroupMode, string> = {
   source_order: "Source order",
   review_status: "Review status",
   priority: "Priority",
+  workflow_state: "Workflow state",
 };
+
+/**
+ * Grouping by review status or priority is meaningless on a tab whose items have
+ * neither; grouping by workflow state is meaningless on the requirements tab. Offering
+ * a mode that puts every row in one bucket is worse than not offering it.
+ */
+function groupModesFor(tab: WorkspaceTab): GroupMode[] {
+  if (tab === "requirements") return ["type", "source_order", "review_status", "priority"];
+  return ["workflow_state", "source_order"];
+}
 
 export function RequirementsPanel({
   requirements,
-  issues,
+  questions,
+  findings,
   tab,
   onTabChange,
   groupBy,
@@ -51,7 +63,8 @@ export function RequirementsPanel({
   className = "",
 }: {
   requirements: AnalysisItemView[];
-  issues: AnalysisItemView[];
+  questions: AnalysisItemView[];
+  findings: AnalysisItemView[];
   tab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
   groupBy: GroupMode;
@@ -65,7 +78,8 @@ export function RequirementsPanel({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const items = tab === "requirements" ? requirements : issues;
+  const items = tab === "questions" ? questions : tab === "findings" ? findings : requirements;
+  const workflowTab = tab !== "requirements";
   const visible = useMemo(() => filterItems(items, filters), [items, filters]);
   const groups = useMemo(() => groupItems(visible, groupBy), [visible, groupBy]);
 
@@ -76,6 +90,10 @@ export function RequirementsPanel({
   );
   const presentStatuses = useMemo(
     () => [...new Set(items.map((item) => item.status))],
+    [items],
+  );
+  const presentWorkflowStates = useMemo(
+    () => [...new Set(items.map((item) => item.workflowState).filter((s): s is string => s !== null))],
     [items],
   );
 
@@ -90,8 +108,11 @@ export function RequirementsPanel({
         <Tab active={tab === "requirements"} count={requirements.length} onClick={() => onTabChange("requirements")}>
           Requirements
         </Tab>
-        <Tab active={tab === "issues"} count={issues.length} onClick={() => onTabChange("issues")}>
-          Issues
+        <Tab active={tab === "questions"} count={questions.length} onClick={() => onTabChange("questions")}>
+          Open questions
+        </Tab>
+        <Tab active={tab === "findings"} count={findings.length} onClick={() => onTabChange("findings")}>
+          Quality findings
         </Tab>
       </div>
 
@@ -113,7 +134,7 @@ export function RequirementsPanel({
         <label className="flex items-center gap-1.5 text-xs text-text-faint">
           <span>Group</span>
           <Select value={groupBy} onChange={(value) => onGroupByChange(value as GroupMode)}>
-            {GROUP_MODES.map((mode) => (
+            {groupModesFor(tab).map((mode) => (
               <option key={mode} value={mode}>
                 {GROUP_MODE_LABEL[mode]}
               </option>
@@ -143,27 +164,43 @@ export function RequirementsPanel({
 
       {filtersOpen ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-border-soft bg-surface-muted px-3 py-2">
-          <FacetSelect label="Type" value={filters.type} onChange={(value) => set({ type: value as ItemFilters["type"] })}>
-            {presentTypes.map((type) => (
-              <option key={type} value={type}>
-                {TYPE_LABEL[type]}
-              </option>
-            ))}
-          </FacetSelect>
-          <FacetSelect label="Priority" value={filters.priority} onChange={(value) => set({ priority: value as ItemFilters["priority"] })}>
-            {PRIORITIES.map((priority) => (
-              <option key={priority} value={priority}>
-                {PRIORITY_LABEL[priority]}
-              </option>
-            ))}
-          </FacetSelect>
-          <FacetSelect label="Status" value={filters.status} onChange={(value) => set({ status: value })}>
-            {presentStatuses.map((status) => (
-              <option key={status} value={status}>
-                {labelFor(STATUS_LABEL, status)}
-              </option>
-            ))}
-          </FacetSelect>
+          {workflowTab ? (
+            <FacetSelect
+              label="State"
+              value={filters.workflowState}
+              onChange={(value) => set({ workflowState: value })}
+            >
+              {presentWorkflowStates.map((state) => (
+                <option key={state} value={state}>
+                  {WORKFLOW_STATE_LABEL[state as WorkflowState] ?? state}
+                </option>
+              ))}
+            </FacetSelect>
+          ) : (
+            <>
+              <FacetSelect label="Type" value={filters.type} onChange={(value) => set({ type: value as ItemFilters["type"] })}>
+                {presentTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {TYPE_LABEL[type]}
+                  </option>
+                ))}
+              </FacetSelect>
+              <FacetSelect label="Priority" value={filters.priority} onChange={(value) => set({ priority: value as ItemFilters["priority"] })}>
+                {PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {PRIORITY_LABEL[priority]}
+                  </option>
+                ))}
+              </FacetSelect>
+              <FacetSelect label="Status" value={filters.status} onChange={(value) => set({ status: value })}>
+                {presentStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {labelFor(STATUS_LABEL, status)}
+                  </option>
+                ))}
+              </FacetSelect>
+            </>
+          )}
           <FacetSelect label="Evidence" value={filters.evidenceClass} onChange={(value) => set({ evidenceClass: value })}>
             {EVIDENCE_CLASSES.map((evidenceClass) => (
               <option key={evidenceClass} value={evidenceClass}>
@@ -174,7 +211,9 @@ export function RequirementsPanel({
           {hasActiveFilter(filters) ? (
             <button
               type="button"
-              onClick={() => set({ type: "all", priority: "all", status: "all", evidenceClass: "all" })}
+              onClick={() =>
+                set({ type: "all", priority: "all", status: "all", evidenceClass: "all", workflowState: "all" })
+              }
               className="min-h-9 rounded-lg px-2 text-xs font-medium text-accent underline underline-offset-2"
             >
               Clear filters
@@ -189,9 +228,11 @@ export function RequirementsPanel({
         {groups.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-text-muted">
             {items.length === 0
-              ? tab === "issues"
-                ? "This run raised no open questions and found no quality issues."
-                : "This run produced no requirements."
+              ? tab === "questions"
+                ? "This run raised no open questions."
+                : tab === "findings"
+                  ? "This run found no quality issues."
+                  : "This run produced no requirements."
               : "No item matches the current search and filters."}
           </p>
         ) : (

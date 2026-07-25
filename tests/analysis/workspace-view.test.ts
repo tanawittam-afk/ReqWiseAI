@@ -16,8 +16,10 @@ import {
   groupItems,
   groupStats,
   hasActiveFilter,
+  hasSourceEvidence,
   partitionItems,
   runSummary,
+  tabForType,
 } from "../../lib/analysis/workspace-view";
 import type { ItemType } from "../../lib/contracts/item-types";
 
@@ -40,6 +42,11 @@ function item(overrides: Partial<AnalysisItemView> & { type: ItemType }): Analys
     attributes: null,
     versionNo: 1,
     updatedAt: "2026-07-25T00:00:00.000Z",
+    workflowState: null,
+    resolutionText: null,
+    resolvedAt: null,
+    resolvedBy: null,
+    followUpOn: null,
     sourceReferences: [],
     relatedDisplayIds: [],
     ...overrides,
@@ -58,14 +65,17 @@ describe("partitionItems", () => {
       item({ type: "quality_finding" }),
       item({ type: "risk" }),
     ];
-    const { requirements, issues } = partitionItems(items);
-    expect(requirements.map((i) => i.type)).toEqual(["functional_requirement", "risk"]);
-    expect(issues.map((i) => i.type)).toEqual(["open_question", "quality_finding"]);
+    const { requirements, questions, findings } = partitionItems(items);
+    expect(requirements.map((entry) => entry.type)).toEqual(["functional_requirement", "risk"]);
+    expect(questions.map((entry) => entry.type)).toEqual(["open_question"]);
+    expect(findings.map((entry) => entry.type)).toEqual(["quality_finding"]);
   });
 
   it("keeps a risk as a requirement — it is a finding, not a defect in the analysis", () => {
-    const { issues } = partitionItems([item({ type: "risk" })]);
-    expect(issues).toHaveLength(0);
+    const { requirements, questions, findings } = partitionItems([item({ type: "risk" })]);
+    expect(requirements).toHaveLength(1);
+    expect(questions).toHaveLength(0);
+    expect(findings).toHaveLength(0);
   });
 });
 
@@ -213,10 +223,10 @@ describe("runSummary", () => {
     const summary = runSummary([
       item({ type: "functional_requirement", sourceReferences: citedAt(0) }),
       item({ type: "business_requirement" }),
-      item({ type: "open_question" }),
-      item({ type: "open_question" }),
+      item({ type: "open_question", workflowState: "open" }),
+      item({ type: "open_question", workflowState: "answered" }),
       item({ type: "risk" }),
-      item({ type: "quality_finding" }),
+      item({ type: "quality_finding", workflowState: "acknowledged" }),
     ]);
     expect(summary).toEqual({
       itemCount: 6,
@@ -224,7 +234,93 @@ describe("runSummary", () => {
       openQuestions: 2,
       risks: 1,
       qualityFindings: 1,
+      // one of the two questions has been answered; an acknowledged finding is
+      // explicitly still unresolved (product spec §5)
+      questionsUnresolved: 1,
+      findingsUnresolved: 1,
       citedCount: 1,
     });
+  });
+
+  it("counts a resolved finding and a deferred question as no longer needing anybody", () => {
+    const summary = runSummary([
+      item({ type: "open_question", workflowState: "deferred" }),
+      item({ type: "quality_finding", workflowState: "resolved" }),
+      item({ type: "quality_finding", workflowState: "dismissed" }),
+    ]);
+    expect(summary.questionsUnresolved).toBe(0);
+    expect(summary.findingsUnresolved).toBe(0);
+  });
+});
+
+describe("workflow tabs and evidence (slice 6A)", () => {
+  it("routes each type to its own tab, so one heading never covers two jobs", () => {
+    expect(tabForType("open_question")).toBe("questions");
+    expect(tabForType("quality_finding")).toBe("findings");
+    expect(tabForType("functional_requirement")).toBe("requirements");
+    expect(tabForType("risk")).toBe("requirements");
+  });
+
+  it("counts each tab from the partition, not from a hand-maintained total", () => {
+    const items = [
+      item({ type: "functional_requirement" }),
+      item({ type: "open_question", workflowState: "open" }),
+      item({ type: "open_question", workflowState: "answered" }),
+      item({ type: "quality_finding", workflowState: "resolved" }),
+    ];
+    const { requirements, questions, findings } = partitionItems(items);
+    expect([requirements.length, questions.length, findings.length]).toEqual([1, 2, 1]);
+  });
+
+  it("filters by workflow state", () => {
+    const items = [
+      item({ type: "open_question", workflowState: "open" }),
+      item({ type: "open_question", workflowState: "deferred" }),
+      item({ type: "open_question", workflowState: "answered" }),
+    ];
+    expect(filterItems(items, { ...EMPTY_FILTERS, workflowState: "deferred" })).toHaveLength(1);
+    expect(filterItems(items, { ...EMPTY_FILTERS, workflowState: "open" })).toHaveLength(1);
+    expect(filterItems(items, EMPTY_FILTERS)).toHaveLength(3);
+  });
+
+  it("counts a workflow-state filter as an active filter", () => {
+    expect(hasActiveFilter({ ...EMPTY_FILTERS, workflowState: "answered" })).toBe(true);
+  });
+
+  it("searches the recorded answer, so a reader can find a question by what was said", () => {
+    const items = [
+      item({ type: "open_question", title: "Refund policy", resolutionText: "คืนเงินภายใน 24 ชั่วโมง" }),
+      item({ type: "open_question", title: "Notification channel" }),
+    ];
+    expect(filterItems(items, { ...EMPTY_FILTERS, query: "24 ชั่วโมง" })).toHaveLength(1);
+  });
+
+  it("groups by workflow state with the states that still need somebody first", () => {
+    const groups = groupItems(
+      [
+        item({ type: "open_question", workflowState: "answered" }),
+        item({ type: "open_question", workflowState: "open" }),
+        item({ type: "open_question", workflowState: "deferred" }),
+      ],
+      "workflow_state",
+    );
+    expect(groups.map((g) => g.label)).toEqual(["Open", "Deferred", "Answered"]);
+  });
+
+  it("reports evidence only when the database holds an exactly-located excerpt", () => {
+    const cited = item({ type: "open_question", sourceReferences: citedAt(12) });
+    const fromProfile = item({ type: "open_question", origin: "domain_profile", evidenceClass: "assumed" });
+    const unverified = item({
+      type: "open_question",
+      sourceReferences: [
+        { excerpt: "x", startOffset: 3, endOffset: 8, evidenceStrength: null, offsetVerified: false },
+      ],
+    });
+
+    expect(hasSourceEvidence(cited)).toBe(true);
+    // No excerpt at all, and no excerpt whose position was never proven — neither may
+    // produce a highlight (product spec §14).
+    expect(hasSourceEvidence(fromProfile)).toBe(false);
+    expect(hasSourceEvidence(unverified)).toBe(false);
   });
 });

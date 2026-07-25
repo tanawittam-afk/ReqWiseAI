@@ -46,6 +46,16 @@ export type AnalysisItemView = {
    */
   versionNo: number;
   updatedAt: string;
+  /**
+   * The question / quality workflow. `null` for the twelve reviewable requirement
+   * types, which have no workflow of this kind — a CHECK constraint enforces that,
+   * so `null` here means "not applicable", never "not loaded".
+   */
+  workflowState: string | null;
+  resolutionText: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  followUpOn: string | null;
   sourceReferences: AnalysisSourceReferenceView[];
   relatedDisplayIds: string[];
 };
@@ -146,7 +156,8 @@ export async function getAnalysisRun(
     .from("analysis_items")
     .select(
       "id, display_id, provider_key, item_type, title, description, priority, status, " +
-        "evidence_class, origin, confidence, rationale, attributes, version_no, updated_at",
+        "evidence_class, origin, confidence, rationale, attributes, version_no, updated_at, " +
+        "workflow_state, resolution_text, resolved_at, resolved_by, follow_up_on",
     )
     .eq("analysis_run_id", runId)
     .is("deleted_at", null)
@@ -170,6 +181,11 @@ export async function getAnalysisRun(
     attributes: Record<string, unknown> | null;
     version_no: number;
     updated_at: string;
+    workflow_state: string | null;
+    resolution_text: string | null;
+    resolved_at: string | null;
+    resolved_by: string | null;
+    follow_up_on: string | null;
   };
   const items_ = ((itemRows ?? []) as unknown) as ItemRow[];
 
@@ -229,6 +245,11 @@ export async function getAnalysisRun(
     attributes: row.attributes ?? null,
     versionNo: row.version_no,
     updatedAt: row.updated_at,
+    workflowState: row.workflow_state ?? null,
+    resolutionText: row.resolution_text ?? null,
+    resolvedAt: row.resolved_at ?? null,
+    resolvedBy: row.resolved_by ?? null,
+    followUpOn: row.follow_up_on ?? null,
     sourceReferences: refsByItem.get(row.id) ?? [],
     relatedDisplayIds: relatedByItem.get(row.id) ?? [],
   }));

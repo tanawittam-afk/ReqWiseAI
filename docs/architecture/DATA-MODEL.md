@@ -225,8 +225,8 @@ has actually happened, and it is never retried.
 **4. Only twelve of the fourteen item types take this workflow.** `open_question` and
 `quality_finding` are observations *about* the analysis rather than claims it makes:
 a question is answered and a finding is acknowledged, neither is "approved".
-`is_reviewable_item_type()` refuses both in the RPCs and in the trigger; the UI labels
-them *Question workflow coming next* / *Quality review workflow coming next*.
+`is_reviewable_item_type()` refuses both in the RPCs and in the trigger. Since slice 6A
+they have workflows of their own — see C.12.
 
 Editing runs through `edit_analysis_item` — a narrow `SECURITY DEFINER` RPC whose
 signature accepts the item id, an expected version, the three editable fields and an
@@ -239,6 +239,72 @@ item type and current version from the database under `auth.uid()`.
 transaction-local setting `reqwise.change_reason`, which the trigger reads when it writes
 the snapshot. Transaction-local, so a pooled connection cannot leak one edit's reason
 into the next.
+
+---
+
+## C.12 Question resolution and quality workflow (Slice 6A)
+
+The two types slice 5 locked out of requirement review get their own workflow, on the
+same row rather than in a thirteenth table.
+
+**Why no new table.** A one-to-one `item_workflows` table would restate rules that
+already hold: `review_activities` is already append-only, project-scoped and
+actor-stamped; every policy is already written against `analysis_items.project_id`; a
+CHECK keyed on `item_type` makes impossible states unrepresentable in a way a foreign
+key cannot; the workspace reads a whole run in one query and a side table makes that a
+join; and a one-to-one side table can drift (two rows, or none) where a column cannot.
+Five columns and two nullable columns on `review_activities` are the whole change.
+
+| Column | Meaning |
+|---|---|
+| `analysis_items.workflow_state` | `item_workflow_state`; NULL for the twelve reviewable types |
+| `analysis_items.resolution_text` | the answer, deferral reason, dismissal reason or resolution note behind the **current** state |
+| `analysis_items.resolved_at` / `resolved_by` | who decided and when; both NULL or both set |
+| `analysis_items.follow_up_on` | a deferral's optional follow-up date |
+| `review_activities.from_workflow_state` / `to_workflow_state` | the transition; a row carries either a review transition or a workflow one, never both |
+
+**States, by type** (`analysis_items_workflow_state_by_type`):
+
+| Type | States | Transitions |
+|---|---|---|
+| `open_question` | `open` · `answered` · `deferred` · `not_applicable` | open → answered/deferred/not_applicable · deferred → answered/not_applicable/open · answered → open · not_applicable → open |
+| `quality_finding` | `open` · `acknowledged` · `resolved` · `dismissed` | open → acknowledged/resolved/dismissed · acknowledged → resolved/dismissed/open · resolved → open · dismissed → open |
+| everything else | none — `workflow_state` **must** be NULL | — |
+
+**Rules the database enforces, not just the UI:**
+
+1. **AI items start `open`.** `enforce_insert_draft()` assigns the state rather than
+   validating it — a provider that offers one is ignored, not refused, because there is
+   no state an analysis can legitimately claim.
+2. **Every decision carries words**, with exactly one exception:
+   `acknowledged` means "seen, not fixed" and needs none. Blankness is decided by
+   `blank_to_null()`, which trims **all** whitespace — Postgres `trim()` removes spaces
+   only, so a note of a newline and a tab satisfied the rule until 20260725000017.
+3. **Reopening clears the decision but never the record of it.** `resolution_text`,
+   `resolved_at`, `resolved_by` and `follow_up_on` are cleared; the answer that was
+   given survives in the append-only activity written when it was given.
+4. **A follow-up date belongs to deferral** and to nothing else
+   (`analysis_items_follow_up_only_deferred`).
+5. **The workflow columns move only through their own RPC.** `guard_item_update()`
+   refuses a direct write, so an answer can never exist without the activity beside it.
+6. **Optimistic concurrency** on `p_expected_state`, raised as `PT409` (see C.11 for why
+   not `serialization_failure`).
+
+**No silent requirement mutation.** Answering a question or resolving a finding does not
+touch any requirement's text, status, evidence, source references or version, does not
+create a requirement, and does not alter the analysis run. Where an answer plainly
+implies a requirement should change, the UI says *"This answer may require a requirement
+change."* and shows a **disabled** *Create change request — Coming next*. Acting on an
+answer is a change-request workflow with its own audit trail — deliberately not this
+slice, and the reason `approved` stays terminal (C.5).
+
+**Evidence.** A question raised from a domain profile has no source reference by
+construction; the source panel shows no highlight and says *"Generated from domain
+guidance; no direct source evidence."* Inventing a highlight for the nearest plausible
+sentence would fabricate the exact thing a citation exists to prove.
+
+**Archived projects** are readable in full — questions, answers, findings, resolutions
+and activity — and refuse every workflow action at the UI, the service and the RPC.
 
 ---
 

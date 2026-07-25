@@ -37,9 +37,17 @@ export function SummaryBar({
       <span aria-hidden="true" className="hidden h-4 w-px bg-border-soft sm:block" />
 
       <Metric label="Requirements" value={summary.requirementCount} />
-      <Metric label="Open questions" value={summary.openQuestions} />
+      <Metric
+        label="Open questions"
+        value={summary.openQuestions}
+        note={summary.questionsUnresolved > 0 ? `${summary.questionsUnresolved} unanswered` : "all handled"}
+      />
       <Metric label="Risks" value={summary.risks} />
-      <Metric label="Quality findings" value={summary.qualityFindings} />
+      <Metric
+        label="Quality findings"
+        value={summary.qualityFindings}
+        note={summary.findingsUnresolved > 0 ? `${summary.findingsUnresolved} unresolved` : "all handled"}
+      />
       <Metric label="Cited" value={`${summary.citedCount}/${summary.itemCount}`} />
       <Metric label="Sources" value={sourceCount} />
 
@@ -60,10 +68,20 @@ export function SummaryBar({
   );
 }
 
-function Metric({ label, value }: { label: string; value: number | string }) {
+function Metric({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: number | string;
+  /** A real sub-count, never a derived score — "3 unanswered", not "78% healthy". */
+  note?: string;
+}) {
   return (
     <span className="text-xs text-text-faint">
       {label} <span className="font-medium tabular-nums text-text-muted">{value}</span>
+      {note ? <span className="text-text-faint"> · {note}</span> : null}
     </span>
   );
 }

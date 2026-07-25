@@ -15,29 +15,62 @@ import { computeHighlightRanges } from "./highlight";
 import type { AnalysisItemView } from "./queries";
 
 /**
- * The two tabs. "Issues" is the analysis talking about itself — what it could not
- * settle and what it found wrong — and must never be mixed into the requirements a
- * reader is meant to take as findings.
+ * The three tabs.
+ *
+ * Questions and findings are the analysis talking about itself — what it could not
+ * settle, and what it found wrong with its own output — and must never be mixed into
+ * the requirements a reader is meant to take as findings. Slice 6A splits them apart
+ * from each other as well: they now have separate workflows, separate RPCs and
+ * separate inspector tabs, so one shared "Issues" tab would put two unrelated jobs
+ * behind the same heading.
  */
 export const ISSUE_TYPES: readonly ItemType[] = ["open_question", "quality_finding"];
 
-export type WorkspaceTab = "requirements" | "issues";
+export type WorkspaceTab = "requirements" | "questions" | "findings";
 
-export function partitionItems(items: readonly AnalysisItemView[]): {
+export type ItemPartition = {
   requirements: AnalysisItemView[];
-  issues: AnalysisItemView[];
-} {
+  questions: AnalysisItemView[];
+  findings: AnalysisItemView[];
+};
+
+export function partitionItems(items: readonly AnalysisItemView[]): ItemPartition {
   const requirements: AnalysisItemView[] = [];
-  const issues: AnalysisItemView[] = [];
+  const questions: AnalysisItemView[] = [];
+  const findings: AnalysisItemView[] = [];
   for (const item of items) {
-    (ISSUE_TYPES.includes(item.type) ? issues : requirements).push(item);
+    if (item.type === "open_question") questions.push(item);
+    else if (item.type === "quality_finding") findings.push(item);
+    else requirements.push(item);
   }
-  return { requirements, issues };
+  return { requirements, questions, findings };
+}
+
+/** Which tab holds a given item — the one place that mapping is written down. */
+export function tabForType(type: string): WorkspaceTab {
+  if (type === "open_question") return "questions";
+  if (type === "quality_finding") return "findings";
+  return "requirements";
+}
+
+/**
+ * An item has real evidence only when the database holds an exactly-located excerpt.
+ * A domain-profile question has none, and inventing a highlight for it would be
+ * fabricating the very thing the citation exists to prove (product spec §14).
+ */
+export function hasSourceEvidence(item: AnalysisItemView): boolean {
+  return computeHighlightRanges(item).length > 0;
 }
 
 /* ------------------------------------------------------------------ grouping */
 
-export const GROUP_MODES = ["type", "source_order", "review_status", "priority"] as const;
+export const GROUP_MODES = [
+  "type",
+  "source_order",
+  "review_status",
+  "priority",
+  "workflow_state",
+] as const;
 export type GroupMode = (typeof GROUP_MODES)[number];
 
 export type ItemGroup = {
@@ -63,6 +96,28 @@ const STATUS_LABEL: Record<string, string> = {
   approved: "Approved",
   rejected: "Rejected",
   implemented: "Implemented",
+};
+
+/** Open first: the states that still need somebody are the ones worth seeing. */
+const WORKFLOW_STATE_ORDER = [
+  "open",
+  "acknowledged",
+  "deferred",
+  "answered",
+  "resolved",
+  "dismissed",
+  "not_applicable",
+] as const;
+
+const WORKFLOW_STATE_GROUP_LABEL: Record<string, string> = {
+  open: "Open",
+  acknowledged: "Acknowledged",
+  deferred: "Deferred",
+  answered: "Answered",
+  resolved: "Resolved",
+  dismissed: "Dismissed",
+  not_applicable: "Not applicable",
+  none: "No workflow",
 };
 
 const PRIORITY_LABEL: Record<string, string> = {
@@ -104,15 +159,29 @@ export function groupItems(items: readonly AnalysisItemView[], mode: GroupMode):
   }
 
   const order: readonly string[] =
-    mode === "type" ? ITEM_TYPES : mode === "priority" ? PRIORITIES : STATUS_ORDER;
+    mode === "type"
+      ? ITEM_TYPES
+      : mode === "priority"
+        ? PRIORITIES
+        : mode === "workflow_state"
+          ? WORKFLOW_STATE_ORDER
+          : STATUS_ORDER;
   const labelOf = (key: string) =>
     mode === "type"
       ? TYPE_GROUP_LABEL[key as ItemType]
       : mode === "priority"
         ? (PRIORITY_LABEL[key] ?? key)
-        : (STATUS_LABEL[key] ?? key);
+        : mode === "workflow_state"
+          ? (WORKFLOW_STATE_GROUP_LABEL[key] ?? key)
+          : (STATUS_LABEL[key] ?? key);
   const keyOf = (item: AnalysisItemView) =>
-    mode === "type" ? item.type : mode === "priority" ? item.priority : item.status;
+    mode === "type"
+      ? item.type
+      : mode === "priority"
+        ? item.priority
+        : mode === "workflow_state"
+          ? (item.workflowState ?? "none")
+          : item.status;
 
   const buckets = new Map<string, AnalysisItemView[]>();
   for (const key of order) buckets.set(key, []);
@@ -154,6 +223,8 @@ export type ItemFilters = {
   priority: Priority | "all";
   status: string | "all";
   evidenceClass: string | "all";
+  /** The question / quality workflow state. Only ever set on those two tabs. */
+  workflowState: string | "all";
 };
 
 export const EMPTY_FILTERS: ItemFilters = {
@@ -162,6 +233,7 @@ export const EMPTY_FILTERS: ItemFilters = {
   priority: "all",
   status: "all",
   evidenceClass: "all",
+  workflowState: "all",
 };
 
 export function hasActiveFilter(filters: ItemFilters): boolean {
@@ -169,7 +241,8 @@ export function hasActiveFilter(filters: ItemFilters): boolean {
     filters.type !== "all" ||
     filters.priority !== "all" ||
     filters.status !== "all" ||
-    filters.evidenceClass !== "all"
+    filters.evidenceClass !== "all" ||
+    filters.workflowState !== "all"
   );
 }
 
@@ -190,6 +263,7 @@ export function filterItems(
     if (filters.priority !== "all" && item.priority !== filters.priority) return false;
     if (filters.status !== "all" && item.status !== filters.status) return false;
     if (filters.evidenceClass !== "all" && item.evidenceClass !== filters.evidenceClass) return false;
+    if (filters.workflowState !== "all" && item.workflowState !== filters.workflowState) return false;
     if (needle.length === 0) return true;
 
     const haystack = [
@@ -197,6 +271,7 @@ export function filterItems(
       item.title,
       item.description,
       item.rationale ?? "",
+      item.resolutionText ?? "",
       ...item.sourceReferences.map((ref) => ref.excerpt),
       ...item.relatedDisplayIds,
     ]
@@ -230,12 +305,19 @@ export type RunSummary = {
   openQuestions: number;
   risks: number;
   qualityFindings: number;
+  /**
+   * How many of those questions and findings are still `open` — since slice 6A the
+   * two are different numbers, and conflating them would make a fully-answered run
+   * look untouched.
+   */
+  questionsUnresolved: number;
+  findingsUnresolved: number;
   /** Items with an exactly-located excerpt, out of all items. */
   citedCount: number;
 };
 
 export function runSummary(items: readonly AnalysisItemView[]): RunSummary {
-  const { requirements } = partitionItems(items);
+  const { requirements, questions, findings } = partitionItems(items);
   const countOf = (type: ItemType) => items.filter((item) => item.type === type).length;
   return {
     itemCount: items.length,
@@ -243,6 +325,10 @@ export function runSummary(items: readonly AnalysisItemView[]): RunSummary {
     openQuestions: countOf("open_question"),
     risks: countOf("risk"),
     qualityFindings: countOf("quality_finding"),
+    questionsUnresolved: questions.filter((item) => item.workflowState === "open").length,
+    findingsUnresolved: findings.filter(
+      (item) => item.workflowState === "open" || item.workflowState === "acknowledged",
+    ).length,
     citedCount: items.filter((item) => computeHighlightRanges(item).length > 0).length,
   };
 }

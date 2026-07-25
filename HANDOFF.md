@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-25 (slice 5 — requirement editing, human review, approval and
-version history — shipped, 30/30 runtime checks, verified end to end in the browser)
+Last updated: 2026-07-25 (slice 6A — open-question resolution and the quality-finding
+workflow — shipped, 32/32 runtime checks, verified end to end in the browser)
 
 ---
 
@@ -14,35 +14,56 @@ version history — shipped, 30/30 runtime checks, verified end to end in the br
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 5. Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 6A. Working tree clean.
 - Nothing is blocked.
 
-**Next up: slice 6 — the two deferred workflows, then export.** The obvious candidates,
-in the order they unblock each other:
+**Next up: slice 6B — the change request.** Slice 6A closed the two deferred workflows;
+what it deliberately did **not** do is act on them.
 
-1. **Open-question answering** and **quality-finding acknowledge/dismiss.** Both types
-   are deliberately read-only today and say so in the UI (*Question workflow coming
-   next* / *Quality review workflow coming next*). `is_reviewable_item_type()` refuses
-   them in `edit_analysis_item()`, in `review_item()` and in `guard_item_update()`, so
-   opening either one is a **deliberate migration**, never a UI change: decide what
-   "answered" means for a question (a text answer? a link to the requirement it became?)
-   before touching the database.
-2. **Change requests against an approved requirement.** `approved` and `rejected` are
-   terminal in the MVP — a decision the product made, not a limitation. Reopening one
-   should be a new object with its own audit trail, not a status flip that erases the
-   record of what was approved.
+1. **Change requests against an approved requirement.** This is now the load-bearing
+   gap. An answered question routinely implies a requirement should change, and the
+   Answer tab says so — *"This answer may require a requirement change."* next to a
+   **disabled** *Create change request — Coming next*. `approved` and `rejected` are
+   terminal (C.5), so reopening one must be a **new object with its own audit trail**,
+   not a status flip that erases the record of what was approved. Start from: what does
+   a change request reference (the approved item, the answer that motivated it), who
+   approves it, and does approving it supersede the original or amend it?
+2. **Traceability graph**, once relations carry a real kind — every edge is still
+   `derives_from` because the provider contract has no relation type.
 3. **Export**, and then the real Gemini provider.
 
-Everything slice 5 built lands in `lib/review/` (service + history), `lib/contracts/
-review.ts`, the run route's `actions.ts` / `form-state.ts`, and the inspector's
-`_components/{item-edit-form,review-actions,history-panel}.tsx`. A new workflow should
-follow the same shape: a narrow RPC, a contract that refuses forged fields, a service
-that translates refusals into sentences, and a runtime script that proves the database
-refuses at all.
+Both workflows follow one shape, and a third should too: a **narrow RPC** whose signature
+omits everything a client must not choose, a **contract** that refuses forged fields
+outright, a **service** that turns refusals into sentences, and a **runtime script** that
+proves the database refuses at all. Slice 5 lives in `lib/contracts/review.ts` +
+`lib/review/{service,history}.ts`; slice 6A in `lib/contracts/workflow.ts` +
+`lib/review/workflow-service.ts`, with the UI in
+`_components/{workflow-actions,workflow-tab}.tsx`.
 
 **Notes tab: still deliberately absent.** There is no note that is not either a change
 reason (on a version) or a review comment (on an activity), so a Notes tab would either
 duplicate History or promise a data model that does not exist.
+
+**Slice 6A shipped the two deferred workflows.** Open questions and quality findings are
+no longer read-only. Three migrations (`…15`, `…16`, `…17`), all applied.
+
+- **A question** moves `open → answered / deferred / not_applicable`, and back to `open`
+  with a reason. **A finding** moves `open → acknowledged / resolved / dismissed`, and
+  back. `acknowledged` explicitly means *seen, not fixed*.
+- **No thirteenth table.** Five columns on `analysis_items` (`workflow_state`,
+  `resolution_text`, `resolved_at`, `resolved_by`, `follow_up_on`) plus two on
+  `review_activities`. The reasoning is written out in DATA-MODEL §C.12 — read it before
+  proposing a side table.
+- **A CHECK keyed on `item_type`** makes the impossible states unrepresentable: a
+  requirement's `workflow_state` must be NULL, a question can never be `resolved`, a
+  finding can never be `answered`.
+- **Every decision carries words**, `acknowledged` excepted. Blankness is `blank_to_null()`.
+- **No silent requirement mutation.** Answering or resolving touches no requirement, no
+  source reference and no analysis run. Where an answer implies a change, the UI says so
+  and offers a **disabled** *Create change request — Coming next*.
+- **Domain-profile questions get no highlight** and say *"Generated from domain guidance;
+  no direct source evidence."* — never a plausible-looking sentence.
+- The centre panel is now **three tabs**: Requirements · Open questions · Quality findings.
 
 **Slice 5 shipped the human-in-the-loop workflow.** Open a run → select an item → edit it
 → save a new version → mark reviewed / needs clarification → approve or reject → read the
@@ -61,7 +82,7 @@ applied. The rules that matter, all enforced in the database rather than only in
   `created_at` cannot change at all, for any role, on any path.
 - **Optimistic concurrency** on both operations (`expectedVersion` / `expectedStatus`).
 - **`open_question` and `quality_finding` are excluded** from this workflow in the UI, the
-  service *and* the RPC boundary — see the slice-6 note above.
+  service *and* the RPC boundary — they have their own, added in slice 6A above.
 
 **Slice 4.2 shipped the interface direction.** The owner supplied a *Final Interface
 Direction — Three-Panel Requirements Workspace* plus a rendered reference; both are now
@@ -136,6 +157,7 @@ npm run verify:projects      # 10/10 project lifecycle checks (slice 2)
 npm run verify:sources       # 18/18 source, lock and revision checks (slice 3)
 npm run verify:analysis      # 25/25 analysis, allocation and idempotency checks (4 + 4.1)
 npm run verify:review        # 30/30 editing, review, versioning and concurrency (slice 5)
+npm run verify:workflow      # 32/32 question resolution and quality workflow (slice 6A)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
@@ -354,6 +376,17 @@ but the seam must exist from the start so the engine never learns domain facts.
       `_components/{item-edit-form,review-actions,history-panel}.tsx` are the UI.
       **297 tests · typecheck · lint · build clean; all five runtime scripts green
       (8/8 · 10/10 · 18/18 · 25/25 · 30/30).**
+- [x] **Slice 6A — Open-question resolution and quality-finding workflow (2026-07-25).
+      VERIFIED AT RUNTIME (32/32) AND IN THE BROWSER.** Migrations `…15` (activity-type
+      enum labels, alone by necessity), `…16` (`item_workflow_state`, five workflow
+      columns with type-keyed CHECKs, two columns on `review_activities`, the transition
+      functions, `resolve_open_question()` and `update_quality_finding()`) and `…17`
+      (`blank_to_null()`). `lib/contracts/workflow.ts` +
+      `lib/review/workflow-service.ts` are the logic; the centre panel gained a third
+      tab and the inspector an Answer / Resolution tab.
+      **351 tests · typecheck · lint · build clean; all six runtime scripts green
+      (8/8 · 10/10 · 18/18 · 25/25 · 30/30 · 32/32).** No thirteenth table — see
+      DATA-MODEL §C.12 for why.
 - [ ] **Phase 3C+ — remaining vertical slices.** run mock analysis (persist run + items +
       refs in one transaction) → workspace split-pane → edit item → review/approve →
       export. Slice order in `docs/architecture/ARCHITECTURE.md` §E.
@@ -517,6 +550,77 @@ resolve against the iframe viewport, so the breakpoints are genuinely exercised 
 is not a device-emulation test: no touch input, no mobile UA, no device pixel ratio. If
 mobile ever becomes a real target, re-test on a real device.
 
+## Runtime verification (2026-07-25) — slice 6A question & quality workflow, 32/32 PASS
+
+`npm run verify:workflow`, against the live database, on authenticated users' own
+clients.
+
+Questions (1–15): an AI-created question starts `open`, unresolved and unstamped; a
+member answers it; the answer, actor and timestamp are stored; an append-only
+`question_answered` activity records `open → answered` with the answer text; an empty
+**and** a whitespace-only answer are both refused and write nothing; `open → deferred`
+succeeds with a reason and carries a follow-up date, which is refused on any other
+outcome; `open → not_applicable` succeeds; reopening requires a reason and clears the
+decision while the original answer stays in the audit log; an outsider is refused by the
+RPC and matches no row directly; an archived project refuses both paths while staying
+readable; a cross-project id is a miss and a cross-organization action is refused; a
+stale expected state is refused. **Answering changes no sibling item, no analysis run and
+no source reference** — all three fingerprinted before and after.
+
+Findings (16–26): a finding starts `open`; `acknowledged` succeeds with no note and
+writes no resolution or stamp — *seen, not fixed*; resolving and dismissing each require
+real words; reopening either requires a reason, clears the resolution and leaves the
+original in history; an outsider and an archived project are refused; a stale state is
+refused. **Resolving a finding leaves the requirement it points at byte-identical**, with
+a real `item_relations` edge in place. Activities cannot be updated or deleted even by
+the service role.
+
+Integrity (27–32): neither a question nor a finding can be approved through
+`review_item()`; a requirement can use neither workflow RPC and carries `workflow_state
+NULL`; a refused action writes **neither** the state change nor the activity, and a
+successful one writes both; two concurrent actions produce one write, one activity and
+one `workflow conflict` refusal; the run and every excerpt are unchanged overall.
+
+## Browser verification (2026-07-25) — slice 6A, all 19 steps
+
+Signed in as the slice-3 demo user, on the Thai meeting-notes run, at 1920 px.
+
+The centre panel shows **Requirements 12 · Open questions 2 · Quality findings 1**, and
+the summary bar reads *2 unanswered* / *1 unresolved* — real sub-counts, not a score.
+
+**Q-003** (source-analysis origin) highlighted its exact excerpt on selection, *Highlight
+1 of 1*. Its Answer tab offered Mark answered / Defer / Not applicable, the note was
+labelled *Stakeholder answer (required)*, and the answered form carried the change-request
+notice with a **disabled** *Create change request — Coming next*. After saving: the row
+read **Answered** with the answer as its preview, the summary moved to *1 unanswered*, and
+History showed *Answered stakeholder question* with the text.
+
+**Q-004** (domain-profile origin) produced **zero `<mark>` elements**; the source footer
+and the Evidence tab both read *"Generated from domain guidance; no direct source
+evidence."* Deferring it with a reason and a follow-up date put **Deferred · ⏱ 2026-08-15**
+on the row.
+
+**QF-002** opened a *Finding inspector* with a **Resolution** tab. Open offered
+Acknowledge / Resolve / Dismiss; acknowledging (note optional) left it *still unresolved*
+and the actions became Resolve / Dismiss / Reopen; resolving (note required) left only
+Reopen and moved the summary to *all handled*. **FR-002 stayed `Critical · Approved · v4`
+and NFR-002 — named in the resolution note — stayed `Unassigned · Draft · v1`.**
+
+Archived: a Reopen form opened while active and submitted after archiving in a second tab
+was refused server-side — *"This project is archived and read-only."* — with the finding
+still Resolved and nothing internal leaked. Reloading showed **no workflow actions at
+all**, the archived notice, and the answer still readable. The project was then restored.
+
+Route protection: the analysis route redirects to `/sign-in?next=…` without credentials.
+
+## Responsive verification (2026-07-25) — slice 6A at 834 px
+
+Segmented control present; every workflow action measured exactly **44 px**; no
+horizontal overflow (834/834). Cycling Source ⇄ Requirements ⇄ Inspector preserved the
+**selected question, the inspector's Answer tab, and a half-written answer**. Selecting a
+*different* question raised *"You have unsaved changes. Opening Q-003 will discard them."*
+with Discard / Keep editing, and Q-004 stayed selected.
+
 ## Runtime verification (2026-07-25) — slice 5 review workflow, 30/30 PASS
 
 `npm run verify:review`, against the live database, on authenticated users' own clients.
@@ -633,6 +737,16 @@ hidden, not mounted and unmounted) and selecting a *different* requirement raise
 
 ## Gotchas already known
 
+- **Postgres `trim()` / `btrim()` removes SPACES ONLY.** Not tabs, not newlines. Every
+  "a note is required" rule in this schema was written as `nullif(btrim(x), '')` and
+  therefore accepted a note of `E'
+	'` as words. `blank_to_null()` (20260725000017) is
+  now the single definition of blank; use it for any future required-text rule.
+  `scripts/verify-workflow.mts` check 5 caught it, and only because that check used a
+  newline — the slice-5 equivalent used spaces and passed while the same hole was open.
+- **Adding an enum value and using it need two migrations.** `alter type … add value`
+  cannot be *used* by the transaction that ran it, and `supabase db push` wraps each file
+  in one. That is why 20260725000015 exists on its own.
 - **A `"use server"` module may only export async functions — and breaking that rule
   compiles.** Exporting `EMPTY_REVIEW_STATE` from `actions.ts` passed typecheck, lint and
   `next build`, then arrived at the client as `undefined`, so the first

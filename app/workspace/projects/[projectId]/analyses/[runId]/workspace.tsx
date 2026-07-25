@@ -25,10 +25,10 @@ import type { AnalysisRunDetail } from "@/lib/analysis/queries";
 import type { ItemHistory } from "@/lib/review/history";
 import {
   EMPTY_FILTERS,
-  ISSUE_TYPES,
   groupItems,
   partitionItems,
   runSummary,
+  tabForType,
   type GroupMode,
   type ItemFilters,
   type WorkspaceTab,
@@ -83,7 +83,10 @@ export function AnalysisWorkspace({
   /** A selection deferred because an unsaved edit would have been discarded by it. */
   const [blockedSelection, setBlockedSelection] = useState<string | null>(null);
 
-  const { requirements, issues } = useMemo(() => partitionItems(run.items), [run.items]);
+  const { requirements, questions, findings } = useMemo(
+    () => partitionItems(run.items),
+    [run.items],
+  );
   const summary = useMemo(() => runSummary(run.items), [run.items]);
   const selected = run.items.find((item) => item.id === selectedId) ?? null;
   const blocked = run.items.find((item) => item.id === blockedSelection) ?? null;
@@ -96,7 +99,10 @@ export function AnalysisWorkspace({
    */
   const requestSelect = useCallback(
     (id: string) => {
-      if (editing && dirty && id !== selectedId) {
+      // `dirty` covers a half-written requirement edit AND a half-written answer or
+      // resolution note — both live in the inspector, both are keyed by item id, and
+      // both would be discarded by moving the selection.
+      if (dirty && id !== selectedId) {
         setBlockedSelection(id);
         return;
       }
@@ -104,7 +110,7 @@ export function AnalysisWorkspace({
       setEditing(false);
       setDirty(false);
     },
-    [editing, dirty, selectedId],
+    [dirty, selectedId],
   );
 
   function discardAndSelect() {
@@ -114,13 +120,24 @@ export function AnalysisWorkspace({
     setDirty(false);
   }
 
+  /*
+   * Grouping modes are tab-specific: "review status" says nothing about a question and
+   * "workflow state" says nothing about a requirement. Switching tabs therefore picks
+   * that tab's first mode rather than carrying an inapplicable one across.
+   */
+  function changeTab(next: WorkspaceTab) {
+    setTab(next);
+    setGroupBy(next === "requirements" ? "type" : "workflow_state");
+    setFilters(EMPTY_FILTERS);
+  }
+
   /** Relations name items by display id; selection works in ids. */
   function selectByDisplayId(displayId: string) {
     const target = run.items.find((item) => item.displayId === displayId);
     if (!target) return;
     requestSelect(target.id);
     // Follow the link onto the tab that actually holds it, or the row stays invisible.
-    setTab(ISSUE_TYPES.includes(target.type) ? "issues" : "requirements");
+    changeTab(tabForType(target.type));
   }
 
   /** Switching to a single panel re-runs the source scroll (INTERFACE §12). */
@@ -199,9 +216,10 @@ export function AnalysisWorkspace({
 
         <RequirementsPanel
           requirements={requirements}
-          issues={issues}
+          questions={questions}
+          findings={findings}
           tab={tab}
-          onTabChange={setTab}
+          onTabChange={changeTab}
           groupBy={groupBy}
           onGroupByChange={setGroupBy}
           filters={filters}

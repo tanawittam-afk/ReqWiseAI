@@ -18,10 +18,13 @@ import { useCallback, useState } from "react";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import type { ItemHistory } from "@/lib/review/history";
 import { isReviewableItemType, isTerminalStatus } from "@/lib/contracts/review";
+import { isWorkflowItemType, WORKFLOW_STATE_LABEL, type WorkflowState } from "@/lib/contracts/workflow";
 import { FieldLabel, FieldValue, PanelHeader, PanelTitle } from "./panel";
 import { HistoryPanel } from "./history-panel";
 import { ItemEditForm } from "./item-edit-form";
 import { ReviewActions } from "./review-actions";
+import { WorkflowTab } from "./workflow-tab";
+import { WorkflowStateChip } from "./workflow-actions";
 import {
   EVIDENCE_LABEL,
   ORIGIN_LABEL,
@@ -32,13 +35,25 @@ import {
   labelFor,
 } from "./labels";
 
-const TABS = ["details", "evidence", "relations", "history"] as const;
-type InspectorTab = (typeof TABS)[number];
+type InspectorTab = "details" | "evidence" | "relations" | "answer" | "resolution" | "history";
 
-const TAB_LABEL: Record<InspectorTab, string> = {
+/**
+ * The workflow tab's name is the job it does, which differs by type: a question is
+ * *answered*, a finding is *resolved*. "Workflow" would be accurate for both and
+ * meaningful for neither.
+ */
+function tabsFor(type: string): InspectorTab[] {
+  if (type === "open_question") return ["details", "evidence", "answer", "history"];
+  if (type === "quality_finding") return ["details", "evidence", "resolution", "history"];
+  return ["details", "evidence", "relations", "history"];
+}
+
+const TAB_LABEL: Record<string, string> = {
   details: "Details",
   evidence: "Evidence",
   relations: "Relations",
+  answer: "Answer",
+  resolution: "Resolution",
   history: "History",
 };
 
@@ -82,6 +97,20 @@ export function Inspector({
 
   const stopEditing = useCallback(() => onEditingChange(false), [onEditingChange]);
 
+  const workflowItem = item !== null && isWorkflowItemType(item.type);
+  const tabs = tabsFor(item?.type ?? "");
+  // A tab list that changed with the item can leave `tab` pointing at one that is no
+  // longer there; falling back to Details is better than rendering nothing.
+  const activeTab = tabs.includes(tab) ? tab : "details";
+  const panelTitle =
+    item === null
+      ? "Inspector"
+      : item.type === "open_question"
+        ? "Question inspector"
+        : item.type === "quality_finding"
+          ? "Finding inspector"
+          : "Requirement inspector";
+
   return (
     <section
       aria-label="Requirement inspector"
@@ -89,7 +118,7 @@ export function Inspector({
     >
       <PanelHeader>
         <div className="flex min-w-0 flex-col">
-          <PanelTitle>Requirement inspector</PanelTitle>
+          <PanelTitle>{panelTitle}</PanelTitle>
           {item ? (
             <span className="font-mono text-[11px] text-text-faint">{item.displayId}</span>
           ) : null}
@@ -114,14 +143,14 @@ export function Inspector({
       ) : (
         <>
           <div className="flex items-center gap-1 border-b border-border-soft px-3 pt-2">
-            {TABS.map((value) => (
+            {tabs.map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setTab(value)}
-                aria-current={tab === value ? "true" : undefined}
+                aria-current={activeTab === value ? "true" : undefined}
                 className={`-mb-px min-h-11 border-b-2 px-2.5 text-sm transition-colors duration-150 ${
-                  tab === value
+                  activeTab === value
                     ? "border-b-accent font-semibold text-text"
                     : "border-b-transparent text-text-muted hover:text-text"
                 }`}
@@ -132,7 +161,7 @@ export function Inspector({
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
-            {tab === "details" ? (
+            {activeTab === "details" ? (
               editing ? (
                 <ItemEditForm
                   key={item.id}
@@ -146,11 +175,22 @@ export function Inspector({
                 <Details item={item} />
               )
             ) : null}
-            {tab === "evidence" ? <Evidence item={item} /> : null}
-            {tab === "relations" ? (
+            {activeTab === "evidence" ? <Evidence item={item} /> : null}
+            {activeTab === "relations" ? (
               <Relations item={item} onSelectDisplayId={onSelectDisplayId} />
             ) : null}
-            {tab === "history" ? (
+            {activeTab === "answer" || activeTab === "resolution" ? (
+              <WorkflowTab
+                key={item.id}
+                item={item}
+                projectId={projectId}
+                runId={runId}
+                canAct={canReview}
+                currentUserId={currentUserId}
+                onDirtyChange={onDirtyChange}
+              />
+            ) : null}
+            {activeTab === "history" ? (
               <HistoryPanel
                 history={history}
                 current={{
@@ -167,7 +207,10 @@ export function Inspector({
           {/* The decision sits at the foot of the panel, in view whichever tab is open —
               a reviewer who has just read the evidence should not have to navigate back
               to Details to act on it. Hidden only while the edit form owns the panel. */}
-          {!editing ? (
+          {/* A question or a finding takes its decisions in its own tab, where the
+              answer being written is next to the words being answered. Only the
+              requirement review row lives at the foot of the panel. */}
+          {!editing && !workflowItem ? (
             <div className="border-t border-border-soft bg-surface-muted px-4 py-3">
               <ReviewActions
                 key={item.id}
@@ -191,14 +234,19 @@ export function Inspector({
 
 function Details({ item }: { item: AnalysisItemView }) {
   const deferred = !isReviewableItemType(item.type);
+  const workflow = isWorkflowItemType(item.type);
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <Chip tone="accent">{TYPE_LABEL[item.type]}</Chip>
-        <Chip>{labelFor(STATUS_LABEL, item.status)}</Chip>
-        <Chip>{labelFor(PRIORITY_LABEL, item.priority)}</Chip>
+        {workflow ? (
+          <WorkflowStateChip state={item.workflowState ?? "open"} />
+        ) : (
+          <Chip>{labelFor(STATUS_LABEL, item.status)}</Chip>
+        )}
+        {workflow ? null : <Chip>{labelFor(PRIORITY_LABEL, item.priority)}</Chip>}
         <Chip tone="signal">Confidence {confidencePercent(item.confidence)}</Chip>
-        <Chip>Version {item.versionNo}</Chip>
+        {workflow ? null : <Chip>Version {item.versionNo}</Chip>}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -233,8 +281,16 @@ function Details({ item }: { item: AnalysisItemView }) {
         </div>
       ) : null}
 
+      {workflow && item.followUpOn ? (
+        <p className="text-[11.5px] text-warn">Follow up on {item.followUpOn}</p>
+      ) : null}
+
       <p className="text-[11px] leading-relaxed text-text-faint">
-        {deferred
+        {workflow
+          ? item.type === "open_question"
+            ? `This is a question the analysis could not settle. Answer it in the Answer tab — the question, its evidence and its confidence never change. Current state: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}.`
+            : `This is an observation about the analysis, not a requirement. Acknowledge, resolve or dismiss it in the Resolution tab. Current state: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}.`
+          : deferred
           ? "Type, evidence, origin and confidence describe what the analysis found and are never edited."
           : isTerminalStatus(item.status)
             ? "This requirement is closed. Its statement, description and priority are frozen; type, evidence and confidence were never editable."
@@ -246,15 +302,25 @@ function Details({ item }: { item: AnalysisItemView }) {
 
 function Evidence({ item }: { item: AnalysisItemView }) {
   if (item.sourceReferences.length === 0) {
+    /*
+     * No excerpt, so no highlight — not a highlight of the nearest plausible sentence.
+     * A domain-profile item is raised BECAUSE the source is silent; inventing a
+     * citation for it would fabricate the exact thing a citation exists to prove
+     * (product spec §14).
+     */
+    const fromProfile = item.origin === "domain_profile";
     return (
       <div className="flex flex-col gap-2">
         <p className="text-sm text-text-muted">
-          This item cites no excerpt from the source document.
+          {fromProfile
+            ? "Generated from domain guidance; no direct source evidence."
+            : "This item cites no excerpt from the source document."}
         </p>
         <p className="text-[11px] leading-relaxed text-text-faint">
           That is expected for an {labelFor(EVIDENCE_LABEL, item.evidenceClass).toLowerCase()} item
           raised from {labelFor(ORIGIN_LABEL, item.origin).toLowerCase()} — it is a question the
-          source never answered, not a claim about what the source says.
+          source never answered, not a claim about what the source says. The source panel shows
+          no highlight for it, deliberately.
         </p>
       </div>
     );

@@ -137,8 +137,13 @@ export function SourcePanel({
         <span className="text-xs text-text-muted">
           {citations.length === 0
             ? item
-              ? "No exact excerpt for this item"
-              : "No requirement selected"
+              ? // A domain-profile item is raised BECAUSE the source is silent. Saying
+                // where it came from is the honest alternative to highlighting a
+                // plausible-looking sentence (product spec §14).
+                item.origin === "domain_profile"
+                ? "Generated from domain guidance; no direct source evidence."
+                : "No exact excerpt for this item"
+              : "Nothing selected"
             : `Highlight ${activeIndex + 1} of ${citations.length}`}
         </span>
         <div className="ml-auto flex items-center gap-1">

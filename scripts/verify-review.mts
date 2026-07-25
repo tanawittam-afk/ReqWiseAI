@@ -536,8 +536,10 @@ async function main(): Promise<void> {
 
   await check("19. draft → rejected requires a note", async () => {
     const item = await newItem(projectA, runA, "risk");
+    // Tabs and newlines, not just spaces: Postgres `trim()` removes spaces only, so a
+    // note made of a newline and a tab satisfied this rule until 20260725000017.
     const without = refused(
-      await review(clientA, item, "reject", "rejected", "   ", "draft"),
+      await review(clientA, item, "reject", "rejected", " \n\t ", "draft"),
       "a rejection with a whitespace-only note",
     );
     assert(await statusOf(clientA, item) === "draft", "the refused rejection still changed the status");

@@ -13,6 +13,11 @@
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import { computeHighlightRanges } from "@/lib/analysis/highlight";
 import {
+  WORKFLOW_STATE_LABEL,
+  isWorkflowItemType,
+  type WorkflowState,
+} from "@/lib/contracts/workflow";
+import {
   PRIORITY_LABEL,
   STATUS_LABEL,
   TYPE_SHORT_LABEL,
@@ -31,8 +36,32 @@ const STATUS_TONE: Record<string, string> = {
   rejected: "text-danger",
 };
 
-/** The most useful line of evidence to show inline, in order of directness. */
+/** The same rule for the workflow states: the word carries the meaning, the tone scans. */
+const WORKFLOW_TONE: Record<string, string> = {
+  open: "text-text-muted",
+  acknowledged: "text-signal",
+  deferred: "text-warn",
+  answered: "text-ok",
+  resolved: "text-ok",
+  dismissed: "text-text-faint",
+  not_applicable: "text-text-faint",
+};
+
+/** `attributes.finding` is a real provider field — the kind of defect, not a severity. */
+function findingKind(item: AnalysisItemView): string | null {
+  const value = (item.attributes ?? {}).finding;
+  return typeof value === "string" ? value : null;
+}
+
+/**
+ * The most useful line to show inline, in order of directness.
+ *
+ * For a question or finding that has been decided, the *answer* is what a reader wants
+ * on the row — the excerpt is still one tab away, and the decision is the new fact.
+ */
 function supportingLine(item: AnalysisItemView): string {
+  const resolution = item.resolutionText?.trim();
+  if (resolution) return resolution;
   const excerpt = item.sourceReferences[0]?.excerpt?.trim();
   if (excerpt) return excerpt;
   if (item.rationale?.trim()) return item.rationale.trim();
@@ -50,6 +79,9 @@ export function RequirementRow({
 }) {
   const cited = computeHighlightRanges(item).length > 0;
   const supporting = supportingLine(item);
+  const workflow = isWorkflowItemType(item.type);
+  const state = item.workflowState ?? "open";
+  const kind = workflow ? findingKind(item) : null;
 
   return (
     <button
@@ -78,14 +110,41 @@ export function RequirementRow({
 
       <div className="flex flex-wrap items-center gap-x-2 text-[11px] leading-tight text-text-faint">
         <span className="text-text-muted">{TYPE_SHORT_LABEL[item.type]}</span>
-        <Dot />
-        <span>{labelFor(PRIORITY_LABEL, item.priority)}</span>
-        <Dot />
-        <span className={STATUS_TONE[item.status] ?? ""}>{labelFor(STATUS_LABEL, item.status)}</span>
-        <Dot />
-        <span className="tabular-nums" title={`Version ${item.versionNo}`}>
-          v{item.versionNo}
-        </span>
+        {workflow ? (
+          <>
+            <Dot />
+            <span className={WORKFLOW_TONE[state] ?? ""}>
+              {WORKFLOW_STATE_LABEL[state as WorkflowState] ?? state}
+            </span>
+            {kind ? (
+              <>
+                <Dot />
+                <span>{kind}</span>
+              </>
+            ) : null}
+            {item.followUpOn ? (
+              <>
+                <Dot />
+                <span className="text-warn tabular-nums" title="Follow up on">
+                  ⏱ {item.followUpOn}
+                </span>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Dot />
+            <span>{labelFor(PRIORITY_LABEL, item.priority)}</span>
+            <Dot />
+            <span className={STATUS_TONE[item.status] ?? ""}>
+              {labelFor(STATUS_LABEL, item.status)}
+            </span>
+            <Dot />
+            <span className="tabular-nums" title={`Version ${item.versionNo}`}>
+              v{item.versionNo}
+            </span>
+          </>
+        )}
         {cited ? (
           <span className="inline-flex items-center gap-1 text-signal">
             <span aria-hidden="true">◆</span>

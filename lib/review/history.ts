@@ -15,6 +15,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemStatus } from "../contracts/review";
+import { WORKFLOW_ACTIVITY_LABEL } from "../contracts/workflow";
 
 /** The fields a person may edit, and therefore the only fields a diff can report. */
 export const COMPARED_FIELDS = ["title", "description", "priority"] as const;
@@ -39,6 +40,13 @@ export type ReviewActivityView = {
   activityType: string;
   fromStatus: string | null;
   toStatus: string | null;
+  /**
+   * The question / quality workflow transition. A row carries either a review
+   * transition (`fromStatus`/`toStatus`) or a workflow one — never both, because the
+   * two workflows never touch the same item.
+   */
+  fromWorkflowState: string | null;
+  toWorkflowState: string | null;
   actorId: string;
   comment: string | null;
   createdAt: string;
@@ -105,6 +113,8 @@ export function buildItemHistory(
     activity_type: string;
     from_status: ItemStatus | null;
     to_status: ItemStatus | null;
+    from_workflow_state?: string | null;
+    to_workflow_state?: string | null;
     actor_id: string;
     comment: string | null;
     created_at: string;
@@ -145,6 +155,8 @@ export function buildItemHistory(
       activityType: row.activity_type,
       fromStatus: row.from_status,
       toStatus: row.to_status,
+      fromWorkflowState: row.from_workflow_state ?? null,
+      toWorkflowState: row.to_workflow_state ?? null,
       actorId: row.actor_id,
       comment: row.comment,
       createdAt: row.created_at,
@@ -180,7 +192,10 @@ export async function getRunHistory(
       .in("item_id", itemIds),
     client
       .from("review_activities")
-      .select("id, item_id, activity_type, from_status, to_status, actor_id, comment, created_at")
+      .select(
+        "id, item_id, activity_type, from_status, to_status, " +
+          "from_workflow_state, to_workflow_state, actor_id, comment, created_at",
+      )
       .eq("project_id", projectId)
       .in("item_id", itemIds),
   ]);
@@ -224,8 +239,16 @@ export function activityLabel(activity: {
   activityType: string;
   fromStatus: string | null;
   toStatus: string | null;
+  fromWorkflowState?: string | null;
+  toWorkflowState?: string | null;
 }): string {
   const { activityType, fromStatus, toStatus } = activity;
+
+  // The eight workflow actions name themselves precisely, so unlike `status_change`
+  // there is nothing to derive from the transition.
+  const workflow = WORKFLOW_ACTIVITY_LABEL[activityType];
+  if (workflow) return workflow;
+
   if (activityType === "approve" || toStatus === "approved") return "Approved";
   if (activityType === "reject" || toStatus === "rejected") return "Rejected";
   if (activityType === "request_clarification" || toStatus === "needs_clarification") {
