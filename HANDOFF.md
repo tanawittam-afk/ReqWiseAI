@@ -559,7 +559,7 @@ Branch `reqwise-ai`, working tree clean:
 
 | Commit | Phase |
 |---|---|
-| `c603263` | 4.2 — three-panel Analysis Workspace (this slice) |
+| `7df5455` | 4.2 — three-panel Analysis Workspace (this slice) |
 | `e668026` | 4.1 — input-aware mock, reserved display-id ranges |
 | `bf148b3` | 3B — supabase clients, email auth, protected routes |
 | `595a62f` | 3A — database schema, constraints, RLS, workspace bootstrap |
