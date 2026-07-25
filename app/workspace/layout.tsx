@@ -29,11 +29,25 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   const organizations = (membership as { organizations: { name: string } | null } | null)
     ?.organizations;
 
+  /*
+   * On desktop the window is the application: the shell is exactly one viewport tall
+   * and never scrolls. Scrolling belongs to the content area — or, on the analysis
+   * workspace, to each panel individually (docs/design/INTERFACE.md §1). Below `md`
+   * the sidebar is a strip above the content and the page scrolls normally.
+   *
+   * `md:flex-none` is load-bearing: the root layout's `<body>` is a column flex
+   * container, and a flex item with `flex: 1 1 0%` takes its height from the
+   * container's content rather than from its own `height`, which would make `h-dvh`
+   * silently do nothing and let the whole page grow past the viewport.
+   */
   return (
-    <div className="flex min-h-dvh flex-1 flex-col bg-app md:flex-row">
+    <div
+      className="flex min-h-dvh flex-1 flex-col bg-app
+                 md:h-dvh md:flex-none md:flex-row md:overflow-hidden"
+    >
       <Sidebar workspaceName={organizations?.name ?? "Personal workspace"} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Toolbar>
           <details className="relative">
             <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-text-muted transition-colors hover:bg-chrome-hover hover:text-text">
@@ -59,7 +73,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
           </details>
         </Toolbar>
 
-        {children}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
       </div>
     </div>
   );

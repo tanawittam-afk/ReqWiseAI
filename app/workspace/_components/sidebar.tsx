@@ -23,12 +23,19 @@ type Item = {
   ready: boolean;
 };
 
+/**
+ * The nine destinations of docs/design/INTERFACE.md §7, in that order. Icons are plain
+ * geometry — never a copy of a macOS or Apple application icon (§7).
+ */
 const ITEMS: Item[] = [
+  { href: "/workspace", label: "Workspace", icon: "⌂", ready: true },
   { href: "/workspace/dashboard", label: "Dashboard", icon: "▤", ready: false },
   { href: "/workspace/projects", label: "Projects", icon: "▣", ready: true },
-  { href: "/workspace/analysis", label: "Analysis Workspace", icon: "◫", ready: false },
-  { href: "/workspace/questions", label: "Open Questions", icon: "◌", ready: false },
+  { href: "/workspace/runs", label: "Analysis Runs", icon: "◫", ready: false },
+  { href: "/workspace/requirements", label: "Requirements", icon: "≡", ready: false },
+  { href: "/workspace/reviews", label: "Reviews", icon: "✓", ready: false },
   { href: "/workspace/traceability", label: "Traceability", icon: "⟋", ready: false },
+  { href: "/workspace/profiles", label: "Domain Profiles", icon: "◇", ready: false },
   { href: "/workspace/settings", label: "Settings", icon: "⚙", ready: false },
 ];
 
@@ -36,7 +43,10 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
-  const isActive = (item: Item) => pathname.startsWith(item.href);
+  // "/workspace" is the root, so it is active only on itself — a prefix match would
+  // light it up on every page in the application.
+  const isActive = (item: Item) =>
+    item.href === "/workspace" ? pathname === "/workspace" : pathname.startsWith(item.href);
 
   return (
     <nav
@@ -70,7 +80,7 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
       </div>
 
       <ul
-        className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:overflow-visible md:px-2 md:pb-2"
+        className="flex gap-1 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:px-2 md:pb-2"
       >
         {ITEMS.map((item) => {
           const active = isActive(item);

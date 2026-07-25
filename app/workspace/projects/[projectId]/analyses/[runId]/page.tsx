@@ -63,9 +63,15 @@ export default async function AnalysisResultPage({
     );
   }
 
+  /*
+   * The workspace claims the whole viewport below the toolbar: each panel scrolls on
+   * its own, and the page itself never does. That is why there is no centred wrapper
+   * and no page padding here — a productivity application, not a document
+   * (docs/design/INTERFACE.md §1).
+   */
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="mx-auto w-full max-w-[1400px] px-4 pt-6 sm:px-8">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
         <Header projectId={projectId} source={source} createdAt={run.createdAt} />
       </div>
       <AnalysisWorkspace source={source} run={run} />
@@ -83,19 +89,15 @@ function Header({
   createdAt: string;
 }) {
   return (
-    <header className="flex flex-col gap-1 pb-4">
+    <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">Analysis result</h1>
+      <span className="text-xs text-text-faint">{formatDate(createdAt)}</span>
       <Link
         href={`/workspace/projects/${projectId}/sources/${source.id}`}
-        className="w-fit text-xs text-text-faint transition-colors hover:text-text-muted"
+        className="ml-auto text-xs text-text-muted transition-colors hover:text-text"
       >
-        ← {source.title}
+        ← Back to source
       </Link>
-      <div className="flex flex-wrap items-baseline gap-2">
-        <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
-          Analysis result
-        </h1>
-        <span className="text-xs text-text-faint">{formatDate(createdAt)}</span>
-      </div>
     </header>
   );
 }

@@ -14,6 +14,8 @@ import { usePathname } from "next/navigation";
 
 function contextLabel(pathname: string): string {
   if (pathname === "/workspace/projects/new") return "New project";
+  if (pathname.includes("/analyses/")) return "Analysis";
+  if (pathname.includes("/sources/")) return "Source";
   if (pathname.startsWith("/workspace/projects/")) return "Project";
   if (pathname.startsWith("/workspace/projects")) return "Projects";
   return "Workspace";

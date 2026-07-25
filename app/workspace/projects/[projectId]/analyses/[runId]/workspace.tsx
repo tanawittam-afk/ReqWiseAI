@@ -1,44 +1,45 @@
 "use client";
 
 /**
- * The analysis result workspace — the product's signature split view (AGENTS.md
- * "Design direction"): source on the left, structured requirements on the right,
- * selecting one highlights the exact span of the other it came from.
+ * The Analysis Workspace — the product's signature screen.
  *
- * Desktop keeps both panes side by side always. Below the `lg` breakpoint there is
- * exactly one primary pane at a time, switched with a segmented control — a portrait
- * tablet does not have room to show a full document and a full requirements list at
- * once without both becoming unreadable strips.
+ * Three panels with distinct jobs (docs/design/INTERFACE.md §1): the **source** is the
+ * evidence, the **requirements list** is the working surface, the **inspector** is the
+ * detail of one item. Selecting a requirement highlights the exact span of the source
+ * it came from; nothing here edits anything, which arrives with the review slice.
+ *
+ * How the three fit on a screen:
+ *
+ * | Width | Layout |
+ * |---|---|
+ * | ≥1280 (`xl`) | three grid columns; the inspector collapses and the list takes its space |
+ * | 1024–1279 (`lg`) | source + requirements; the inspector is a right drawer over them |
+ * | <1024 | one panel at a time, chosen with a segmented control, selection preserved |
+ *
+ * This component owns only *selection and view state*. Which items belong to which tab
+ * and group is `lib/analysis/workspace-view.ts`, tested without a browser.
  */
 
-import { useMemo, useRef, useState } from "react";
-import type { AnalysisRunDetail, AnalysisItemView } from "@/lib/analysis/queries";
-import { computeHighlightRanges } from "@/lib/analysis/highlight";
+import { useMemo, useState } from "react";
+import type { AnalysisRunDetail } from "@/lib/analysis/queries";
+import {
+  EMPTY_FILTERS,
+  ISSUE_TYPES,
+  groupItems,
+  partitionItems,
+  runSummary,
+  type GroupMode,
+  type ItemFilters,
+  type WorkspaceTab,
+} from "@/lib/analysis/workspace-view";
 import type { SourceDetail } from "@/lib/sources/types";
-import { ITEM_TYPES, type ItemType } from "@/lib/contracts/item-types";
+import { formatDate } from "@/app/workspace/_components/badges";
+import { Inspector } from "./_components/inspector";
+import { RequirementsPanel } from "./_components/requirements-panel";
+import { SourcePanel } from "./_components/source-panel";
+import { SummaryBar } from "./_components/summary-bar";
 
-const TYPE_LABEL: Record<ItemType, string> = {
-  problem_statement: "Problem statement",
-  business_objective: "Business objective",
-  stakeholder: "Stakeholder",
-  business_requirement: "Business requirement",
-  functional_requirement: "Functional requirement",
-  non_functional_requirement: "Non-functional requirement",
-  user_story: "User story",
-  acceptance_criterion: "Acceptance criterion",
-  business_rule: "Business rule",
-  assumption: "Assumption",
-  risk: "Risk",
-  constraint: "Constraint",
-  open_question: "Open question",
-  quality_finding: "Quality finding",
-};
-
-const EVIDENCE_LABEL: Record<string, string> = {
-  stated: "Stated",
-  inferred: "Inferred",
-  assumed: "Assumed",
-};
+type Pane = "source" | "requirements" | "inspector";
 
 export function AnalysisWorkspace({
   source,
@@ -47,151 +48,121 @@ export function AnalysisWorkspace({
   source: SourceDetail;
   run: AnalysisRunDetail;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(run.items[0]?.id ?? null);
-  const [pane, setPane] = useState<"source" | "requirements">("requirements");
-  const sourceRef = useRef<HTMLPreElement>(null);
-
-  const selected = run.items.find((item) => item.id === selectedId) ?? null;
-
-  const grouped = useMemo(() => {
-    const byType = new Map<ItemType, AnalysisItemView[]>();
-    for (const type of ITEM_TYPES) byType.set(type, []);
-    for (const item of run.items) byType.get(item.type)?.push(item);
-    return ITEM_TYPES.map((type) => ({ type, items: byType.get(type) ?? [] })).filter(
-      (group) => group.items.length > 0,
-    );
+  /*
+   * Open on the first row the list actually shows, not the first row the database
+   * returns — those differ, because items arrive ordered by display id ("AC-004" sorts
+   * before "PS-004") while the panel groups by type. Selecting an item the reader
+   * cannot see makes the inspector look unrelated to the list.
+   */
+  const initialSelectedId = useMemo(() => {
+    const { requirements } = partitionItems(run.items);
+    const pool = requirements.length > 0 ? requirements : run.items;
+    return groupItems(pool, "type")[0]?.items[0]?.id ?? null;
   }, [run.items]);
 
-  function selectItem(id: string) {
-    setSelectedId(id);
-    setPane("source");
-    requestAnimationFrame(() => {
-      const el = sourceRef.current?.querySelector<HTMLElement>("mark[data-active='true']");
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
+  const [tab, setTab] = useState<WorkspaceTab>("requirements");
+  const [groupBy, setGroupBy] = useState<GroupMode>("type");
+  const [filters, setFilters] = useState<ItemFilters>(EMPTY_FILTERS);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [pane, setPane] = useState<Pane>("requirements");
+  const [scrollSignal, setScrollSignal] = useState(0);
+
+  const { requirements, issues } = useMemo(() => partitionItems(run.items), [run.items]);
+  const summary = useMemo(() => runSummary(run.items), [run.items]);
+  const selected = run.items.find((item) => item.id === selectedId) ?? null;
+
+  /** Relations name items by display id; selection works in ids. */
+  function selectByDisplayId(displayId: string) {
+    const target = run.items.find((item) => item.displayId === displayId);
+    if (!target) return;
+    setSelectedId(target.id);
+    // Follow the link onto the tab that actually holds it, or the row stays invisible.
+    setTab(ISSUE_TYPES.includes(target.type) ? "issues" : "requirements");
   }
 
-  return (
-    <div className="flex flex-1 flex-col">
-      <SummaryBar run={run} />
+  /** Switching to a single panel re-runs the source scroll (INTERFACE §12). */
+  function showPane(next: Pane) {
+    setPane(next);
+    if (next === "source") setScrollSignal((value) => value + 1);
+  }
 
-      {/* Segmented switcher — hidden at lg and up, where both panes show together */}
-      <div className="mx-auto flex w-full max-w-[1400px] gap-1 px-4 pt-3 sm:px-8 lg:hidden">
-        <SegmentButton active={pane === "source"} onClick={() => setPane("source")}>
+  const columns = inspectorOpen
+    ? "lg:grid-cols-[minmax(260px,32%)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,30%)_minmax(0,1fr)_minmax(300px,28%)]"
+    : "lg:grid-cols-[minmax(260px,32%)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,30%)_minmax(0,1fr)]";
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <SummaryBar
+        summary={summary}
+        runDate={formatDate(run.createdAt)}
+        sourceCount={1}
+        inspectorOpen={inspectorOpen}
+        onToggleInspector={() => setInspectorOpen((open) => !open)}
+      />
+
+      {/* One panel at a time below lg — a portrait tablet cannot hold three readable columns. */}
+      <div
+        role="group"
+        aria-label="Workspace panel"
+        className="flex gap-1 border-b border-border-soft bg-chrome px-3 py-2 lg:hidden"
+      >
+        <Segment active={pane === "source"} onClick={() => showPane("source")}>
           Source
-        </SegmentButton>
-        <SegmentButton active={pane === "requirements"} onClick={() => setPane("requirements")}>
+        </Segment>
+        <Segment active={pane === "requirements"} onClick={() => showPane("requirements")}>
           Requirements
-        </SegmentButton>
+        </Segment>
+        <Segment active={pane === "inspector"} onClick={() => showPane("inspector")}>
+          Inspector
+        </Segment>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1400px] flex-1 gap-4 px-4 py-4 sm:px-8 lg:grid-cols-2 lg:items-start">
-        <section
-          className={`${pane === "source" ? "flex" : "hidden"} flex-col rounded-[var(--radius-panel)]
-                      border border-border-soft bg-surface lg:flex lg:sticky lg:top-20 lg:max-h-[calc(100vh-11rem)]`}
-        >
-          <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
-            {source.title}
-          </h2>
-          <pre
-            ref={sourceRef}
-            className="overflow-auto whitespace-pre-wrap break-words px-5 py-4 font-mono text-[13.5px]
-                       leading-[1.75] text-text selection:bg-accent-soft"
-          >
-            <SourceWithHighlight text={source.rawText} item={selected} />
-          </pre>
-        </section>
+      <div
+        className={`relative flex min-h-0 flex-1 overflow-hidden transition-[grid-template-columns]
+                    duration-200 lg:grid ${columns}`}
+      >
+        <SourcePanel
+          source={source}
+          item={selected}
+          scrollSignal={scrollSignal}
+          className={`${pane === "source" ? "flex" : "hidden"} flex-1 lg:flex lg:border-r`}
+        />
 
-        <section className={`${pane === "requirements" ? "flex" : "hidden"} flex-col gap-3 lg:flex`}>
-          {grouped.map((group) => (
-            <div key={group.type} className="flex flex-col gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-                {TYPE_LABEL[group.type]}{" "}
-                <span className="font-mono normal-case text-text-faint">({group.items.length})</span>
-              </h3>
-              <ul className="flex flex-col gap-2">
-                {group.items.map((item) => (
-                  <li key={item.id}>
-                    <ItemCard item={item} active={item.id === selectedId} onSelect={() => selectItem(item.id)} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
-      </div>
-    </div>
-  );
-}
+        <RequirementsPanel
+          requirements={requirements}
+          issues={issues}
+          tab={tab}
+          onTabChange={setTab}
+          groupBy={groupBy}
+          onGroupByChange={setGroupBy}
+          filters={filters}
+          onFiltersChange={setFilters}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          className={`${pane === "requirements" ? "flex" : "hidden"} flex-1 lg:flex`}
+        />
 
-function SummaryBar({ run }: { run: AnalysisRunDetail }) {
-  const entries = Object.entries(run.summary.byType) as Array<[ItemType, number]>;
-  return (
-    <div className="border-y border-border-soft bg-surface-muted">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-wrap gap-x-4 gap-y-1.5 px-4 py-2.5 sm:px-8">
-        <span className="text-xs font-medium text-text">
-          {run.summary.itemCount} item{run.summary.itemCount === 1 ? "" : "s"}
-        </span>
-        {entries.map(([type, count]) => (
-          <span key={type} className="text-xs text-text-faint">
-            {TYPE_LABEL[type]}: <span className="font-medium text-text-muted">{count}</span>
-          </span>
-        ))}
+        {/* Drawer at lg, third column at xl, full panel below lg — one instance, so the
+            inspector never loses its tab or scroll position when the layout changes. */}
+        <Inspector
+          item={selected}
+          onSelectDisplayId={selectByDisplayId}
+          onClose={() => setInspectorOpen(false)}
+          className={`${pane === "inspector" ? "flex" : "hidden"} flex-1 ${
+            inspectorOpen
+              ? `lg:absolute lg:inset-y-0 lg:right-0 lg:z-20 lg:flex lg:w-[min(380px,85vw)] lg:border-l
+                 lg:shadow-[0_8px_24px_rgba(27,26,24,0.12)]
+                 xl:static xl:z-auto xl:w-auto xl:shadow-none`
+              : "lg:hidden"
+          }`}
+        />
       </div>
     </div>
   );
 }
 
-function ItemCard({
-  item,
-  active,
-  onSelect,
-}: {
-  item: AnalysisItemView;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={active}
-      className={`flex w-full min-h-11 flex-col gap-1.5 rounded-[var(--radius-card)] border px-4 py-3 text-left
-                  transition-colors ${
-                    active
-                      ? "border-accent-border bg-accent-soft"
-                      : "border-border-soft bg-surface hover:border-accent-border hover:bg-accent-soft/40"
-                  }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[11px] font-medium text-text-faint">{item.displayId}</span>
-        <EvidenceBadge evidenceClass={item.evidenceClass} confidence={item.confidence} />
-      </div>
-      <p className="text-sm font-medium text-text">{item.title}</p>
-      {item.relatedDisplayIds.length > 0 ? (
-        <p className="text-[11px] text-text-faint">
-          Related: {item.relatedDisplayIds.join(", ")}
-        </p>
-      ) : null}
-    </button>
-  );
-}
-
-function EvidenceBadge({ evidenceClass, confidence }: { evidenceClass: string; confidence: number }) {
-  const tone =
-    evidenceClass === "stated"
-      ? "border-ok-border bg-ok-soft text-ok"
-      : evidenceClass === "inferred"
-        ? "border-signal-border bg-signal-soft text-signal"
-        : "border-warn-border bg-warn-soft text-warn";
-  return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${tone}`}>
-      {EVIDENCE_LABEL[evidenceClass] ?? evidenceClass} · {Math.round(confidence * 100)}%
-    </span>
-  );
-}
-
-function SegmentButton({
+function Segment({
   active,
   onClick,
   children,
@@ -203,9 +174,9 @@ function SegmentButton({
   return (
     <button
       type="button"
-      onClick={onClick}
       aria-pressed={active}
-      className={`min-h-11 flex-1 rounded-lg border px-4 text-sm font-medium transition-colors ${
+      onClick={onClick}
+      className={`min-h-11 flex-1 rounded-lg border px-3 text-sm font-medium transition-colors duration-150 ${
         active
           ? "border-accent-border bg-accent-soft text-accent"
           : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"
@@ -214,30 +185,4 @@ function SegmentButton({
       {children}
     </button>
   );
-}
-
-function SourceWithHighlight({ text, item }: { text: string; item: AnalysisItemView | null }) {
-  const ranges = computeHighlightRanges(item);
-
-  if (ranges.length === 0) return <>{text}</>;
-
-  const nodes: React.ReactNode[] = [];
-  let cursor = 0;
-  ranges.forEach(([start, end], index) => {
-    if (start < cursor) return; // overlapping references: skip rather than mis-render
-    nodes.push(text.slice(cursor, start));
-    nodes.push(
-      <mark
-        key={index}
-        data-active="true"
-        className="rounded-sm bg-signal-soft px-0.5 text-signal ring-1 ring-signal-border"
-      >
-        {text.slice(start, end)}
-      </mark>,
-    );
-    cursor = end;
-  });
-  nodes.push(text.slice(cursor));
-
-  return <>{nodes}</>;
 }

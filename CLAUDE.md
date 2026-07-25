@@ -213,26 +213,47 @@ guess. This is the sharpest test of the core principle above.
 
 ## Design direction — "Requirements Intelligence Workspace"
 
+> **Full specification: [`docs/design/INTERFACE.md`](docs/design/INTERFACE.md)** — the
+> owner's Final Interface Direction (2026-07-25) plus the rendered reference
+> `docs/design/preview-2.png`. That file is authoritative; this section is its summary.
+>
+> **It supersedes the earlier "dark graphite or deep navy foundation" wording that stood
+> here.** The application is light-first. Do not revive the dark direction — a dark theme
+> is prepared in `app/globals.css` but deliberately not shipped.
+
 A modern analytical workspace. Not a generic admin dashboard. Not a chatbot page.
+Usability, information density and long-form reading come before decorative effects.
 
-**Visual character:** dark graphite or deep navy foundation · warm off-white reading
-surfaces · electric violet and cyan accents · status colors used sparingly · subtle grid,
-connection-line, or signal-map motifs · refined borders and soft depth · limited,
-intentional glass · strong typographic hierarchy · spacious layouts · high readability for
-long requirements · smooth but restrained motion.
+**Visual character:** soft off-white application background · white or lightly tinted
+workspace panels · subtle cool-gray borders · light violet selection surfaces · indigo
+primary accent · cyan secondary accent, reserved for evidence · controlled green / amber /
+red status colors · soft shadows used sparingly · restrained corner radii · clear
+typographic hierarchy · high density without crowding · motion of 120–220ms, only for
+panel collapse, inspector opening, selection, highlight navigation and loading.
 
-**Signature interface** — the analysis workspace is a split layout: source information on
-the left, structured requirements on the right. Highlighting shows where a requirement
-came from; selecting a requirement highlights its source excerpt. Open questions and
-quality findings stay visible without leaving the workspace.
+**Signature interface** — the Analysis Workspace is a stable **three-panel** layout:
+**Source Document · Requirements · Requirement Inspector**. The requirements panel is the
+largest, and holds compact scannable rows, not large cards. Selecting a requirement
+highlights the exact source excerpt it came from; the inspector shows that item's detail
+without a modal and can be collapsed. Below `xl` the inspector becomes a drawer; on tablet
+portrait and mobile a segmented control shows one panel at a time, preserving the
+selection. Open questions and quality findings stay reachable without leaving the
+workspace, on their own tab.
 
-**Components:** project command center · domain selector · source editor · requirement
-cards · quality score panel · open-question queue · traceability map · version comparison
-view · command palette · review status controls.
+**Components:** application sidebar · compact toolbar · one-row analysis summary · source
+panel with in-panel search and highlight navigation · grouped compact requirement rows ·
+requirement inspector · domain selector · source editor · open-question queue ·
+traceability map · version comparison view · command palette · review status controls.
 
-**Avoid:** excessive gradients · excessive glassmorphism · large empty hero sections
-inside the app · generic template dashboards · chat bubbles as the primary interaction ·
-decoration that costs readability.
+**Avoid:** heavy dark dashboard styling · neon effects · permanent glowing relationship
+lines · excessive gradients or glassmorphism · floating decorative orbs · oversized KPI
+cards · marketing-style hero sections inside the app · generic template dashboards · chat
+bubbles as the primary interaction · a strong shadow around every panel · decoration that
+costs readability.
+
+**Never invent a metric to fill a mockup.** The reference render shows a quality score,
+coverage percentages and sparklines; no such data exists, and the quality-score panel is
+deferred by `ARCHITECTURE.md` §A.4. Show what the database holds.
 
 ---
 

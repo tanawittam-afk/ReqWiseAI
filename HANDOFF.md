@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-25 (slice 4.1 — input-aware mock analysis and reserved display-id
-ranges — shipped and verified against the live database)
+Last updated: 2026-07-25 (slice 4.2 — the three-panel Analysis Workspace — shipped and
+verified in the browser at four viewport widths)
 
 ---
 
@@ -14,14 +14,40 @@ ranges — shipped and verified against the live database)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 4.1. Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 4.2. Working tree clean.
 - Nothing is blocked.
 
-**Next up: requirement editing / review workflow** — approve, reject, request
+**Next up: slice 5 — requirement editing / review workflow** — approve, reject, request
 clarification, edit an item's content. The database side is already built and proven
 (`review_item()`, versioning trigger, all in `20260724000005`, since Phase 3A) — this
 slice is purely the UI plus the server actions that call it, symmetrical to how sources
 were built in slice 3.
+
+**It lands inside the Inspector that slice 4.2 just finished.**
+`_components/inspector.tsx` today has exactly three tabs — Details · Evidence · Relations.
+**History** and **Notes** were deliberately left out, not forgotten: `item_versions` and
+`review_activities` hold nothing in a read-only build, and an empty tab that promises data
+is worse than an absent one. Slice 5 adds them, plus the action row. The row list already
+renders review status (`Draft` / `Unassigned` chips come from real columns), so a
+successful review action only has to invalidate the run query for the whole screen to
+update.
+
+**Slice 4.2 shipped the interface direction.** The owner supplied a *Final Interface
+Direction — Three-Panel Requirements Workspace* plus a rendered reference; both are now
+tracked at `docs/design/INTERFACE.md` and `docs/design/preview-2.png`. That direction
+**contradicted `CLAUDE.md`'s old "dark graphite or deep navy foundation"** wording, so
+`CLAUDE.md` → "Design direction" was rewritten to the light Apple-inspired productivity
+foundation and explicitly marked as superseding the dark one. Do not revive it.
+
+Three scoping decisions the owner made, worth not re-litigating:
+1. **Layout only.** No review actions, no server action, no migration in 4.2.
+2. **Real data only.** The reference image shows a Quality Score, a coverage %, sparklines
+   and a ⌘K palette. None of them have backing data, so **none were built** — inventing a
+   metric to fill a mockup violates `CLAUDE.md`. Everything in the summary bar and the
+   group headers is derived from real rows: item counts, average confidence, cited share,
+   open questions, risks, quality findings.
+3. **Full-height app frame.** The workspace route fills the viewport with independently
+   scrolling panels; every other page keeps its centred layout.
 
 Slice 4 shipped: the "Analyze requirements" confirmation flow on the source detail page,
 `persist_analysis_result()` (a SECURITY DEFINER RPC — no service role in the request
@@ -274,6 +300,18 @@ but the seam must exist from the start so the engine never learns domain facts.
       `20260724000009` adds the `operational_notes` enum value.
       `/…/sources`, `/sources/new`, `/sources/[sourceId]` and `/edit` are the UI;
       `lib/contracts/source.ts` + `lib/sources/` + `lib/projects/guards.ts` are the logic.
+- [x] **Slice 4.2 — Three-panel Analysis Workspace (2026-07-25). VERIFIED IN THE BROWSER
+      AT 1920 / 1180 / 834 / 390 px.** No migration, no query change, no new dependency —
+      presentation and pure view logic only. New pure module `lib/analysis/workspace-view.ts`
+      (partition · group · filter · stats, DB-free and React-free, 19 tests) and an
+      extended `lib/analysis/highlight.ts` (`findMatchRanges` + `buildSourceSegments`, where
+      a citation always wins over a search match and the concatenated runs still reproduce
+      the source byte for byte). The 243-line `workspace.tsx` became a client shell plus
+      `_components/{summary-bar,source-panel,requirements-panel,requirement-row,inspector,
+      panel,labels}`. Shell: `app/workspace/layout.tsx` claims full height, the sidebar
+      carries the direction's 9 navigation entries (only Workspace and Projects `ready`),
+      the toolbar gained *Analysis* and *Source* breadcrumbs. **233 tests · typecheck ·
+      lint · build · `verify:analysis` 25/25 all clean.**
 - [ ] **Phase 3C+ — remaining vertical slices.** run mock analysis (persist run + items +
       refs in one transaction) → workspace split-pane → edit item → review/approve →
       export. Slice order in `docs/architecture/ARCHITECTURE.md` §E.
@@ -398,6 +436,45 @@ while the project was still active and submitted after archiving was refused ser
 and wrote no row** → restore → actions return → sign out → all four source routes `307` to
 `/sign-in` with `next` preserved.
 
+## Runtime verification (2026-07-25) — slice 4.2 interface, 8/8 PASS
+
+Checked in Chrome against the live database, signed in as the slice-3 demo user, on the
+Thai meeting-notes run (`319805f1…`, 12 requirements + 3 issues, 13/15 cited).
+
+1. **Three panels at 1920 px.** Source · Requirements · Inspector side by side, page
+   scroll `[873, 873]` in both axes — the page itself never scrolls, each panel does.
+2. **Selection drives the source.** Selecting a requirement highlights its exact excerpt,
+   scrolls it into view, and the "Highlight n of m" counter with prev/next tracks it.
+3. **Density.** Old card layout: 73–96 px per card, 1913 px of column for 18 items
+   (≈106 px/item), 5 visible. New rows: **63 px**, group headers 36 px, **6–9 visible**
+   depending on grouping. Measured by stashing only `workspace.tsx`, not estimated.
+4. **Grouping.** Type / Source order / Review status / Priority all switch, groups collapse,
+   headers carry count + `avg N%` + `n/m cited`. `scrollbar-gutter: stable` keeps the
+   header stats off the scrollbar when the inspector collapses.
+5. **Search, filters, tabs.** Both narrow the list and its count; the Issues tab holds
+   exactly the open questions and quality findings — the three Thai notes (cancellation,
+   refund, notification) are there and never appear as requirements. Slice 4.1 invariant
+   intact.
+6. **Inspector is non-modal.** Collapsing it widens the requirements panel; nothing is
+   trapped behind an overlay.
+7. **Responsive.** At **1180 px** the grid drops to two columns (298 / 634) and the
+   inspector becomes a 380 px absolutely-positioned right drawer with a shadow, pinned to
+   the viewport edge, no page scroll in either axis. At **834 px** and **390 px** a
+   Source · Requirements · Inspector segmented control appears (44 px tall — the ≥44 px
+   touch target), exactly one segment pressed at a time, the summary bar's inspector
+   toggle correctly hides below `lg` so there is no duplicate control, and **the selected
+   requirement (PS-002) survived every panel switch in both directions**. No horizontal
+   scroll at any width.
+8. **Keyboard only.** Tab to a row, activate with Enter/Space, step through highlights,
+   toggle the inspector — focus visible throughout, no action needs a pointer.
+
+⚠️ **Method note, so nobody is misled later:** the Chrome window was maximized and
+`resize_window` was a no-op against it, so 1180 / 834 / 390 were tested by loading the
+route into a **same-origin iframe** of that exact size. Media queries and `matchMedia`
+resolve against the iframe viewport, so the breakpoints are genuinely exercised — but this
+is not a device-emulation test: no touch input, no mobile UA, no device pixel ratio. If
+mobile ever becomes a real target, re-test on a real device.
+
 ## Open decisions and known consequences
 
 1. **`analysis_runs` is write-once** (no pending→complete row) → no streaming/long-run
@@ -434,6 +511,17 @@ and wrote no row** → restore → actions return → sign out → all four sour
 
 ## Gotchas already known
 
+- **`md:flex-none` in `app/workspace/layout.tsx` is load-bearing — do not "simplify" it.**
+  The root layout's `<body>` is `min-h-full flex flex-col`, so the workspace root is a flex
+  item; `flex: 1 1 0%` resolves its height from the flex algorithm and **silently makes
+  `h-dvh` inert**. Symptom when it was wrong: the whole page scrolled (1671 px against an
+  873 px viewport), the source panel's highlight-navigation footer sat below the fold, and
+  not one panel had its own scroller. There is a comment on the line saying so.
+- **Setting a `<select>.value` from JavaScript does not drive React.** The DOM value
+  changes and the component state does not, so a scripted browser check will "pass" while
+  the UI never updated. Drive selects with real clicks or ArrowUp/ArrowDown + Enter.
+  `element.click()` on a button *is* fine — React's root listener sees a real bubbling
+  click.
 - **`create-next-app` rejects capital letters** in the project name. Scaffolded as
   `reqwise-ai`, then the folder was renamed to `ReqWiseAI`. `package.json` keeps
   `"name": "reqwise-ai"` — that's correct, don't "fix" it.
@@ -465,12 +553,14 @@ and wrote no row** → restore → actions return → sign out → all four sour
 - `create-next-app` rejected the capital-letter name → scaffolded `reqwise-ai`, folder
   renamed to `ReqWiseAI`; `package.json` name stays `reqwise-ai`. Don't "fix" it.
 
-## Git — current state (2026-07-24 EOD)
+## Git — current state (2026-07-25 EOD)
 
 Branch `reqwise-ai`, working tree clean:
 
 | Commit | Phase |
 |---|---|
+| `c603263` | 4.2 — three-panel Analysis Workspace (this slice) |
+| `e668026` | 4.1 — input-aware mock, reserved display-id ranges |
 | `bf148b3` | 3B — supabase clients, email auth, protected routes |
 | `595a62f` | 3A — database schema, constraints, RLS, workspace bootstrap |
 | `97f9e23` | 2 — analysis contracts and the deterministic mock provider |
