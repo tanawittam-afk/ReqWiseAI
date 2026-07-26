@@ -14,8 +14,7 @@ shipped, 26/26 runtime checks, verified end to end in the browser)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 6C (see the git table at the end). Working
-  tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** `b0c6e9c` (slice 6C). Working tree clean.
 - Nothing is blocked.
 
 **Next up: the real Gemini provider, then the change request.** Slice 6C shipped export, so
@@ -1030,7 +1029,8 @@ Branch `reqwise-ai`, working tree clean:
 
 | Commit | Phase |
 |---|---|
-| `f5b5bf7` | 6B — typed traceability relations + graph views (HEAD) |
+| `b0c6e9c` | 6C — requirements export and printable handoff (HEAD) |
+| `f5b5bf7` | 6B — typed traceability relations + graph views |
 | `cc889b6` | docs — records 5 and 6A's own hashes |
 | `9575ec6` | 6A — open-question resolution + quality-finding workflow |
 | `89a1337` | 5 — requirement editing, human review, approval, version history |
