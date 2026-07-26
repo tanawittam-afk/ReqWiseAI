@@ -24,7 +24,7 @@ import {
   type ValidationResult,
 } from "../contracts/validation-result.ts";
 import { checkEvidence } from "./evidence.ts";
-import { checkDuplicateKeys, checkRelationKeys } from "./structure.ts";
+import { checkDuplicateKeys, checkRelationKeys, checkRelations } from "./structure.ts";
 import { checkSourceReferences, type OffsetVerification } from "./source-references.ts";
 
 export type ValidatedAnalysis = {
@@ -82,6 +82,7 @@ export function validateAnalysis(
   const references = checkSourceReferences(output, sourceDocuments);
   issues.push(...references.issues);
   issues.push(...checkRelationKeys(output));
+  issues.push(...checkRelations(output));
 
   if (issues.length > 0) return fail(issues);
 

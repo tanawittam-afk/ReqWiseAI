@@ -45,6 +45,10 @@ type Citation = {
 
 type Item = Record<string, unknown> & { key: string; type: string };
 
+/** A typed edge, shaped for `providerRelationSchema`. Untyped here for the same reason
+ *  `Item` is: this module emits raw provider output and is not trusted to type it. */
+type Relation = { from_key: string; to_key: string; type: string };
+
 const TITLE_MAX = 160;
 
 function clip(value: string, max: number): string {
@@ -321,7 +325,6 @@ export function generateRuntimeAnalysis(input: AnalysisInput): unknown {
     origin: "source_analysis",
     confidence: 0.84,
     priority: "high",
-    related_item_keys: ["br-1"],
     source_references: [cite(doc, functionalSegment, 0.88)],
   });
 
@@ -335,7 +338,6 @@ export function generateRuntimeAnalysis(input: AnalysisInput): unknown {
     origin: "source_analysis",
     confidence: 0.64,
     rationale: L.objectiveWhy,
-    related_item_keys: ["br-1"],
     source_references: [cite(doc, businessSegment)],
   });
 
@@ -388,7 +390,6 @@ export function generateRuntimeAnalysis(input: AnalysisInput): unknown {
     origin: "source_analysis",
     confidence: 0.7,
     rationale: L.storyWhy,
-    related_item_keys: ["fr-1"],
     attributes: {
       as_a: L.asA,
       i_want: L.iWant(functionalSegment.excerpt),
@@ -406,7 +407,6 @@ export function generateRuntimeAnalysis(input: AnalysisInput): unknown {
     origin: "source_analysis",
     confidence: 0.66,
     rationale: L.criterionWhy,
-    related_item_keys: ["us-1"],
     attributes: { given: L.given, when: L.when, then: L.then(functionalSegment.excerpt) },
     source_references: [cite(doc, functionalSegment)],
   });
@@ -574,5 +574,52 @@ export function generateRuntimeAnalysis(input: AnalysisInput): unknown {
     attributes.blocks_keys = assumedKeys.filter((key) => key !== blocker.key);
   }
 
-  return { schema_version: PROVIDER_SCHEMA_VERSION, items };
+  // --- 10. typed traceability (slice 6B) --------------------------------------
+  // Every edge is authored parent → child, in the direction its label reads. The
+  // pre-6B mock emitted the same chain the other way round as `related_item_keys`,
+  // which the persistence layer then stored as `derives_from` — a relationship name
+  // the strategy had never chosen. Choosing it here is the point of the slice.
+  //
+  // Nothing is emitted speculatively: `relate()` drops an edge whose endpoints this
+  // particular source did not produce. A source that names no business rule gets no
+  // `constrained_by` row, and inventing one to make the map look fuller would be the
+  // same failure as inventing the item.
+  const present = new Set(items.map((i) => i.key));
+  const relations: Relation[] = [];
+  const emitted = new Set<string>();
+
+  function relate(fromKey: string, toKey: string, type: string): void {
+    if (fromKey === toKey) return;
+    if (!present.has(fromKey) || !present.has(toKey)) return;
+    const signature = `${fromKey} ${toKey} ${type}`;
+    if (emitted.has(signature)) return;
+    emitted.add(signature);
+    relations.push({ from_key: fromKey, to_key: toKey, type });
+  }
+
+  // The spine.
+  relate("obj-1", "br-1", "supports");
+  relate("br-1", "fr-1", "implemented_by");
+  relate("br-1", "nfr-1", "implemented_by");
+  relate("fr-1", "us-1", "expressed_as");
+  relate("us-1", "ac-1", "validated_by");
+
+  // What limits the spine, and what makes the profile's risk less likely.
+  relate("fr-1", "rule-1", "constrained_by");
+  relate("rule-1", "risk-1", "mitigates");
+
+  // Observations, raised by the observation itself. A question's own `blocks_keys`
+  // already names what it holds up, so the relation is read from there rather than
+  // invented alongside it — one decision, two representations, no way to disagree.
+  for (const key of questionKeys) {
+    const question = items.find((i) => i.key === key);
+    const blocks = (question?.attributes as { blocks_keys?: string[] } | undefined)?.blocks_keys ?? [];
+    for (const target of blocks) relate(key, target, "raises_question");
+  }
+
+  const finding = items.find((i) => i.key === "qf-1");
+  const targets = (finding?.attributes as { target_keys?: string[] } | undefined)?.target_keys ?? [];
+  for (const target of targets) relate("qf-1", target, "flags_quality_issue");
+
+  return { schema_version: PROVIDER_SCHEMA_VERSION, items, relations };
 }

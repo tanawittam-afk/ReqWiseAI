@@ -90,7 +90,6 @@ export const bookingValidOutput = {
       origin: "source_analysis",
       confidence: 0.9,
       priority: "high",
-      related_item_keys: ["br-online-booking"],
       source_references: [citation("เห็นห้องว่างแบบเรียลไทม์")],
     },
 
@@ -118,7 +117,6 @@ export const bookingValidOutput = {
       origin: "source_analysis",
       confidence: 0.85,
       priority: "high",
-      related_item_keys: ["fr-realtime-availability"],
       attributes: {
         as_a: "ลูกค้า",
         i_want: "จองห้องจากมือถือและรู้ผลทันที",
@@ -136,7 +134,6 @@ export const bookingValidOutput = {
       evidence_class: "stated",
       origin: "source_analysis",
       confidence: 0.83,
-      related_item_keys: ["us-customer-book"],
       attributes: {
         given: "ลูกค้าเลือกห้องว่างและยืนยันการจอง",
         when: "กดยืนยัน",
@@ -169,7 +166,6 @@ export const bookingValidOutput = {
       confidence: 0.4,
       rationale:
         "ลูกค้ายังไม่ตัดสินใจเรื่องจังหวะการเก็บเงิน จึงเป็นข้อสันนิษฐาน ไม่ใช่ข้อเท็จจริง ต้องยืนยันกับผู้มีส่วนได้เสีย",
-      related_item_keys: ["q-payment-timing"],
     },
 
     // --- risk (inferred, with attributes) ---
@@ -242,5 +238,43 @@ export const bookingValidOutput = {
       attributes: { finding: "untestable", target_keys: ["fr-realtime-availability"] },
       source_references: [citation("เห็นห้องว่างแบบเรียลไทม์")],
     },
+  ],
+
+  /**
+   * Typed traceability (slice 6B). Every relation type this codebase authors appears
+   * at least once, so no branch of the matrix, the map, the pair matrix or the cycle
+   * check is left unexercised by the contract fixture.
+   *
+   * Read every row left to right in the direction its label states: `supports` runs
+   * from the objective *down* to the requirement that carries it, and the whole spine
+   * OBJ → BR → FR → US → AC is authored parent → child. The pre-6B
+   * `related_item_keys` chain ran the other way (child → parent) and is gone.
+   */
+  relations: [
+    // --- the spine, top to bottom ---
+    { from_key: "obj-self-service", to_key: "br-online-booking", type: "supports" },
+    { from_key: "br-online-booking", to_key: "fr-realtime-availability", type: "implemented_by" },
+    { from_key: "br-online-booking", to_key: "nfr-mobile-checkin", type: "implemented_by" },
+    { from_key: "fr-realtime-availability", to_key: "us-customer-book", type: "expressed_as" },
+    { from_key: "us-customer-book", to_key: "ac-instant-confirm", type: "validated_by" },
+
+    // --- what limits the spine ---
+    { from_key: "fr-realtime-availability", to_key: "rule-no-double-book", type: "constrained_by" },
+    { from_key: "fr-realtime-availability", to_key: "con-support-walkin", type: "constrained_by" },
+
+    // --- the mitigation is the `from` side: the arrow points at the risk made safer ---
+    { from_key: "rule-no-double-book", to_key: "risk-double-booking", type: "mitigates" },
+
+    // --- observations about the spine, raised by the observation itself ---
+    { from_key: "q-payment-timing", to_key: "asm-payment-online", type: "raises_question" },
+    { from_key: "q-refund-policy", to_key: "br-online-booking", type: "raises_question" },
+    {
+      from_key: "qf-availability-untestable",
+      to_key: "fr-realtime-availability",
+      type: "flags_quality_issue",
+    },
+
+    // --- the fallback, used only where nothing more specific applies ---
+    { from_key: "con-support-walkin", to_key: "stk-walkin", type: "related_to" },
   ],
 } as const;

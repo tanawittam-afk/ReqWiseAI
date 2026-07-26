@@ -18,6 +18,7 @@ import {
   LOW_CONFIDENCE_THRESHOLD,
   type NormalizedAnalysis,
   type NormalizedItem,
+  type NormalizedRelation,
   type NormalizedSourceReference,
 } from "../contracts/normalized.ts";
 import type { ProviderItem } from "../contracts/provider-output";
@@ -69,15 +70,6 @@ export function normalizeAnalysis(
       },
     );
 
-    const relatedItemIds = item.related_item_keys.map((key) => {
-      const id = idByProviderKey.get(key);
-      if (id === undefined) {
-        // Unreachable: validation rejects dangling relation keys.
-        throw new Error(`normalize: unresolved related_item_key "${key}" survived validation`);
-      }
-      return id;
-    });
-
     const id = idByProviderKey.get(item.key);
     if (id === undefined) {
       throw new Error(`normalize: missing minted id for item key "${item.key}"`);
@@ -100,15 +92,34 @@ export function normalizeAnalysis(
       rationale: item.rationale,
       attributes: attributesOf(item),
       sourceReferences,
-      relatedItemIds,
       createdAt: now,
       updatedAt: now,
+    };
+  });
+
+  // Pass 3 — typed relations, both endpoints resolved to minted ids.
+  const relations: NormalizedRelation[] = output.relations.map((relation) => {
+    const fromItemId = idByProviderKey.get(relation.from_key);
+    const toItemId = idByProviderKey.get(relation.to_key);
+    if (fromItemId === undefined || toItemId === undefined) {
+      // Unreachable: `checkRelations()` rejects a dangling endpoint before we get here.
+      throw new Error(
+        `normalize: unresolved relation ${relation.from_key} → ${relation.to_key} survived validation`,
+      );
+    }
+    return {
+      fromItemId,
+      toItemId,
+      type: relation.type,
+      providerFromKey: relation.from_key,
+      providerToKey: relation.to_key,
     };
   });
 
   return {
     schemaVersion: output.schema_version,
     items,
+    relations,
     summary: {
       itemCount: items.length,
       unresolvedQuestionCount: items.filter((i) => i.type === "open_question").length,

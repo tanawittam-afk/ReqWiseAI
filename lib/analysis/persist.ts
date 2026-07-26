@@ -10,7 +10,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AnalysisInput } from "../contracts/analysis-input";
 import { PROVIDER_SCHEMA_VERSION } from "../contracts/provider-output";
-import type { NormalizedItem } from "../contracts/normalized";
+import type { NormalizedItem, NormalizedRelation } from "../contracts/normalized";
 import type { RunAnalysisResult } from "./run-analysis";
 
 export type PersistOutcome =
@@ -31,7 +31,6 @@ function toItemPayload(item: NormalizedItem) {
     confidence: item.confidence,
     rationale: item.rationale ?? null,
     attributes: item.attributes ?? null,
-    related_local_keys: item.relatedItemIds,
     source_references: item.sourceReferences.map((ref) => ({
       excerpt: ref.excerpt,
       start_offset: ref.startOffset ?? null,
@@ -39,6 +38,15 @@ function toItemPayload(item: NormalizedItem) {
       evidence_strength: ref.evidenceStrength ?? null,
       offset_verified: ref.offsetVerified,
     })),
+  };
+}
+
+/** One element of the RPC's `p_relations` array. Field names match the SQL side exactly. */
+function toRelationPayload(relation: NormalizedRelation) {
+  return {
+    from_local_key: relation.fromItemId,
+    to_local_key: relation.toItemId,
+    relation_type: relation.type,
   };
 }
 
@@ -53,6 +61,12 @@ function translate(detail: string): string {
   // which is the honest fix — retrying this exact request never will be.
   if (/already been used for a different analysis/i.test(detail)) {
     return "This request was already used for a different analysis. Reload the page and try again.";
+  }
+  // A relation the database refused. The run rolled back whole — no partial write —
+  // so the honest thing to report is that the analysis was rejected, not that some of
+  // it was kept. See docs/architecture/DATA-MODEL.md §C.13.
+  if (/relation/i.test(detail)) {
+    return "The analysis produced an invalid traceability link and was not saved. Try again.";
   }
   return "The analysis could not be saved. Try again.";
 }
@@ -86,6 +100,7 @@ export async function persistAnalysisResult(
       p_validated_output: result.analysis,
       p_error: null,
       p_items: result.analysis.items.map(toItemPayload),
+      p_relations: result.analysis.relations.map(toRelationPayload),
     };
   } else if (result.status === "invalid") {
     rpcArgs = {
@@ -97,6 +112,7 @@ export async function persistAnalysisResult(
       p_validated_output: null,
       p_error: { category: "validation_failed", issues: result.issues },
       p_items: [],
+      p_relations: [],
     };
   } else {
     rpcArgs = {
@@ -108,6 +124,7 @@ export async function persistAnalysisResult(
       p_validated_output: null,
       p_error: { category: "provider_error", message: result.error },
       p_items: [],
+      p_relations: [],
     };
   }
 

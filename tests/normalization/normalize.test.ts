@@ -42,15 +42,23 @@ describe("normalization", () => {
     );
   });
 
-  it("resolves related_item_keys to application ids that exist in the output", () => {
+  it("resolves both endpoints of every typed relation to ids in the output", () => {
     const analysis = normalizeValid();
     const allIds = new Set(analysis.items.map((i) => i.id));
-    const fr = analysis.items.find((i) => i.type === "functional_requirement");
-    expect(fr?.relatedItemIds.length).toBeGreaterThan(0);
-    expect(fr?.relatedItemIds.every((id) => allIds.has(id))).toBe(true);
-    // The FR relates to the BR specifically.
+    expect(analysis.relations.length).toBeGreaterThan(0);
+    expect(
+      analysis.relations.every((r) => allIds.has(r.fromItemId) && allIds.has(r.toItemId)),
+    ).toBe(true);
+  });
+
+  it("keeps the authored direction — the BR is implemented_by the FR, not the reverse", () => {
+    const analysis = normalizeValid();
     const br = analysis.items.find((i) => i.type === "business_requirement");
-    expect(fr?.relatedItemIds).toContain(br?.id);
+    const fr = analysis.items.find((i) => i.type === "functional_requirement");
+    const edge = analysis.relations.find(
+      (r) => r.type === "implemented_by" && r.toItemId === fr?.id,
+    );
+    expect(edge?.fromItemId).toBe(br?.id);
   });
 
   it("resolves source references to source document ids and carries offsetVerified", () => {

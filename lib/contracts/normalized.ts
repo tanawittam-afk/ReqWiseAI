@@ -13,6 +13,7 @@ import type {
   Priority,
 } from "./item-types";
 import type { INITIAL_STATUS } from "./item-types.ts";
+import type { AuthoredRelationType } from "./relations";
 
 export type ItemStatus =
   | "draft"
@@ -58,15 +59,30 @@ export type NormalizedItem = {
   rationale?: string;
   attributes?: Record<string, unknown>;
   sourceReferences: NormalizedSourceReference[];
-  /** `related_item_keys` resolved to application ids. */
-  relatedItemIds: string[];
   createdAt: string;
   updatedAt: string;
+};
+
+/**
+ * A typed edge with both endpoints resolved to application ids (slice 6B).
+ *
+ * The provider's `from_key`/`to_key` are gone by this point, exactly as an item's
+ * `key` is: a key is scoped to one response, an id is what the database is asked to
+ * store. `providerFromKey`/`providerToKey` are kept only so a persistence failure can
+ * name the edge the provider actually wrote.
+ */
+export type NormalizedRelation = {
+  fromItemId: string;
+  toItemId: string;
+  type: AuthoredRelationType;
+  providerFromKey: string;
+  providerToKey: string;
 };
 
 export type NormalizedAnalysis = {
   schemaVersion: string;
   items: NormalizedItem[];
+  relations: NormalizedRelation[];
   summary: {
     itemCount: number;
     unresolvedQuestionCount: number;

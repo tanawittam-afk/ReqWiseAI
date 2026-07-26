@@ -14,8 +14,24 @@ import { BOOKING_SOURCE_KEY, citation } from "./booking-smart-space.source.ts";
 
 const okReference = () => citation("จองซ้ำห้องเดียวกันสองรายในเวลาเดียวกัน");
 
-function envelope(items: unknown[]) {
-  return { schema_version: PROVIDER_SCHEMA_VERSION, items };
+function envelope(items: unknown[], relations: unknown[] = []) {
+  return { schema_version: PROVIDER_SCHEMA_VERSION, items, relations };
+}
+
+/** A minimal, individually-valid item of any type, for the relation fixtures below. */
+function item(key: string, type: string, extra: Record<string, unknown> = {}) {
+  return {
+    key,
+    type,
+    title: `รายการทดสอบ ${key}`,
+    description: `รายการที่ถูกต้องในตัวเอง ใช้เพื่อทดสอบกฎความสัมพันธ์ (${type})`,
+    evidence_class: "assumed",
+    origin: "source_analysis",
+    confidence: 0.5,
+    rationale: "ข้อสันนิษฐาน — ใช้เป็นปลายทางของความสัมพันธ์ในชุดทดสอบ",
+    source_references: [],
+    ...extra,
+  };
 }
 
 /** evidence_error: 'stated' with no source reference. */
@@ -129,21 +145,99 @@ export const duplicateKey = envelope([
   },
 ]);
 
-/** relation_error: related_item_keys points at a key that does not exist. */
-export const unknownRelationKey = envelope([
-  {
-    key: "fr-1",
-    type: "functional_requirement",
-    title: "อ้างอิงความสัมพันธ์ไปยัง key ที่ไม่มีอยู่",
-    description: "related_item_keys ชี้ไปที่ br-missing ซึ่งไม่มีในผลลัพธ์",
-    evidence_class: "assumed",
-    origin: "source_analysis",
-    confidence: 0.5,
-    rationale: "ข้อสันนิษฐาน",
-    related_item_keys: ["br-missing"],
-    source_references: [],
-  },
+/** relation_error: a typed relation points at a key that does not exist. */
+export const unknownRelationKey = envelope(
+  [item("br-1", "business_requirement")],
+  [{ from_key: "br-1", to_key: "fr-missing", type: "implemented_by" }],
+);
+
+/**
+ * relation_error: the deprecated untyped edge list. Still parses — pre-6B raw output
+ * is stored verbatim and must stay readable — but a *new* run may not use it, because
+ * every entry became a `derives_from` row asserting a relationship nobody stated.
+ */
+export const untypedRelationKeys = envelope([
+  item("br-1", "business_requirement"),
+  item("fr-1", "functional_requirement", { related_item_keys: ["br-1"] }),
 ]);
+
+/** relation_error: the relation type does not describe this pair of item types. */
+export const invalidRelationPair = envelope(
+  [item("br-1", "business_requirement"), item("ac-1", "acceptance_criterion", {
+    attributes: { then: "ระบบยืนยันการจองทันที" },
+  })],
+  // `implemented_by` runs business_requirement → functional/non-functional requirement.
+  // An acceptance criterion is validated_by territory, not implemented_by.
+  [{ from_key: "br-1", to_key: "ac-1", type: "implemented_by" }],
+);
+
+/** relation_error: an item pointed at itself. */
+export const selfRelation = envelope(
+  [item("br-1", "business_requirement")],
+  [{ from_key: "br-1", to_key: "br-1", type: "related_to" }],
+);
+
+/** relation_error: the same (from, to, type) triple twice. */
+export const duplicateRelation = envelope(
+  [item("br-1", "business_requirement"), item("fr-1", "functional_requirement")],
+  [
+    { from_key: "br-1", to_key: "fr-1", type: "implemented_by" },
+    { from_key: "br-1", to_key: "fr-1", type: "implemented_by" },
+  ],
+);
+
+/**
+ * relation_error: the hierarchical spine loops.
+ *
+ * **This fixture cannot be produced by a conforming provider, and that is the point.**
+ * The four authored hierarchical types form a DAG over item types —
+ * `business_objective → business_requirement → functional/non-functional requirement →
+ * user_story → acceptance_criterion`, and an acceptance criterion has no outgoing
+ * hierarchical edge — so no combination of them can close a loop. The pair matrix
+ * prevents the cycle before the cycle check ever sees it.
+ *
+ * A cycle is reachable only two ways, and both are why the check exists:
+ *
+ *   1. through a **legacy** `derives_from` row, whose pair rule is `any` because the
+ *      relationship it was standing in for cannot be re-derived;
+ *   2. through a direct `INSERT` into `item_relations`, which RLS permits to any
+ *      project member and which never passes through this validator at all — the
+ *      database trigger in migration 19 is what catches that one.
+ *
+ * So the fixture is built with `derives_from` and is deliberately *not* parseable by
+ * `providerOutputSchema`. It exercises `checkHierarchyCycles()` directly, on the shape
+ * legacy data actually has.
+ */
+export const legacyHierarchyCycle = envelope(
+  [item("br-1", "business_requirement"), item("fr-1", "functional_requirement")],
+  [
+    // Authored: BR sits above FR.
+    { from_key: "br-1", to_key: "fr-1", type: "implemented_by" },
+    // Legacy, written child → parent, and therefore saying BR sits *beneath* FR.
+    // Canonicalising both to parent → child is what makes the contradiction a loop.
+    { from_key: "br-1", to_key: "fr-1", type: "derives_from" },
+  ],
+);
+
+/**
+ * NOT invalid — the counter-example. Two `related_to` rows pointing opposite ways are
+ * two ordinary observations, not a cycle, because `related_to` makes no parent/child
+ * claim. Exported from the invalid module so the pair sits next to `hierarchyCycle`
+ * and the difference is visible in one place.
+ */
+export const relatedToBothWays = envelope(
+  [item("br-1", "business_requirement"), item("br-2", "business_requirement")],
+  [
+    { from_key: "br-1", to_key: "br-2", type: "related_to" },
+    { from_key: "br-2", to_key: "br-1", type: "related_to" },
+  ],
+);
+
+/** schema_error: a new run may not author the legacy relation type. */
+export const legacyRelationTypeAuthored = envelope(
+  [item("br-1", "business_requirement"), item("fr-1", "functional_requirement")],
+  [{ from_key: "fr-1", to_key: "br-1", type: "derives_from" }],
+);
 
 /** schema_error: provider tries to assign a status. */
 export const providerSuppliedStatus = envelope([

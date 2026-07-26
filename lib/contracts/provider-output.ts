@@ -22,6 +22,7 @@ import {
   PROVIDER_KEY_PATTERN,
   QUALITY_FINDING_KINDS,
 } from "./item-types.ts";
+import { AUTHORED_RELATION_TYPES } from "./relations.ts";
 
 const providerKey = z
   .string()
@@ -68,6 +69,17 @@ const baseItemShape = {
   source_references: z.array(sourceReferenceSchema).max(20).default([]),
   rationale: nonEmptyText(2000).optional(),
   priority: z.enum(PRIORITIES).optional(),
+  /**
+   * **Deprecated since slice 6B.** An untyped edge list: every entry was persisted as
+   * `item_relations.relation_type = 'derives_from'`, which stated a relationship the
+   * provider never claimed.
+   *
+   * It stays in the schema, and stays accepted as an empty array, for one reason: the
+   * raw output of all 129 runs written before this slice is stored verbatim in
+   * `analysis_runs.raw_provider_output`, and a schema that could no longer parse it
+   * would turn preserved audit evidence into an unreadable blob. A *new* run that
+   * puts anything in it is refused — see `checkRelations()`.
+   */
   related_item_keys: z.array(providerKey).max(50).default([]),
 };
 
@@ -153,6 +165,26 @@ export const providerItemSchema = z.discriminatedUnion("type", [
 export type ProviderItem = z.infer<typeof providerItemSchema>;
 
 /**
+ * A typed, directed edge between two items of the same response (slice 6B).
+ *
+ * `derives_from` is **not** in the accepted enum. It is the label every pre-6B row
+ * carries, and re-admitting it would let a new run write the very thing this contract
+ * replaced. Legacy rows keep it; new output may not produce it.
+ */
+export const providerRelationSchema = z
+  .strictObject({
+    from_key: providerKey,
+    to_key: providerKey,
+    type: z.enum(AUTHORED_RELATION_TYPES),
+  })
+  .refine((r) => r.from_key !== r.to_key, {
+    message: "a relation may not point an item at itself",
+    path: ["to_key"],
+  });
+
+export type ProviderRelation = z.infer<typeof providerRelationSchema>;
+
+/**
  * The envelope.
  *
  * Deliberately carries no application-owned facts — no project, organization, or
@@ -163,6 +195,12 @@ export type ProviderItem = z.infer<typeof providerItemSchema>;
 export const providerOutputSchema = z.strictObject({
   schema_version: z.string().regex(/^\d+\.\d+\.\d+$/),
   items: z.array(providerItemSchema).min(1).max(500),
+  /**
+   * Typed traceability. Defaulted to `[]` so a pre-6B raw output still parses; a new
+   * run that omits it produces an analysis with no horizontal traceability, which is
+   * honest rather than fabricated.
+   */
+  relations: z.array(providerRelationSchema).max(2000).default([]),
 });
 
 export type ProviderOutput = z.infer<typeof providerOutputSchema>;

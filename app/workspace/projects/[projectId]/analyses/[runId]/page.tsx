@@ -27,10 +27,14 @@ export const metadata = { title: "Analysis — ReqWise AI" };
 
 export default async function AnalysisResultPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string; runId: string }>;
+  /** `?item=` — where a link from the Traceability matrix lands. */
+  searchParams: Promise<{ item?: string }>;
 }) {
   const { projectId, runId } = await params;
+  const { item } = await searchParams;
 
   const supabase = await createClient();
   const [project, run] = await Promise.all([
@@ -45,7 +49,7 @@ export default async function AnalysisResultPage({
   if (run.validationStatus !== "valid") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-8 sm:px-8">
-        <Header projectId={projectId} source={source} createdAt={run.createdAt} />
+        <Header projectId={projectId} runId={runId} source={source} createdAt={run.createdAt} />
         <section
           role="alert"
           className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-danger-border bg-danger-soft p-5"
@@ -82,10 +86,15 @@ export default async function AnalysisResultPage({
     supabase.auth.getUser(),
   ]);
 
+  // An `?item=` naming an item of another run — or of another tenant's project —
+  // simply matches nothing in `run.items`, so it is ignored and the workspace opens on
+  // its own default. Nothing in the response distinguishes the two cases.
+  const initialItemId = run.items.some((candidate) => candidate.id === item) ? (item ?? null) : null;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
-        <Header projectId={projectId} source={source} createdAt={run.createdAt} />
+        <Header projectId={projectId} runId={runId} source={source} createdAt={run.createdAt} />
       </div>
       <AnalysisWorkspace
         source={source}
@@ -93,6 +102,7 @@ export default async function AnalysisResultPage({
         history={history}
         canReview={project.status === "active"}
         currentUserId={userData.user?.id ?? null}
+        initialItemId={initialItemId}
       />
     </div>
   );
@@ -100,10 +110,12 @@ export default async function AnalysisResultPage({
 
 function Header({
   projectId,
+  runId,
   source,
   createdAt,
 }: {
   projectId: string;
+  runId: string;
   source: { id: string; title: string };
   createdAt: string;
 }) {
@@ -112,8 +124,14 @@ function Header({
       <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">Analysis result</h1>
       <span className="text-xs text-text-faint">{formatDate(createdAt)}</span>
       <Link
-        href={`/workspace/projects/${projectId}/sources/${source.id}`}
+        href={`/workspace/projects/${projectId}/traceability?run=${runId}`}
         className="ml-auto text-xs text-text-muted transition-colors hover:text-text"
+      >
+        Traceability →
+      </Link>
+      <Link
+        href={`/workspace/projects/${projectId}/sources/${source.id}`}
+        className="text-xs text-text-muted transition-colors hover:text-text"
       >
         ← Back to source
       </Link>

@@ -17,7 +17,8 @@
     "verify:sources": "node scripts/verify-sources.mts",
     "verify:analysis": "node scripts/verify-analysis.mts",
     "verify:review": "node scripts/verify-review.mts",
-    "verify:workflow": "node scripts/verify-workflow.mts"
+    "verify:workflow": "node scripts/verify-workflow.mts",
+    "verify:traceability": "node scripts/verify-traceability.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

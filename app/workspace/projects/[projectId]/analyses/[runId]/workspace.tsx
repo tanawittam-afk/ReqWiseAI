@@ -50,6 +50,7 @@ export function AnalysisWorkspace({
   history,
   canReview,
   currentUserId,
+  initialItemId = null,
 }: {
   source: SourceDetail;
   run: AnalysisRunDetail;
@@ -58,21 +59,37 @@ export function AnalysisWorkspace({
   /** False for an archived project: the record stays readable, nothing is writable. */
   canReview: boolean;
   currentUserId: string | null;
+  /**
+   * An item to open on, validated by the page against this run's items. Set by a link
+   * from the Traceability matrix; `null` for an ordinary visit.
+   */
+  initialItemId?: string | null;
 }) {
   /*
    * Open on the first row the list actually shows, not the first row the database
    * returns — those differ, because items arrive ordered by display id ("AC-004" sorts
    * before "PS-004") while the panel groups by type. Selecting an item the reader
    * cannot see makes the inspector look unrelated to the list.
+   *
+   * A deep link overrides that: arriving from traceability on FR-003 and landing on
+   * BR-001 would lose the reader's place at the exact moment they crossed screens.
    */
   const initialSelectedId = useMemo(() => {
+    if (initialItemId !== null) return initialItemId;
     const { requirements } = partitionItems(run.items);
     const pool = requirements.length > 0 ? requirements : run.items;
     return groupItems(pool, "type")[0]?.items[0]?.id ?? null;
-  }, [run.items]);
+  }, [run.items, initialItemId]);
 
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
-  const [tab, setTab] = useState<WorkspaceTab>("requirements");
+  const [tab, setTab] = useState<WorkspaceTab>(() => {
+    // A question or a finding lives on its own tab, so a deep link to one must open
+    // that tab — otherwise the item is selected on a list that does not contain it.
+    const item = initialItemId
+      ? run.items.find((candidate) => candidate.id === initialItemId)
+      : undefined;
+    return item ? tabForType(item.type) : "requirements";
+  });
   const [groupBy, setGroupBy] = useState<GroupMode>("type");
   const [filters, setFilters] = useState<ItemFilters>(EMPTY_FILTERS);
   const [inspectorOpen, setInspectorOpen] = useState(true);

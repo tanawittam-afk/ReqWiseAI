@@ -43,7 +43,7 @@ describe("persistAnalysisResult", () => {
     }
   });
 
-  it("carries related_local_keys as normalized ids, not provider keys", async () => {
+  it("sends typed relations addressed by local key, not by provider key", async () => {
     const provider = createMockProvider();
     const result = await runAnalysis(provider, bookingInput(), testPorts());
     expect(result.status).toBe("valid");
@@ -51,13 +51,32 @@ describe("persistAnalysisResult", () => {
     const client = clientWith({ data: { run_id: "run-1", validation_status: "valid", duplicate: false } });
     await persistAnalysisResult(client, PROJECT, SOURCE, "request-key-123", bookingInput(), result);
 
-    const items = client.rpcCalls[0].args.p_items as Array<{ local_key: string; related_local_keys: string[] }>;
+    const items = client.rpcCalls[0].args.p_items as Array<{ local_key: string }>;
+    const relations = client.rpcCalls[0].args.p_relations as Array<{
+      from_local_key: string;
+      to_local_key: string;
+      relation_type: string;
+    }>;
     const localKeys = new Set(items.map((i) => i.local_key));
-    const withRelations = items.filter((i) => i.related_local_keys.length > 0);
-    expect(withRelations.length).toBeGreaterThan(0);
-    for (const item of withRelations) {
-      for (const key of item.related_local_keys) expect(localKeys.has(key)).toBe(true);
+
+    expect(relations.length).toBeGreaterThan(0);
+    for (const relation of relations) {
+      expect(localKeys.has(relation.from_local_key)).toBe(true);
+      expect(localKeys.has(relation.to_local_key)).toBe(true);
+      // The legacy label is what pre-6B rows carry *because* nothing was stated. A new
+      // run may not author one, so it must never reach the RPC.
+      expect(relation.relation_type).not.toBe("derives_from");
     }
+  });
+
+  it("no longer sends the deprecated untyped edge list on any item", async () => {
+    const provider = createMockProvider();
+    const result = await runAnalysis(provider, bookingInput(), testPorts());
+    const client = clientWith({ data: { run_id: "run-1", validation_status: "valid", duplicate: false } });
+    await persistAnalysisResult(client, PROJECT, SOURCE, "request-key-124", bookingInput(), result);
+
+    const items = client.rpcCalls[0].args.p_items as Array<Record<string, unknown>>;
+    for (const item of items) expect(item).not.toHaveProperty("related_local_keys");
   });
 
   it("persists an invalid run with zero items and the validation issues, not the raw output alone", async () => {

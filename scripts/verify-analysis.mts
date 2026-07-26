@@ -235,7 +235,6 @@ function toItemPayload(item: {
   confidence: number;
   rationale?: string;
   attributes?: Record<string, unknown>;
-  relatedItemIds: string[];
   sourceReferences: Array<{
     excerpt: string;
     startOffset?: number;
@@ -256,7 +255,6 @@ function toItemPayload(item: {
     confidence: item.confidence,
     rationale: item.rationale ?? null,
     attributes: item.attributes ?? null,
-    related_local_keys: item.relatedItemIds,
     source_references: item.sourceReferences.map((ref) => ({
       excerpt: ref.excerpt,
       start_offset: ref.startOffset ?? null,
@@ -292,6 +290,14 @@ async function persist(
       p_validated_output: result.analysis,
       p_error: null,
       p_items: result.analysis.items.map(toItemPayload),
+      // Typed since slice 6B. Shaped here rather than imported, like the item payload
+      // above, so the RPC's own contract is exercised and not lib/analysis/persist.ts's
+      // view of it.
+      p_relations: result.analysis.relations.map((relation) => ({
+        from_local_key: relation.fromItemId,
+        to_local_key: relation.toItemId,
+        relation_type: relation.type,
+      })),
     });
   }
   if (result.status === "invalid") {
@@ -376,10 +382,10 @@ async function main(): Promise<void> {
   });
 
   // --- 5 -----------------------------------------------------------------
-  await check("5. relations resolve from local key to real item id", async () => {
+  await check("5. relations resolve from local key to real item id, and carry a real type", async () => {
     const { data, error } = await clientA
       .from("item_relations")
-      .select("from_item_id, to_item_id")
+      .select("from_item_id, to_item_id, relation_type")
       .eq("project_id", projectA);
     assert(!error, `relation query failed: ${error?.message}`);
     assert((data ?? []).length > 0, "no relations were written");
@@ -390,12 +396,23 @@ async function main(): Promise<void> {
       .eq("analysis_run_id", firstRunId);
     assert(!itemsError, `item id query failed: ${itemsError?.message}`);
     const knownIds = new Set((items ?? []).map((r) => (r as { id: string }).id));
-    for (const row of data as unknown as Array<{ from_item_id: string; to_item_id: string }>) {
+    const rows = data as unknown as Array<{
+      from_item_id: string;
+      to_item_id: string;
+      relation_type: string;
+    }>;
+    for (const row of rows) {
       assert(knownIds.has(row.from_item_id), "a relation's from_item_id is outside this run's items");
       assert(knownIds.has(row.to_item_id), "a relation points at an id outside this run's items");
       assert(!/^item-\d+$/.test(row.to_item_id), "a relation still holds a local key instead of a real id");
+      // Slice 6B: the type is the provider's own statement, no longer a stand-in.
+      assert(
+        row.relation_type !== "derives_from",
+        "a new run wrote the legacy relation type instead of a typed one",
+      );
     }
-    return `${data!.length} relations, each a real item id (not a local key like "item-3")`;
+    const types = [...new Set(rows.map((row) => row.relation_type))].sort();
+    return `${rows.length} relations, real item ids, types: ${types.join(", ")}`;
   });
 
   // --- 6 -----------------------------------------------------------------

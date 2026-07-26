@@ -34,6 +34,10 @@ const ITEMS: Item[] = [
   { href: "/workspace/runs", label: "Analysis Runs", icon: "◫", ready: false },
   { href: "/workspace/requirements", label: "Requirements", icon: "≡", ready: false },
   { href: "/workspace/reviews", label: "Reviews", icon: "✓", ready: false },
+  // Traceability is per-project — it lives at
+  // /workspace/projects/:id/traceability, reached from a project. A workspace-wide
+  // matrix across every project would be a different feature and is not built, so the
+  // entry stays listed and disabled rather than linking somewhere that does not exist.
   { href: "/workspace/traceability", label: "Traceability", icon: "⟋", ready: false },
   { href: "/workspace/profiles", label: "Domain Profiles", icon: "◇", ready: false },
   { href: "/workspace/settings", label: "Settings", icon: "⚙", ready: false },

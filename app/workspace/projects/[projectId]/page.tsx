@@ -104,6 +104,30 @@ export default async function ProjectOverviewPage({
             <Stat label="Requirements" value={project.analysisItemCount} />
           </section>
 
+          {/*
+           * Traceability spans runs, so it belongs to the project rather than to any
+           * one analysis. Offered only once there is something to trace — a link to an
+           * empty matrix teaches a reader that the feature is empty, not that their
+           * project is.
+           */}
+          {project.analysisItemCount > 0 ? (
+            <Link
+              href={`/workspace/projects/${projectId}/traceability`}
+              className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-card)]
+                         border border-border-soft bg-surface px-4 py-3 transition-colors hover:bg-surface-hover"
+            >
+              <span className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-text">Traceability</span>
+                <span className="text-xs text-text-faint">
+                  Objectives → requirements → stories → acceptance criteria, and what is missing
+                </span>
+              </span>
+              <span aria-hidden="true" className="text-text-faint">
+                →
+              </span>
+            </Link>
+          ) : null}
+
           <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
             <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
               Project brief

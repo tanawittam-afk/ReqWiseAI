@@ -255,4 +255,11 @@ export const WORKFLOW_ACTIVITY_LABEL: Record<string, string> = {
  * one, silently or otherwise. The UI says so and points at the workflow that will.
  */
 export const CHANGE_REQUEST_HINT = "This answer may require a requirement change.";
-export const CHANGE_REQUEST_ACTION = "Create change request — Coming next";
+
+/**
+ * Reworded in slice 6B. "Coming next" was true when slice 6A shipped and stopped being
+ * true when 6B took traceability instead; a demo that shows a disabled button promising
+ * the *next* thing reads as an unfinished feature rather than a stated boundary.
+ * "Planned" says the same thing without dating itself.
+ */
+export const CHANGE_REQUEST_ACTION = "Change request workflow planned";
