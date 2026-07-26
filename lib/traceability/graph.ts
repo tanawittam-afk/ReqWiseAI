@@ -10,8 +10,8 @@ import {
   canonicalHierarchyEdge,
   isHierarchicalRelationType,
   type RelationType,
-} from "../contracts/relations";
-import type { TraceGraph, TraceItem, TraceRelation } from "./types";
+} from "../contracts/relations.ts";
+import type { TraceGraph, TraceItem, TraceRelation } from "./types.ts";
 
 export type RelationEnd = {
   relation: TraceRelation;

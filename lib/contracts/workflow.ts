@@ -13,7 +13,7 @@
  */
 
 import { z } from "zod";
-import type { ItemType } from "./item-types";
+import type { ItemType } from "./item-types.ts";
 
 export const WORKFLOW_STATES = [
   "open",

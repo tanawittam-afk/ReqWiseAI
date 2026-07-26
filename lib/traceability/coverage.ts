@@ -15,8 +15,8 @@
  * Pure: no database, no React, no clock.
  */
 
-import type { ItemType } from "../contracts/item-types";
-import { childrenOfType, findExistingCycles, linkedItemIds, spineChildren } from "./graph";
+import type { ItemType } from "../contracts/item-types.ts";
+import { childrenOfType, findExistingCycles, linkedItemIds, spineChildren } from "./graph.ts";
 import {
   APPROVED_STATUS,
   REJECTED_STATUS,
@@ -25,7 +25,7 @@ import {
   UNRESOLVED_QUESTION_STATES,
   type TraceGraph,
   type TraceItem,
-} from "./types";
+} from "./types.ts";
 
 export const COVERAGE_DISCLAIMER =
   "Coverage indicators assist review and do not replace human judgment.";

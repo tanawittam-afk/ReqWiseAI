@@ -10,6 +10,9 @@
  *
  * Active state is derived from the pathname, never passed down, so no page has to
  * remember to tell the sidebar where it is.
+ *
+ * Carries `screen-only`: a printed export is a document, not a screenshot of the
+ * application, so the print rules in `app/globals.css` remove the whole shell.
  */
 
 import Link from "next/link";
@@ -56,7 +59,7 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
     <nav
       aria-label="Workspace"
       data-collapsed={collapsed}
-      className="flex shrink-0 flex-col border-b border-border-soft bg-chrome
+      className="screen-only flex shrink-0 flex-col border-b border-border-soft bg-chrome
                  md:h-dvh md:w-[248px] md:border-r md:border-b-0
                  md:data-[collapsed=true]:w-[68px]"
     >

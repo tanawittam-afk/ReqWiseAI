@@ -111,21 +111,24 @@ export default async function ProjectOverviewPage({
            * project is.
            */}
           {project.analysisItemCount > 0 ? (
-            <Link
-              href={`/workspace/projects/${projectId}/traceability`}
-              className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-card)]
-                         border border-border-soft bg-surface px-4 py-3 transition-colors hover:bg-surface-hover"
-            >
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-text">Traceability</span>
-                <span className="text-xs text-text-faint">
-                  Objectives → requirements → stories → acceptance criteria, and what is missing
-                </span>
-              </span>
-              <span aria-hidden="true" className="text-text-faint">
-                →
-              </span>
-            </Link>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ProjectLink
+                href={`/workspace/projects/${projectId}/traceability`}
+                title="Traceability"
+                detail="Objectives → requirements → stories → acceptance criteria, and what is missing"
+              />
+              {/*
+               * Export is offered on the same terms and for the same reason: it reads what
+               * the analysis and the review produced, so it is worth offering exactly when
+               * there is something to read. An archived project keeps it — an export writes
+               * nothing, so there is no action for the archive to refuse.
+               */}
+              <ProjectLink
+                href={`/workspace/projects/${projectId}/exports`}
+                title="Export"
+                detail="Markdown, JSON, CSV or a printable document for handoff"
+              />
+            </div>
           ) : null}
 
           <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
@@ -253,6 +256,33 @@ function SourceRow({
         </span>
       </Link>
     </li>
+  );
+}
+
+/** One card-shaped destination beneath the project's numbers. */
+function ProjectLink({
+  href,
+  title,
+  detail,
+}: {
+  href: string;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-card)]
+                 border border-border-soft bg-surface px-4 py-3 transition-colors hover:bg-surface-hover"
+    >
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm font-medium text-text">{title}</span>
+        <span className="text-xs text-text-faint">{detail}</span>
+      </span>
+      <span aria-hidden="true" className="text-text-faint">
+        →
+      </span>
+    </Link>
   );
 }
 

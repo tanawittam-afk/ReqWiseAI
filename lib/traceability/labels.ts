@@ -14,7 +14,7 @@ import {
   RELATION_LABEL_EN,
   RELATION_LABEL_TH,
   type RelationType,
-} from "../contracts/relations";
+} from "../contracts/relations.ts";
 
 export type RelationDirection = "out" | "in";
 

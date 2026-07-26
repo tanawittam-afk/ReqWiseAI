@@ -7,8 +7,8 @@
  * fields it never reads, and would quietly invite one of them to start reading them.
  */
 
-import type { ItemType } from "../contracts/item-types";
-import type { RelationType } from "../contracts/relations";
+import type { ItemType } from "../contracts/item-types.ts";
+import type { RelationType } from "../contracts/relations.ts";
 
 export type TraceItem = {
   id: string;

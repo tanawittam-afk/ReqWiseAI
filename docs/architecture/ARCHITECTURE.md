@@ -215,6 +215,14 @@ Both are first-class rows, never text fields, never denormalized into a descript
 No database access, no React, no I/O. This is what makes Markdown / JSON / CSV / print
 four thin adapters over one shape, and it is why export can be deferred without risk.
 
+**Built in slice 6C — see [`EXPORT.md`](EXPORT.md).** One amendment to the sentence above:
+the reads live in `lib/export/load.ts`, the single database-touching module in the folder,
+exactly as `lib/traceability/queries.ts` sits beside that folder's pure modules. Everything
+downstream of it — `build`, `readiness`, `markdown`, `json`, `csv`, `print` — is pure as
+described, which is what let the whole document be tested without a browser or a database.
+Export needed **no migration**: it derives everything from existing tables and writes
+nothing.
+
 ---
 
 ## E. Vertical Slice Sequence

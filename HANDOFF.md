@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-26 (slice 6B — typed traceability relations and the traceability
-graph — shipped, 22/22 runtime checks, verified end to end in the browser)
+Last updated: 2026-07-26 (slice 6C — requirements export and the printable handoff —
+shipped, 26/26 runtime checks, verified end to end in the browser)
 
 ---
 
@@ -14,13 +14,20 @@ graph — shipped, 22/22 runtime checks, verified end to end in the browser)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** `f5b5bf7` (slice 6B). Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** slice 6C (see the git table at the end). Working
+  tree clean.
 - Nothing is blocked.
 
-**Next up: slice 6C — the change request.** Slice 6B typed the relations and built the
-graph, so the last load-bearing gap in the review loop is acting on an answer.
+**Next up: the real Gemini provider, then the change request.** Slice 6C shipped export, so
+the loop now runs source → analysis → review → traceability → document. Two gaps remain, and
+the provider is the one that makes the product real:
 
-1. **Change requests against an approved requirement.** An answered question routinely
+1. **The real Gemini provider.** Everything downstream is proven against the deterministic
+   mock; the adapter seam (`lib/providers/`) and the validation gate already exist. Its
+   output must satisfy the **typed relation contract** (`AUTHORED_RELATION_TYPES` + the pair
+   matrix, §C.13), not just the item schema — a model that emits `derives_from` or an
+   illegal pair must be refused as an invalid run, not repaired.
+2. **Change requests against an approved requirement.** An answered question routinely
    implies a requirement should change, and the Answer tab says so — *"This answer may
    require a requirement change."* next to a **disabled** *Create change request — Coming
    next*. `approved` and `rejected` are terminal (C.5), so reopening one must be a **new
@@ -28,11 +35,8 @@ graph, so the last load-bearing gap in the review loop is acting on an answer.
    approved. Start from: what does a change request reference (the approved item, the
    answer that motivated it), who approves it, and does approving it supersede the
    original or amend it?
-2. **Export** — the graph is now worth exporting, and coverage gives it a summary.
-3. **The real Gemini provider**, whose output must satisfy the typed relation contract
-   (`AUTHORED_RELATION_TYPES` + the pair matrix), not just the item schema.
 
-All three workflows follow one shape, and a fourth should too: a **narrow RPC** whose signature
+Both workflows follow one shape, and a further one should too: a **narrow RPC** whose signature
 omits everything a client must not choose, a **contract** that refuses forged fields
 outright, a **service** that turns refusals into sentences, and a **runtime script** that
 proves the database refuses at all. Slice 5 lives in `lib/contracts/review.ts` +
@@ -45,6 +49,48 @@ proves the database refuses at all. Slice 5 lives in `lib/contracts/review.ts` +
 **Notes tab: still deliberately absent.** There is no note that is not either a change
 reason (on a version) or a review comment (on an activity), so a Notes tab would either
 duplicate History or promise a data model that does not exist.
+
+**Slice 6C shipped the export and the printable handoff.** **No migration** — export derives
+everything from existing tables and writes nothing, which is also why repeating it is free.
+Full architecture in [`docs/architecture/EXPORT.md`](docs/architecture/EXPORT.md); the parts
+worth knowing before touching it:
+
+- **Routes:** `/workspace/projects/:id/exports` (scope · readiness · preview),
+  `…/exports/preview` (full width), `…/exports/print` (browser print / Save as PDF), and
+  `…/exports/download/:format` for six files — `markdown`, `json`, `requirements-csv`,
+  `questions-csv`, `findings-csv`, `traceability-csv`.
+- **Contract `reqwise-export/1.0`** in `lib/contracts/export.ts`, `strictObject` throughout.
+  Items are referenced by **display id**, never row UUID; the only UUIDs that appear are the
+  project, the cited source revision and the analysis run. `actor_id`, `created_by`,
+  `resolved_by`, `organization_id`, `provider_key`, `raw_provider_output` and
+  `validated_output` are absent, and a runtime check greps all six formats to prove it.
+- **The scope lives in the URL** (`lib/export/url.ts`), so refresh, links, the printable page
+  and every download share one scope with no table and no migration. Five presets
+  (`portfolio_demo` is the demo one) resolve to an explicit scope *before* the builder runs —
+  no rule anywhere reads a preset name.
+- **Status scope applies to requirements only.** A question's status is always `draft`, so
+  filtering questions by status would empty an approved-only export of every question.
+- **Coverage is project-wide, never scope-wide**, and the document says so. The
+  archived-project notice is **not** optional.
+- **A citation whose offsets no longer match the excerpt blocks the export** (409 on the
+  download route), and the error names display ids, never text. Unanswered questions are a
+  **warning** — an export exists for the handoff conversation, so it must not be withheld
+  until that conversation has happened.
+- **CSV formula injection** is neutralised with a leading apostrophe (visible, reversible)
+  rather than by stripping characters out of a requirement's words.
+- **Printing** is CSS, not a second layout: `.screen-only` hides the shell, the shell's
+  viewport height clamp is released, A4 with 16/14 mm margins, `break-inside: avoid` per
+  requirement block, page break per section, black on white.
+- **Ordering is a feature:** display-id prefix → number (so `FR-2` before `FR-10`) →
+  `created_at` → row id. Markdown, JSON and CSV list the same items in the same order, and a
+  test shuffles the input to prove the output does not move.
+- **Golden fixtures** live at `tests/export/__golden__/` as vitest file snapshots.
+  Regenerate deliberately with `npx vitest run tests/export -u` **after reading the diff**.
+- One repo-wide mechanical change came with this slice: value imports on the export chain
+  (16 files, including `lib/contracts/{review,workflow}.ts`, `lib/review/history.ts` and
+  `lib/traceability/*`) now carry an explicit `.ts` extension, which is what lets
+  `scripts/verify-export.mts` run the real export code under Node's native type stripping —
+  the convention `tsconfig.json` already documents.
 
 **Slice 6B shipped typed relations and the traceability graph.** Every edge used to be
 `derives_from` — not a claim about the relationship but the absence of one. Two migrations
@@ -190,6 +236,7 @@ npm run verify:analysis      # 25/25 analysis, allocation and idempotency checks
 npm run verify:review        # 30/30 editing, review, versioning and concurrency (slice 5)
 npm run verify:workflow      # 32/32 question resolution and quality workflow (slice 6A)
 npm run verify:traceability  # 22/22 typed relations, pair matrix, cycles, coverage (6B)
+npm run verify:export        # 26/26 export scope, evidence, formats and leakage (6C)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
@@ -239,11 +286,22 @@ run a full user/project pair each. Almost all of it is residue from
 clean up after themselves — the immutability triggers refuse DELETE even for the service
 role, which is the schema working as designed.
 
-Harmless, but worth clearing before a demo so the dashboards read honestly:
+Harmless, but worth clearing before a demo so the dashboards read honestly. **Dry run
+first** — slice 6C added one, and it is not optional courtesy: the cleanup script disables
+immutability triggers and cascades across seven tables, and until now the only way to see
+what it matched was to run it.
 
 ```bash
-npx supabase db query --linked -f scripts/verify-db-cleanup.sql
+npx supabase db query --linked -f scripts/verify-db-cleanup-dryrun.sql   # reports, deletes nothing
+npx supabase db query --linked -f scripts/verify-db-cleanup.sql          # the real thing
 ```
+
+**Dry run as of 2026-07-26** (nothing was executed): would delete 184 accounts, 276
+projects, 232 source documents, 221 analysis runs, 1,628 items, 825 source references, 451
+relations, 65 versions, 311 activities and 184 orphaned personal organizations. `preserved`
+is exactly the two demo accounts and their four projects — which is the line to check every
+time. Slice 6C also fixed the patterns: slices 5, 6A, 6B and 6C named fixtures the cleanup
+script had never heard of, which is most of why the residue grew this far.
 
 It matches only the verification naming patterns (`reqwise-verify-*`, `reqwise-src-*`,
 `reqwise-analysis-*`, and the `Slice N …` project names) and leaves the two real demo
@@ -439,6 +497,15 @@ but the seam must exist from the start so the engine never learns domain facts.
       rows keep it. **439 tests · typecheck · lint · build clean; all seven runtime scripts
       green (8/8 · 10/10 · 18/18 · 25/25 · 30/30 · 32/32 · 22/22).** Pair matrix as a
       function, not a thirteenth table — see DATA-MODEL §C.13 for why.
+- [x] **Slice 6C — Requirements export and printable handoff (2026-07-26). VERIFIED AT
+      RUNTIME (26/26) AND IN THE BROWSER. No migration.** `lib/contracts/export.ts`
+      (`reqwise-export/1.0`) + `lib/export/{load,build,readiness,markdown,json,csv,print,
+      url,labels,filenames,types}.ts`; four routes under
+      `app/workspace/projects/[projectId]/exports/` including a six-format download handler
+      and a printable page; print rules in `app/globals.css`. Export reads and writes
+      nothing, which is why no migration was needed. **637 tests · typecheck · lint · build
+      clean; all eight runtime scripts green (8/8 · 10/10 · 18/18 · 25/25 · 30/30 · 32/32 ·
+      22/22 · 26/26).** Architecture in `docs/architecture/EXPORT.md`.
 - [ ] **Phase 3C+ — remaining vertical slices.** run mock analysis (persist run + items +
       refs in one transaction) → workspace split-pane → edit item → review/approve →
       export. Slice order in `docs/architecture/ARCHITECTURE.md` §E.
@@ -601,6 +668,77 @@ route into a **same-origin iframe** of that exact size. Media queries and `match
 resolve against the iframe viewport, so the breakpoints are genuinely exercised — but this
 is not a device-emulation test: no touch input, no mobile UA, no device pixel ratio. If
 mobile ever becomes a real target, re-test on a real device.
+
+## Runtime verification (2026-07-26) — slice 6C export, 26/26 PASS
+
+`npm run verify:export`, against the live database, on an authenticated user's own client.
+Fixtures are named `Export verification …` / `reqwise-export-…@example.com` so the cleanup
+script can find them, and every status in them arrived through `review_item()` and
+`edit_analysis_item()` because `guard_item_update()` refuses a direct status write **even to
+the service role** — so the fixture states are the states a reviewer would produce.
+
+Building (1–4): user A exports their own project; user B gets `null`, indistinguishable from
+a project that does not exist; an archived project exports read-only with its notice; and an
+export changes **no row count in any of the seven tables it reads**.
+
+Scope (5–8): approved-only admits no draft; reviewed-and-approved adds the reviewed item and
+no draft; the active working set keeps drafts and excludes rejected; all-statuses includes
+the rejected item, labelled *Rejected*.
+
+Evidence (9–11): every citation's offsets still land exactly on the excerpt it quotes; a
+domain-profile item carries the "no direct source evidence" sentence rather than a nearby
+sentence; and a corrupted span turns the export into `cannot_export` with no source text in
+the message.
+
+Questions, findings, traceability (12–18): an answer exports with its date and is **not**
+promoted into a requirement; a deferral carries its follow-up date; a resolved finding
+carries its resolution and its own kind with **no severity anywhere**; typed relations read
+as sentences in both directions; `derives_from` exports as legacy with its direction intact;
+coverage matches the project under every scope; and no relation resolves outside the
+document.
+
+Formats (19–22): the JSON file satisfies the export schema; the Markdown carries all ten
+required sections, includes the cited excerpt and does **not** reproduce the uncited source
+line; CSV quoting survives Thai, quotes, commas and CRLF; a leading `=` or `-` is neutralised.
+
+What must never leave (23–26): no raw or validated provider payload and no provider key in
+any of the six formats; no auth user id, organization id or email — while the review summary
+still reports *"Approved on …"*; three repeated exports write zero rows; and every item plus
+the analysis run is byte-identical before and after.
+
+## Browser verification (2026-07-26) — slice 6C
+
+`slice3.demo@reqwise.dev`, project *Smart Space intake — slice 3*, at localhost:3000.
+
+- **Export screen** rendered scope, readiness and the document preview together. The
+  *Portfolio demo* preset resolved to *Reviewed and approved* with 1 requirement in scope and
+  read **Ready with warnings**, listing the real ones: 15 unanswered questions, 4 unresolved
+  findings, 35 orphans, 8 domain-guidance items — each with display ids.
+- **Audit package** switched the same screen to *All statuses*: 60 requirements, 28
+  relations, and warnings for the 59 drafts and the 16 legacy relations.
+- **All six downloads answered 200** with the right content type
+  (`text/markdown`, `application/json`, `text/csv` ×4), inspected through the page's own
+  fetch: Markdown 11,343 bytes with 10 `##` sections, Thai intact, no provider payload; JSON
+  `schemaVersion: reqwise-export/1.0` with sorted top-level keys; the requirements CSV's
+  declared header, CRLF rows and quoted Thai. An unknown format (`/download/pdf`) and another
+  tenant's project both answered **404**.
+- **Printable route** rendered document-only content; the tab title became
+  *"Smart Space intake — slice 3 — requirements"* (the filename Save-as-PDF proposes). Read
+  live from the DOM: the sidebar and toolbar carry `screen-only`, the print footer is in the
+  DOM and `display: none` on screen, 22 blocks carry `.export-block`, 9 sections carry
+  `.export-section`, and the print rules resolved to `@page { size: a4; margin: 16mm 14mm }`,
+  `.screen-only { display: none !important }` and
+  `.export-section + .export-section { break-before: page }`.
+- **Responsive:** no horizontal page overflow at 834 px or 390 px (same-origin iframe
+  technique as slice 4.2). All 35 interactive targets on the export screen measured ≥ 44 px;
+  the smallest is exactly 44.
+- **Console:** no application errors. Two `EXCEPTION` entries are Next's dev-time source-map
+  worker (`next/dist/compiled/jest-worker`) crashing under repeated iframe renders, plus the
+  pre-existing `scroll-behavior: smooth` advisory. Neither comes from application code.
+- **Not verified in the browser:** an actual file-on-disk download (the browser extension
+  blocks downloads, so responses were inspected instead of saved files), the native print
+  dialog, and an archived project's export screen — no demo project is archived. Archived
+  export is covered by runtime check 3.
 
 ## Runtime verification (2026-07-26) — slice 6B typed traceability, 22/22 PASS
 

@@ -164,3 +164,111 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* --- printing an export ---------------------------------------------------
+ *
+ * The printable route lives *inside* the workspace shell, because that is where its URL
+ * belongs. A nested layout cannot remove its parent, so print rules do it instead:
+ *
+ *  1. The shell is one viewport tall and never scrolls (see app/workspace/layout.tsx).
+ *     Left alone, a printer would render exactly that — one page, the rest clipped. Every
+ *     height and overflow constraint is therefore released for print.
+ *  2. `.screen-only` hides the sidebar, toolbars, buttons and links; `.print-only` reveals
+ *     the provenance footer. On screen the reverse holds.
+ *  3. A requirement block is kept whole; a major section starts on a new page. A section
+ *     may legitimately span pages — a single requirement's facts and its citation should
+ *     not be separated.
+ *  4. Ink is black on white with borders left visible, so status words and table
+ *     structure survive a greyscale photocopy. Nothing in the document encodes meaning in
+ *     colour alone, on screen or on paper.
+ */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Release the app shell's viewport clamp so the document can flow onto many pages. */
+  body * {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* A print-safe palette, applied by overriding the tokens rather than every rule. */
+  :root {
+    --app: #ffffff;
+    --chrome: #ffffff;
+    --surface: #ffffff;
+    --surface-muted: #ffffff;
+    --surface-hover: #ffffff;
+    --text: #000000;
+    --text-muted: #333333;
+    --text-faint: #555555;
+    --border: #bbbbbb;
+    --border-strong: #777777;
+    --warn: #000000;
+    --warn-soft: #ffffff;
+    --warn-border: #777777;
+    --accent: #000000;
+    --accent-soft: #ffffff;
+    --accent-border: #777777;
+  }
+
+  .export-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .export-section {
+    break-inside: auto;
+  }
+
+  .export-section + .export-section {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* Headings should not be the last line on a page. */
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  blockquote,
+  figure,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}

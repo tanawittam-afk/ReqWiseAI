@@ -1,0 +1,667 @@
+{
+  "coverage": {
+    "disclaimer": "Coverage indicators assist review and do not replace human judgment.",
+    "gaps": [
+      {
+        "displayIds": [],
+        "key": "approved_linked_to_rejected",
+        "label": "Approved items linked to rejected items",
+        "meaning": "An approved item is related to something the team rejected."
+      },
+      {
+        "displayIds": [],
+        "key": "existing_cycle",
+        "label": "Items in a traceability cycle",
+        "meaning": "These items form a loop in the hierarchy. Stored before typed relations existed; nothing is changed automatically."
+      },
+      {
+        "displayIds": [
+          "FR-001",
+          "FR-002"
+        ],
+        "key": "functional_without_story",
+        "label": "Functional requirements with no user story",
+        "meaning": "This capability has not been expressed from a user's point of view."
+      },
+      {
+        "displayIds": [],
+        "key": "objective_without_requirement",
+        "label": "Objectives with no business requirement",
+        "meaning": "Nothing beneath this objective says how it will be met."
+      },
+      {
+        "displayIds": [
+          "Q-001"
+        ],
+        "key": "open_question_on_approved",
+        "label": "Unresolved questions on approved items",
+        "meaning": "This question is still open against an item already approved."
+      },
+      {
+        "displayIds": [
+          "BR-002",
+          "FR-002",
+          "NFR-001",
+          "Q-002",
+          "Q-003",
+          "QF-002",
+          "RISK-001"
+        ],
+        "key": "orphan",
+        "label": "Orphan items",
+        "meaning": "No relation reaches this item in either direction."
+      },
+      {
+        "displayIds": [
+          "BR-002",
+          "BR-003",
+          "FR-002",
+          "NFR-001"
+        ],
+        "key": "requirement_without_evidence",
+        "label": "Requirements with no source evidence",
+        "meaning": "No citation ties this requirement to the text it came from."
+      },
+      {
+        "displayIds": [
+          "BR-002",
+          "BR-003"
+        ],
+        "key": "requirement_without_functional",
+        "label": "Business requirements with no functional requirement",
+        "meaning": "Nothing beneath this requirement says how the system delivers it."
+      },
+      {
+        "displayIds": [],
+        "key": "story_without_criterion",
+        "label": "User stories with no acceptance criterion",
+        "meaning": "There is no stated way to tell whether this story is done."
+      },
+      {
+        "displayIds": [
+          "QF-001"
+        ],
+        "key": "unresolved_finding",
+        "label": "Unresolved quality findings",
+        "meaning": "This finding is still open or only acknowledged."
+      },
+      {
+        "displayIds": [
+          "QF-001"
+        ],
+        "key": "unresolved_finding_on_reviewed",
+        "label": "Unresolved findings on reviewed or approved items",
+        "meaning": "A quality issue is still outstanding on an item already signed off."
+      },
+      {
+        "displayIds": [
+          "Q-001",
+          "Q-003"
+        ],
+        "key": "unresolved_question",
+        "label": "Unresolved questions",
+        "meaning": "This question is still open or deferred."
+      }
+    ],
+    "totals": {
+      "approvedRequirements": 5,
+      "items": 15,
+      "itemsWithSourceEvidence": 4,
+      "linked": 8,
+      "missingAcceptanceCriteria": 0,
+      "openQuestions": 2,
+      "orphans": 7,
+      "unresolvedQualityFindings": 1
+    }
+  },
+  "generatedAt": "2026-07-26T09:00:00.000Z",
+  "notices": [],
+  "openQuestions": [
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "Q-001 description",
+      "displayId": "Q-001",
+      "evidenceNotice": "Generated from domain guidance; no direct source evidence.",
+      "followUpOn": null,
+      "origin": "quality_rule",
+      "outstanding": true,
+      "relations": [
+        {
+          "direction": "out",
+          "displayId": "BR-003",
+          "legacy": false,
+          "phrase": "raises a question about",
+          "type": "raises_question"
+        }
+      ],
+      "resolutionText": null,
+      "resolvedAt": null,
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [],
+      "title": "Q-001 statement",
+      "workflowState": "open",
+      "workflowStateLabel": "Open"
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "Q-002 description",
+      "displayId": "Q-002",
+      "evidenceNotice": null,
+      "followUpOn": null,
+      "origin": "source_analysis",
+      "outstanding": false,
+      "relations": [],
+      "resolutionText": "ยกเลิกฟรีก่อน 24 ชั่วโมง",
+      "resolvedAt": "2026-07-24T08:00:00.000Z",
+      "review": {
+        "activityCount": 1,
+        "lastActivity": {
+          "at": "2026-07-24T08:00:00.000Z",
+          "label": "Answered the question"
+        }
+      },
+      "sourceEvidence": [
+        {
+          "endOffset": 38,
+          "excerpt": "ลูกค้าต้องการจองห้องประชุมผ่านเว็บไซต์",
+          "offsetVerified": true,
+          "revisionNumber": 1,
+          "sourceKind": "meeting_notes",
+          "sourceRevisionId": "33333333-3333-4333-8333-333333333333",
+          "sourceTitle": "ประชุมเก็บความต้องการ",
+          "startOffset": 0
+        }
+      ],
+      "title": "Q-002 statement",
+      "workflowState": "answered",
+      "workflowStateLabel": "Answered"
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "Q-003 description",
+      "displayId": "Q-003",
+      "evidenceNotice": null,
+      "followUpOn": "2026-08-15",
+      "origin": "source_analysis",
+      "outstanding": true,
+      "relations": [],
+      "resolutionText": "รอฝ่ายการเงินยืนยันนโยบายคืนเงิน",
+      "resolvedAt": "2026-07-24T09:00:00.000Z",
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [],
+      "title": "Q-003 statement",
+      "workflowState": "deferred",
+      "workflowStateLabel": "Deferred"
+    }
+  ],
+  "project": {
+    "archiveReason": null,
+    "archived": false,
+    "businessObjective": "ให้ลูกค้าจองเองได้",
+    "counts": {
+      "analysisRuns": 1,
+      "approvedRequirements": 5,
+      "openQuestions": 2,
+      "requirements": 6,
+      "sources": 2,
+      "unresolvedQualityFindings": 1
+    },
+    "createdAt": "2026-07-18T08:00:00.000Z",
+    "description": "Booking and front-desk requirements",
+    "domain": {
+      "key": "booking-smart-space",
+      "name": "Booking and Smart Space"
+    },
+    "id": "11111111-1111-4111-8111-111111111111",
+    "knownStakeholders": [
+      "Front desk",
+      "Finance"
+    ],
+    "name": "Smart Space intake",
+    "outputLang": "th",
+    "slug": "smart-space-intake",
+    "status": "active"
+  },
+  "qualityFindings": [
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "QF-001 description",
+      "displayId": "QF-001",
+      "evidenceNotice": null,
+      "findingKind": "ambiguous",
+      "followUpOn": null,
+      "origin": "source_analysis",
+      "relations": [
+        {
+          "direction": "out",
+          "displayId": "FR-001",
+          "legacy": false,
+          "phrase": "flags a quality issue in",
+          "type": "flags_quality_issue"
+        }
+      ],
+      "resolutionText": null,
+      "resolvedAt": null,
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [],
+      "title": "QF-001 statement",
+      "unresolved": true,
+      "workflowState": "open",
+      "workflowStateLabel": "Open"
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "QF-002 description",
+      "displayId": "QF-002",
+      "evidenceNotice": null,
+      "findingKind": "incomplete",
+      "followUpOn": null,
+      "origin": "source_analysis",
+      "relations": [],
+      "resolutionText": "Rewritten with a measurable threshold.",
+      "resolvedAt": "2026-07-25T10:00:00.000Z",
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [],
+      "title": "QF-002 statement",
+      "unresolved": false,
+      "workflowState": "resolved",
+      "workflowStateLabel": "Resolved"
+    }
+  ],
+  "relations": [
+    {
+      "fromDisplayId": "BR-001",
+      "fromStatus": "approved",
+      "fromType": "business_requirement",
+      "legacy": false,
+      "phrase": "is implemented by",
+      "toDisplayId": "FR-001",
+      "toStatus": "reviewed",
+      "toType": "functional_requirement",
+      "type": "implemented_by"
+    },
+    {
+      "fromDisplayId": "BR-003",
+      "fromStatus": "approved",
+      "fromType": "business_requirement",
+      "legacy": true,
+      "phrase": "derives from",
+      "toDisplayId": "OBJ-001",
+      "toStatus": "approved",
+      "toType": "business_objective",
+      "type": "derives_from"
+    },
+    {
+      "fromDisplayId": "OBJ-001",
+      "fromStatus": "approved",
+      "fromType": "business_objective",
+      "legacy": false,
+      "phrase": "is supported by",
+      "toDisplayId": "BR-001",
+      "toStatus": "approved",
+      "toType": "business_requirement",
+      "type": "supports"
+    },
+    {
+      "fromDisplayId": "Q-001",
+      "fromStatus": "draft",
+      "fromType": "open_question",
+      "legacy": false,
+      "phrase": "raises a question about",
+      "toDisplayId": "BR-003",
+      "toStatus": "approved",
+      "toType": "business_requirement",
+      "type": "raises_question"
+    },
+    {
+      "fromDisplayId": "QF-001",
+      "fromStatus": "draft",
+      "fromType": "quality_finding",
+      "legacy": false,
+      "phrase": "flags a quality issue in",
+      "toDisplayId": "FR-001",
+      "toStatus": "reviewed",
+      "toType": "functional_requirement",
+      "type": "flags_quality_issue"
+    },
+    {
+      "fromDisplayId": "US-001",
+      "fromStatus": "approved",
+      "fromType": "user_story",
+      "legacy": false,
+      "phrase": "is validated by",
+      "toDisplayId": "AC-001",
+      "toStatus": "approved",
+      "toType": "acceptance_criterion",
+      "type": "validated_by"
+    }
+  ],
+  "requirements": [
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "AC-001 description",
+      "displayId": "AC-001",
+      "evidenceClass": "stated",
+      "evidenceNotice": null,
+      "humanEdited": false,
+      "origin": "source_analysis",
+      "priority": "medium",
+      "rationale": null,
+      "relations": [
+        {
+          "direction": "in",
+          "displayId": "US-001",
+          "legacy": false,
+          "phrase": "validates",
+          "type": "validated_by"
+        }
+      ],
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [],
+      "status": "approved",
+      "statusLabel": "Approved",
+      "title": "AC-001 statement",
+      "type": "acceptance_criterion",
+      "typeLabel": "Acceptance criterion",
+      "versionNo": 1
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "ระบบต้องรองรับการจอง \"ออนไลน์\"\nและต้องยืนยันทันที, ไม่เกิน 3 วินาที",
+      "displayId": "BR-001",
+      "evidenceClass": "stated",
+      "evidenceNotice": null,
+      "humanEdited": true,
+      "origin": "source_analysis",
+      "priority": "high",
+      "rationale": null,
+      "relations": [
+        {
+          "direction": "out",
+          "displayId": "FR-001",
+          "legacy": false,
+          "phrase": "is implemented by",
+          "type": "implemented_by"
+        },
+        {
+          "direction": "in",
+          "displayId": "OBJ-001",
+          "legacy": false,
+          "phrase": "supports",
+          "type": "supports"
+        }
+      ],
+      "review": {
+        "activityCount": 2,
+        "lastActivity": {
+          "at": "2026-07-23T10:00:00.000Z",
+          "label": "Approved"
+        }
+      },
+      "sourceEvidence": [
+        {
+          "endOffset": 38,
+          "excerpt": "ลูกค้าต้องการจองห้องประชุมผ่านเว็บไซต์",
+          "offsetVerified": true,
+          "revisionNumber": 1,
+          "sourceKind": "meeting_notes",
+          "sourceRevisionId": "33333333-3333-4333-8333-333333333333",
+          "sourceTitle": "ประชุมเก็บความต้องการ",
+          "startOffset": 0
+        }
+      ],
+      "status": "approved",
+      "statusLabel": "Approved",
+      "title": "BR-001 statement",
+      "type": "business_requirement",
+      "typeLabel": "Business requirement",
+      "versionNo": 3
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "BR-003 description",
+      "displayId": "BR-003",
+      "evidenceClass": "stated",
+      "evidenceNotice": null,
+      "humanEdited": false,
+      "origin": "source_analysis",
+      "priority": "medium",
+      "rationale": null,
+      "relations": [
+        {
+          "direction": "out",
+          "displayId": "OBJ-001",
+          "legacy": true,
+          "phrase": "derives from",
+          "type": "derives_from"
+        },
+        {
+          "direction": "in",
+          "displayId": "Q-001",
+          "legacy": false,
+          "phrase": "has a question raised by",
+          "type": "raises_question"
+        }
+      ],
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [],
+      "status": "approved",
+      "statusLabel": "Approved",
+      "title": "BR-003 statement",
+      "type": "business_requirement",
+      "typeLabel": "Business requirement",
+      "versionNo": 1
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.91,
+      "description": "FR-001 description",
+      "displayId": "FR-001",
+      "evidenceClass": "inferred",
+      "evidenceNotice": null,
+      "humanEdited": false,
+      "origin": "source_analysis",
+      "priority": "medium",
+      "rationale": "The notes describe staff checking arrivals, which implies a list view.",
+      "relations": [
+        {
+          "direction": "in",
+          "displayId": "BR-001",
+          "legacy": false,
+          "phrase": "implements",
+          "type": "implemented_by"
+        },
+        {
+          "direction": "in",
+          "displayId": "QF-001",
+          "legacy": false,
+          "phrase": "has a quality issue flagged by",
+          "type": "flags_quality_issue"
+        }
+      ],
+      "review": {
+        "activityCount": 1,
+        "lastActivity": {
+          "at": "2026-07-22T11:00:00.000Z",
+          "label": "Marked as reviewed"
+        }
+      },
+      "sourceEvidence": [
+        {
+          "endOffset": 91,
+          "excerpt": "พนักงานต้องเห็นรายการจองและตรวจสอบลูกค้าที่มาเช็กอิน",
+          "offsetVerified": true,
+          "revisionNumber": 1,
+          "sourceKind": "meeting_notes",
+          "sourceRevisionId": "33333333-3333-4333-8333-333333333333",
+          "sourceTitle": "ประชุมเก็บความต้องการ",
+          "startOffset": 39
+        }
+      ],
+      "status": "reviewed",
+      "statusLabel": "Reviewed",
+      "title": "FR-001 statement",
+      "type": "functional_requirement",
+      "typeLabel": "Functional requirement",
+      "versionNo": 1
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "OBJ-001 description",
+      "displayId": "OBJ-001",
+      "evidenceClass": "stated",
+      "evidenceNotice": null,
+      "humanEdited": false,
+      "origin": "source_analysis",
+      "priority": "high",
+      "rationale": null,
+      "relations": [
+        {
+          "direction": "out",
+          "displayId": "BR-001",
+          "legacy": false,
+          "phrase": "is supported by",
+          "type": "supports"
+        },
+        {
+          "direction": "in",
+          "displayId": "BR-003",
+          "legacy": true,
+          "phrase": "is derived from by",
+          "type": "derives_from"
+        }
+      ],
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [],
+      "status": "approved",
+      "statusLabel": "Approved",
+      "title": "OBJ-001 statement",
+      "type": "business_objective",
+      "typeLabel": "Business objective",
+      "versionNo": 1
+    },
+    {
+      "analysisRunId": "22222222-2222-4222-8222-222222222222",
+      "confidence": 0.8,
+      "description": "US-001 description",
+      "displayId": "US-001",
+      "evidenceClass": "stated",
+      "evidenceNotice": null,
+      "humanEdited": false,
+      "origin": "source_analysis",
+      "priority": "medium",
+      "rationale": null,
+      "relations": [
+        {
+          "direction": "out",
+          "displayId": "AC-001",
+          "legacy": false,
+          "phrase": "is validated by",
+          "type": "validated_by"
+        }
+      ],
+      "review": {
+        "activityCount": 0,
+        "lastActivity": null
+      },
+      "sourceEvidence": [
+        {
+          "endOffset": 44,
+          "excerpt": "same-day cancellation rule",
+          "offsetVerified": false,
+          "revisionNumber": 2,
+          "sourceKind": "interview",
+          "sourceRevisionId": "44444444-4444-4444-8444-444444444444",
+          "sourceTitle": "Front desk follow-up",
+          "startOffset": 18
+        }
+      ],
+      "status": "approved",
+      "statusLabel": "Approved",
+      "title": "US-001 statement",
+      "type": "user_story",
+      "typeLabel": "User story",
+      "versionNo": 1
+    }
+  ],
+  "reviewActivitySummary": [],
+  "schemaVersion": "reqwise-export/1.0",
+  "scope": {
+    "includeConfidence": true,
+    "sections": {
+      "acceptance_criteria": true,
+      "assumptions": true,
+      "business_objectives": true,
+      "business_requirements": true,
+      "business_rules": true,
+      "constraints": true,
+      "coverage": true,
+      "functional_requirements": true,
+      "non_functional_requirements": true,
+      "open_questions": true,
+      "problem_statement": true,
+      "quality_findings": true,
+      "review_activity": false,
+      "risks": true,
+      "source_evidence": true,
+      "stakeholders": true,
+      "traceability": true,
+      "user_stories": true,
+      "version_summary": false
+    },
+    "status": "reviewed_and_approved"
+  },
+  "sources": [
+    {
+      "characterCount": 136,
+      "createdAt": "2026-07-18T09:00:00.000Z",
+      "kind": "meeting_notes",
+      "locked": true,
+      "revisionId": "33333333-3333-4333-8333-333333333333",
+      "revisionNumber": 1,
+      "sourceDate": "2026-07-18",
+      "title": "ประชุมเก็บความต้องการ"
+    },
+    {
+      "characterCount": 45,
+      "createdAt": "2026-07-19T09:00:00.000Z",
+      "kind": "interview",
+      "locked": false,
+      "revisionId": "44444444-4444-4444-8444-444444444444",
+      "revisionNumber": 2,
+      "sourceDate": null,
+      "title": "Front desk follow-up"
+    }
+  ],
+  "versionSummary": []
+}

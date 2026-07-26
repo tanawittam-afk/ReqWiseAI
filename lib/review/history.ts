@@ -14,8 +14,8 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ItemStatus } from "../contracts/review";
-import { WORKFLOW_ACTIVITY_LABEL } from "../contracts/workflow";
+import type { ItemStatus } from "../contracts/review.ts";
+import { WORKFLOW_ACTIVITY_LABEL } from "../contracts/workflow.ts";
 
 /** The fields a person may edit, and therefore the only fields a diff can report. */
 export const COMPARED_FIELDS = ["title", "description", "priority"] as const;

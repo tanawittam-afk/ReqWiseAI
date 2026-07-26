@@ -14,7 +14,7 @@
  */
 
 import { z } from "zod";
-import { ITEM_TYPES, PRIORITIES, type ItemType } from "./item-types";
+import { ITEM_TYPES, PRIORITIES, type ItemType } from "./item-types.ts";
 
 /** Mirrors the `item_status` enum. `implemented` exists in the database but is */
 /** unreachable in the MVP — approved is terminal (migration 20260725000013). */

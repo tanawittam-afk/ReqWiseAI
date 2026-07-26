@@ -24,8 +24,9 @@ function contextLabel(pathname: string): string {
 export function Toolbar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  // `screen-only` keeps the toolbar out of a printed export (globals.css → printing).
   return (
-    <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border-soft bg-chrome/85 px-4 py-2.5 backdrop-blur-md sm:px-6">
+    <header className="screen-only sticky top-0 z-10 flex items-center gap-3 border-b border-border-soft bg-chrome/85 px-4 py-2.5 backdrop-blur-md sm:px-6">
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
         <span className="hidden text-text-faint sm:inline">ReqWise AI</span>
         <span aria-hidden="true" className="hidden text-text-faint sm:inline">
