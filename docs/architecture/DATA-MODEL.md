@@ -308,6 +308,84 @@ and activity — and refuse every workflow action at the UI, the service and the
 
 ---
 
+## C.13 Typed traceability relations (Slice 6B)
+
+Until this slice every row in `item_relations` was `derives_from`, because the provider
+contract carried an untyped `related_item_keys` list and persistence had to label the
+edge somehow. `derives_from` was therefore not a statement about the relationship — it
+was the absence of one. Slice 6B gives the edge a kind.
+
+**The vocabulary** (`lib/contracts/relations.ts`; enum labels added in
+`20260726000018`). A label means one direction and only one direction; there is no
+reversed spelling of the same edge, because a reader who must check which way round a
+row was written cannot trust the matrix built from it.
+
+| Type | Reads as | Spine? |
+|---|---|---|
+| `supports` | objective → business requirement | ✔ |
+| `implemented_by` | business requirement → functional / non-functional requirement | ✔ |
+| `expressed_as` | functional requirement → user story | ✔ |
+| `validated_by` | story or requirement → acceptance criterion | ✔ |
+| `constrained_by` | requirement → constraint or business rule | — |
+| `raises_question` | open question → the item it questions | — |
+| `flags_quality_issue` | quality finding → the item it flags | — |
+| `mitigates` | requirement / rule / constraint → risk | — |
+| `related_to` | any → any; a real link with no specific type | — |
+| `derives_from` | **legacy only** — child → parent, never authored again | ✔ (direction recorded) |
+
+`refines`, `satisfies`, `verifies`, `conflicts_with` and `duplicates` survive in the enum
+from Phase 3A, unreachable and unwritten, for the same reason the `implemented` status
+label does (§C.5): dropping a label rewrites every dependent row.
+
+**Why a function and not a thirteenth table.** The `(relation_type, from_type, to_type)`
+matrix lives in `is_allowed_relation_pair()`. A lookup table would need seeding, and a
+seed row naming a label added in the same transaction is exactly what part 1 of the
+migration exists to avoid; it would also turn an immutable rule into mutable data. The
+standing test — a new table is justified only by a genuinely different lifecycle,
+permission model or query pattern — is not met. The same matrix is stated in
+`ALLOWED_RELATION_PAIRS`, where the tests and the UI can read it; the database remains
+the enforcement point, and when one changes the other must.
+
+**Rules the database enforces:**
+
+1. **The pair must be legal for the type.** `implemented_by` from a business requirement
+   to an acceptance criterion is refused, not stored and rendered as nonsense. There is
+   no same-type exemption: no spine rule lists one type on both sides, because
+   decomposition *within* a level is not traceability *across* levels.
+2. **No self-relation, no duplicate** (`from ≠ to`, plus the existing unique key).
+3. **No edge crosses a project or an organization**, and the check holds against the
+   service role, not only through RLS.
+4. **An archived project refuses a new relation** and still reads in full.
+5. **A cycle over the hierarchical spine is refused**, deferred to the end of the
+   transaction so a legitimate multi-edge insert is judged on its finished shape.
+   `related_to` is deliberately *not* hierarchical: it makes no parent/child claim, so
+   "A related_to B, B related_to A" is two ordinary rows rather than a loop. The
+   observation types (`raises_question`, `flags_quality_issue`, `constrained_by`,
+   `mitigates`) describe the spine from outside it and cannot form one.
+6. **A new run may not write `derives_from`.** `AUTHORED_RELATION_TYPES` is what the
+   validator accepts; the legacy label loads and displays but is never authored again.
+7. **An invalid relation rolls the whole run back** — no run, no items, no relations,
+   consistent with §C.9.
+
+**Legacy rows are not touched.** The `derives_from` rows written before this slice keep
+their label, their direction and their meaning. Re-typing them would be a guess about a
+relationship the provider never stated, and the triggers fire on INSERT/UPDATE, so those
+rows are never evaluated against rules written after they were stored. The two
+conventions coexist because direction is *recorded* (`HIERARCHY_DIRECTION`) rather than
+assumed, and `canonicalHierarchyEdge()` normalises both to `[parent, child]` before any
+matrix row or cycle is read. A pre-existing cycle among legacy rows, if one exists, is
+surfaced as a coverage indicator (`existing_cycle`) for a human to repair — repairing it
+in SQL would mean deciding which edge the analysis "meant".
+
+**Coverage is derived, never stored.** `lib/traceability/coverage.ts` answers mechanical
+questions about the shape of the graph — an objective with no requirement beneath it, an
+orphan, an approved item linked to a rejected one, an unresolved question or finding. A
+stored count would be a second copy of a fact the relations already hold, free to drift
+the moment somebody edits an item — the argument that keeps `source_document_is_locked()`
+derived (§C.3). The indicators assist review and do not replace it, and the UI says so.
+
+---
+
 ## C.6 Minimal workspace boundary
 
 - On first sign-in, a `SECURITY DEFINER` trigger on `auth.users` creates, in one

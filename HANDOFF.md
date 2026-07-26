@@ -3,8 +3,8 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-25 (slice 6A — open-question resolution and the quality-finding
-workflow — shipped, 32/32 runtime checks, verified end to end in the browser)
+Last updated: 2026-07-26 (slice 6B — typed traceability relations and the traceability
+graph — shipped, 22/22 runtime checks, verified end to end in the browser)
 
 ---
 
@@ -14,35 +14,66 @@ workflow — shipped, 32/32 runtime checks, verified end to end in the browser)
 
 - **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
   at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** slice 6A. Working tree clean.
+- **Branch:** `reqwise-ai` · **HEAD:** `f5b5bf7` (slice 6B). Working tree clean.
 - Nothing is blocked.
 
-**Next up: slice 6B — the change request.** Slice 6A closed the two deferred workflows;
-what it deliberately did **not** do is act on them.
+**Next up: slice 6C — the change request.** Slice 6B typed the relations and built the
+graph, so the last load-bearing gap in the review loop is acting on an answer.
 
-1. **Change requests against an approved requirement.** This is now the load-bearing
-   gap. An answered question routinely implies a requirement should change, and the
-   Answer tab says so — *"This answer may require a requirement change."* next to a
-   **disabled** *Create change request — Coming next*. `approved` and `rejected` are
-   terminal (C.5), so reopening one must be a **new object with its own audit trail**,
-   not a status flip that erases the record of what was approved. Start from: what does
-   a change request reference (the approved item, the answer that motivated it), who
-   approves it, and does approving it supersede the original or amend it?
-2. **Traceability graph**, once relations carry a real kind — every edge is still
-   `derives_from` because the provider contract has no relation type.
-3. **Export**, and then the real Gemini provider.
+1. **Change requests against an approved requirement.** An answered question routinely
+   implies a requirement should change, and the Answer tab says so — *"This answer may
+   require a requirement change."* next to a **disabled** *Create change request — Coming
+   next*. `approved` and `rejected` are terminal (C.5), so reopening one must be a **new
+   object with its own audit trail**, not a status flip that erases the record of what was
+   approved. Start from: what does a change request reference (the approved item, the
+   answer that motivated it), who approves it, and does approving it supersede the
+   original or amend it?
+2. **Export** — the graph is now worth exporting, and coverage gives it a summary.
+3. **The real Gemini provider**, whose output must satisfy the typed relation contract
+   (`AUTHORED_RELATION_TYPES` + the pair matrix), not just the item schema.
 
-Both workflows follow one shape, and a third should too: a **narrow RPC** whose signature
+All three workflows follow one shape, and a fourth should too: a **narrow RPC** whose signature
 omits everything a client must not choose, a **contract** that refuses forged fields
 outright, a **service** that turns refusals into sentences, and a **runtime script** that
 proves the database refuses at all. Slice 5 lives in `lib/contracts/review.ts` +
 `lib/review/{service,history}.ts`; slice 6A in `lib/contracts/workflow.ts` +
 `lib/review/workflow-service.ts`, with the UI in
-`_components/{workflow-actions,workflow-tab}.tsx`.
+`_components/{workflow-actions,workflow-tab}.tsx`; slice 6B in
+`lib/contracts/relations.ts` + `lib/traceability/*`, with the UI at
+`app/workspace/projects/[projectId]/traceability/`.
 
 **Notes tab: still deliberately absent.** There is no note that is not either a change
 reason (on a version) or a review comment (on an activity), so a Notes tab would either
 duplicate History or promise a data model that does not exist.
+
+**Slice 6B shipped typed relations and the traceability graph.** Every edge used to be
+`derives_from` — not a claim about the relationship but the absence of one. Two migrations
+(`…18` labels, `…19` everything that uses them), both applied; they are split because
+Postgres refuses to use a new enum label in the transaction that added it.
+
+- **Nine authored types**, each with one direction only: `supports`, `implemented_by`,
+  `expressed_as`, `validated_by` (the spine), `constrained_by`, `raises_question`,
+  `flags_quality_issue`, `mitigates` (observations about it) and `related_to` (the
+  any→any fallback). `derives_from` is **legacy-only** — it still loads and still says
+  what it says, and a new run may not write it.
+- **The pair matrix is a function**, `is_allowed_relation_pair()`, not a thirteenth table
+  — mirrored by `ALLOWED_RELATION_PAIRS` in `lib/contracts/relations.ts`. When one
+  changes, the other must. Reasoning in DATA-MODEL §C.13.
+- **The database refuses**, not just the UI: an illegal pair, a self-relation, a
+  duplicate, a cross-project edge, a write into an archived project, and a **cycle over
+  the spine** (deferred, so a multi-edge insert is judged on its finished shape). One bad
+  relation rolls the whole run back.
+- **The 192 legacy rows are untouched.** Direction is *recorded*
+  (`HIERARCHY_DIRECTION`) rather than assumed, so both conventions coexist and
+  `canonicalHierarchyEdge()` normalises them before any matrix row or cycle is read. A
+  pre-existing cycle shows up as a coverage indicator for a human, never a silent repair.
+- **The page** is `/workspace/projects/<id>/traceability`: Coverage · Matrix · Map ·
+  Inspector, with search, type/status/priority/run filters and *only rows with a gap*.
+  Coverage is **derived, never stored**, and carries *"Coverage indicators assist review
+  and do not replace human judgment."* The Inspector reads each edge as a sentence — *"is
+  implemented by FR-005"*, *"has a quality issue flagged by QF-005"* — in TH and EN.
+- `npm run verify:traceability` → 22/22, including that RLS (not an application filter)
+  hides another user's relations and that the boundary holds against the service role.
 
 **Slice 6A shipped the two deferred workflows.** Open questions and quality findings are
 no longer read-only. Three migrations (`…15`, `…16`, `…17`), all applied.
@@ -147,7 +178,7 @@ the persistence path no longer uses it. Gaps are correct; the invariant is that 
 *committed* items in a project share a display id. See DATA-MODEL.md §C.10.
 
 **The database is real.** A hosted Supabase project is linked (`rgfwtflsvnlgfiuoxowm`),
-all 12 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
+all 19 migrations are applied, and the seed is loaded. `.env.local` holds the keys and is
 gitignored — never commit it.
 
 ```bash
@@ -158,6 +189,7 @@ npm run verify:sources       # 18/18 source, lock and revision checks (slice 3)
 npm run verify:analysis      # 25/25 analysis, allocation and idempotency checks (4 + 4.1)
 npm run verify:review        # 30/30 editing, review, versioning and concurrency (slice 5)
 npm run verify:workflow      # 32/32 question resolution and quality workflow (slice 6A)
+npm run verify:traceability  # 22/22 typed relations, pair matrix, cycles, coverage (6B)
 npm run seed:profiles        # regenerate supabase/seed.sql from the TS profiles
 npx supabase db push         # apply new migrations (needs SUPABASE_ACCESS_TOKEN)
 ```
@@ -200,8 +232,9 @@ with no citation at all.
 
 ### Housekeeping — verification rows have accumulated
 
-As of 2026-07-25 the linked project holds **66 accounts (64 throwaway + 2 real)**, 81
-projects, 58 analysis runs and 426 analysis items. Almost all of it is residue from
+As of 2026-07-26 the linked project holds **152 accounts (150 throwaway + 2 real)**, 227
+projects, 185 analysis runs, 1,423 analysis items and 357 relations — slice 6B's 22 checks
+run a full user/project pair each. Almost all of it is residue from
 `verify:*` runs, which create a fresh user pair and project set every time and cannot
 clean up after themselves — the immutability triggers refuse DELETE even for the service
 role, which is the schema working as designed.
@@ -215,6 +248,12 @@ npx supabase db query --linked -f scripts/verify-db-cleanup.sql
 It matches only the verification naming patterns (`reqwise-verify-*`, `reqwise-src-*`,
 `reqwise-analysis-*`, and the `Slice N …` project names) and leaves the two real demo
 accounts and their projects untouched.
+
+**One leftover it will not catch:** `slice3.demo@reqwise.dev` owns a hand-made project
+*"Archived traceability check — slice 6B"* (17 requirements, `status = active` despite the
+name) from the slice-6B browser check. It is inside a real demo account, so the cleanup
+script deliberately leaves it alone — archive or remove it by hand before a demo, and do
+not widen the script's patterns to reach into demo accounts.
 
 ## Verbatim text — one caveat worth knowing
 
@@ -387,6 +426,19 @@ but the seam must exist from the start so the engine never learns domain facts.
       **351 tests · typecheck · lint · build clean; all six runtime scripts green
       (8/8 · 10/10 · 18/18 · 25/25 · 30/30 · 32/32).** No thirteenth table — see
       DATA-MODEL §C.12 for why.
+- [x] **Slice 6B — Typed traceability relations and the traceability graph (2026-07-26).
+      COMMITTED `f5b5bf7` · VERIFIED AT RUNTIME (22/22) AND IN THE BROWSER.** Migrations
+      `20260726000018_relation_types.sql` (nine enum labels, alone by necessity — Postgres
+      refuses to use a new label in the transaction that added it) and
+      `…19_typed_traceability.sql` (`relation_is_hierarchical()`,
+      `is_allowed_relation_pair()`, the pair / boundary / archived / deferred-cycle
+      triggers, and `persist_analysis_result()` taking typed relations).
+      `lib/contracts/relations.ts` + `lib/traceability/{graph,matrix,map,coverage,filters,
+      queries,labels,types}.ts` are the logic; `/…/traceability` with Coverage · Matrix ·
+      Map · Inspector is the UI. `derives_from` becomes legacy-only and the 192 existing
+      rows keep it. **439 tests · typecheck · lint · build clean; all seven runtime scripts
+      green (8/8 · 10/10 · 18/18 · 25/25 · 30/30 · 32/32 · 22/22).** Pair matrix as a
+      function, not a thirteenth table — see DATA-MODEL §C.13 for why.
 - [ ] **Phase 3C+ — remaining vertical slices.** run mock analysis (persist run + items +
       refs in one transaction) → workspace split-pane → edit item → review/approve →
       export. Slice order in `docs/architecture/ARCHITECTURE.md` §E.
@@ -549,6 +601,38 @@ route into a **same-origin iframe** of that exact size. Media queries and `match
 resolve against the iframe viewport, so the breakpoints are genuinely exercised — but this
 is not a device-emulation test: no touch input, no mobile UA, no device pixel ratio. If
 mobile ever becomes a real target, re-test on a real device.
+
+## Runtime verification (2026-07-26) — slice 6B typed traceability, 22/22 PASS
+
+`npm run verify:traceability`, against the live database.
+
+Typed relation contract (1–14): a new run persists `implemented_by` + `expressed_as`
+through the RPC; a legacy `derives_from` row still loads with its own label and its own
+child → parent direction; an unknown type dies at the enum; a local key not in the run is
+refused and the run rolls back whole; self-relation, duplicate and cross-project edges are
+refused — the last **also against the service role**, so it is a constraint and not an RLS
+filter; an illegal pair (`implemented_by` BR → AC) is refused; the whole valid spine plus
+`supports` persists; a hierarchical cycle is refused while `related_to` in both directions
+is not; an invalid relation leaves no run, no items, no relations; and a new run may not
+author `derives_from`.
+
+Authorization (15–17): user B reads zero relations and zero items through the traceability
+path — RLS, not a filter — and cannot write into user A's project.
+
+Archived projects (18–19): traceability reads in full, writes are refused.
+
+Coverage inputs and immutability (20–22): the data coverage reads is what a real reader
+gets back (an orphan, an approved item linked to a rejected one); the analysis run is
+byte-identical afterwards; review and workflow data are untouched by traceability reads.
+
+**Browser check (2026-07-26).** `slice3.demo@reqwise.dev`, project *Smart Space intake —
+slice 3* (81 items, 5 runs): Coverage read 81 total · 33 linked · 35 orphans · 15 open
+questions · 4 unresolved findings with the disclaimer beneath it; Matrix rendered the
+five spine columns with `MISSING — No business requirement` gap cells; Map rendered the
+columns with edges; the Inspector on BR-005 read its four edges as sentences (*"is
+implemented by FR-005"*, *"supports OBJ-005"*, *"has a quality issue flagged by QF-005"*)
+and *Open in Analysis Workspace* deep-linked to the item with its relation count. No
+console errors.
 
 ## Runtime verification (2026-07-25) — slice 6A question & quality workflow, 32/32 PASS
 
@@ -802,13 +886,15 @@ hidden, not mounted and unmounted) and selecting a *different* requirement raise
 - `create-next-app` rejected the capital-letter name → scaffolded `reqwise-ai`, folder
   renamed to `ReqWiseAI`; `package.json` name stays `reqwise-ai`. Don't "fix" it.
 
-## Git — current state (2026-07-25 EOD)
+## Git — current state (2026-07-26)
 
 Branch `reqwise-ai`, working tree clean:
 
 | Commit | Phase |
 |---|---|
-| `9575ec6` | 6A — open-question resolution + quality-finding workflow (HEAD) |
+| `f5b5bf7` | 6B — typed traceability relations + graph views (HEAD) |
+| `cc889b6` | docs — records 5 and 6A's own hashes |
+| `9575ec6` | 6A — open-question resolution + quality-finding workflow |
 | `89a1337` | 5 — requirement editing, human review, approval, version history |
 | `c194adf` | docs — records 4.2's own hash (a commit cannot contain it) |
 | `7df5455` | 4.2 — three-panel Analysis Workspace |
