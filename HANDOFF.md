@@ -51,8 +51,11 @@ duplicate History or promise a data model that does not exist.
 
 **Slice 6C shipped the export and the printable handoff.** **No migration** — export derives
 everything from existing tables and writes nothing, which is also why repeating it is free.
-Full architecture in [`docs/architecture/EXPORT.md`](docs/architecture/EXPORT.md); the parts
-worth knowing before touching it:
+**Self-contained slice handoff:
+[`docs/handoff/SLICE-6C-EXPORT.md`](docs/handoff/SLICE-6C-EXPORT.md)** — read that to pick up
+export work without reading this whole file; architecture in
+[`docs/architecture/EXPORT.md`](docs/architecture/EXPORT.md). The parts worth knowing before
+touching it:
 
 - **Routes:** `/workspace/projects/:id/exports` (scope · readiness · preview),
   `…/exports/preview` (full width), `…/exports/print` (browser print / Save as PDF), and
