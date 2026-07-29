@@ -27,7 +27,7 @@ sign in
   → personal workspace exists automatically
   → create project, pick domain profile "Booking and Smart Space"
   → paste the meeting notes as a source document
-  → run analysis (deterministic mock provider)
+  → choose an available provider and run analysis
   → workspace opens split-pane: source on the left, structured items on the right
   → select a requirement → its source excerpt highlights in the left pane
   → edit a requirement's wording → a new item version is recorded
@@ -36,7 +36,8 @@ sign in
 
 ### A.2 First vertical slice
 
-Exactly the journey above, end to end — UI through database — on the mock provider.
+Exactly the journey above, end to end — UI through database. The deterministic mock remains
+the no-key default; a server-configured Gemini provider may be selected when it is available.
 Sequenced in §E.
 
 ### A.3 In scope (MVP)
@@ -44,7 +45,7 @@ Sequenced in §E.
 - Email auth via Supabase; automatic personal-workspace bootstrap
 - Project creation under an organization, with a domain profile selected at creation
 - Plain-text source document (typed or pasted), stored immutably
-- One analysis run over one source document, via the **mock provider**
+- One analysis run over one source document, via the **mock or Gemini provider**
 - All 14 analysis item types persisted through one central `analysis_items` table
 - Source references with excerpt and offsets, rendered as highlights
 - Item editing with version history
@@ -57,7 +58,6 @@ Sequenced in §E.
 
 | Deferred | Where the seam already exists |
 |---|---|
-| Real AI provider (Gemini) | `AiProvider` adapter interface — swap the implementation |
 | General Software / Custom Domain profiles | `domain_profiles` rows; engine reads them generically |
 | Export (Markdown / JSON / CSV / print) | `analysis_items` + `item_relations` are the only inputs an exporter needs |
 | Traceability map UI, version comparison UI | `item_relations`, `item_versions` are populated from slice 6 onward |
@@ -67,7 +67,7 @@ Sequenced in §E.
 | PDF / DOCX ingestion | Source Input Layer boundary is format-agnostic |
 | Conflict detection between requirements | `item_relations.relation_type = 'conflicts_with'` reserved |
 | TH/EN model-output switching | `analysis_runs.output_lang` stored from slice 4; UI control deferred |
-| Rate limiting | not needed while the mock provider costs nothing; **required before the real provider ships** |
+| Product-wide user rate limiting | provider transport retries are bounded; broader per-user quotas remain deferred |
 
 ### A.5 Out of scope (not designed for)
 
@@ -82,7 +82,7 @@ matrices · ownership transfer · real-time collaboration · external tool integ
 3. No item reaches `Approved` without a recorded human `review_activity`.
 4. Deleting nothing and updating no run: re-running analysis produces a second run, and
    the first remains byte-identical.
-5. The whole slice runs offline — no network, no API key — because the provider is mocked.
+5. The whole slice can run offline — no network and no API key — with the default mock provider.
 6. Removing Booking-and-Smart-Space content from `domain_profiles` degrades output
    quality but **breaks no code path** in the Core Requirement Engine.
 
@@ -113,7 +113,7 @@ matrices · ownership transfer · real-time collaboration · external tool integ
 └──────┬────────┘
        │ AiProvider interface
 ┌──────▼────────────────────────────────────────┐
-│ Provider Adapter — mock (MVP) │ gemini (later) │
+│ Provider Adapter — mock (default) │ gemini (server-only) │
 └───────────────────────────────────────────────┘
 ```
 
@@ -173,10 +173,19 @@ interface AiProvider {
 
 - Providers return **raw** output. They never validate, never persist, never know about
   Postgres or React.
-- Selection happens once, server-side, in a factory. The UI, the database, and the engine
-  never name a provider.
-- The real provider (later) keeps an **ordered model fallback chain**; a single pinned
-  model is forbidden — see `../../CLAUDE.md`.
+- Construction happens once, server-side, in a factory. The UI may submit a validated
+  provider key and the database records safe provider/model metadata, but neither receives
+  credentials, model configuration or a provider client.
+- `lib/providers/factory.ts` selects a provider once on the server. `mock` is the default
+  and remains available with no key. `gemini` is exposed only when its server-side
+  configuration is complete; credentials and model configuration are never client props.
+- The Gemini adapter uses native `fetch`, an **ordered configured model chain**, a bounded
+  timeout and bounded retry for retryable transport failures. It does not repair model
+  output or bypass the shared validation pipeline.
+- Provider, actual model and prompt-version metadata cross the persistence boundary so a
+  stored run describes what generated it. User-facing errors are projected from typed,
+  canonical categories and exclude provider response bodies, prompts, source text, keys
+  and request identifiers.
 
 ### B.5 Persistence Layer
 
@@ -245,7 +254,8 @@ Slices 1–4 are the risky half (auth boundary, RLS, transaction integrity, vali
 Slices 5–7 are mostly UI over shapes already proven.
 
 **Not part of the first slice sequence:** export, traceability graph UI, version-compare
-UI, quality score panel, real provider, second domain profile.
+UI, quality score panel, second domain profile. Export/traceability and the Gemini provider
+were added in later slices.
 
 ---
 

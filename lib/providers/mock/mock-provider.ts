@@ -23,15 +23,22 @@
  */
 
 import type { AnalysisInput } from "../../contracts/analysis-input";
-import type { AiProvider } from "../types";
+import type { AiProvider, ProviderGeneration } from "../types";
 import { generateRuntimeAnalysis } from "./runtime/strategy.ts";
 
 export function createMockProvider(): AiProvider {
   return {
     name: "mock",
     deterministic: true,
-    async generate(input: AnalysisInput): Promise<unknown> {
-      return generateRuntimeAnalysis(input);
+    async generate(input: AnalysisInput): Promise<ProviderGeneration> {
+      return {
+        raw: generateRuntimeAnalysis(input),
+        metadata: {
+          provider: "mock",
+          model: null,
+          promptVersion: null,
+        },
+      };
     },
   };
 }

@@ -11,26 +11,35 @@
  */
 
 import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
+import type { ProviderOption } from "@/lib/config/env";
+import type { ProviderKey } from "@/lib/providers/types";
 import { analyzeSourceAction } from "./actions";
 import { emptyAnalyzeFormState } from "./form-state";
+import { AnalysisProviderControls } from "./provider-controls";
 
 export function AnalyzeConfirmForm({
   projectId,
   sourceId,
   revisionNumber,
   alreadyLocked,
+  providerOptions,
+  defaultProvider,
 }: {
   projectId: string;
   sourceId: string;
   revisionNumber: number;
   alreadyLocked: boolean;
+  providerOptions: ProviderOption[];
+  defaultProvider: ProviderKey;
 }) {
-  const [state, formAction] = useActionState(analyzeSourceAction, emptyAnalyzeFormState);
+  const [state, formAction, pending] = useActionState(
+    analyzeSourceAction,
+    emptyAnalyzeFormState,
+  );
   const [requestKey] = useState(() => crypto.randomUUID());
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form action={formAction} aria-busy={pending} className="flex flex-col gap-5">
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="sourceId" value={sourceId} />
       <input type="hidden" name="requestKey" value={requestKey} />
@@ -63,13 +72,16 @@ export function AnalyzeConfirmForm({
           this specific source.
         </ConfirmPoint>
         <ConfirmPoint>
-          This step uses the deterministic mock analysis provider.
+          Choose the analysis provider for this run. The saved run records which
+          provider produced it.
         </ConfirmPoint>
       </ul>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <SubmitButton />
-      </div>
+      <AnalysisProviderControls
+        providerOptions={providerOptions}
+        defaultProvider={defaultProvider}
+        pending={pending}
+      />
     </form>
   );
 }
@@ -82,21 +94,5 @@ function ConfirmPoint({ children }: { children: React.ReactNode }) {
       </span>
       <span>{children}</span>
     </li>
-  );
-}
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      aria-busy={pending}
-      className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-5 text-sm
-                 font-semibold text-on-accent transition-colors hover:bg-accent-hover
-                 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {pending ? "Analysing…" : "Analyze requirements"}
-    </button>
   );
 }

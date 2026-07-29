@@ -20,10 +20,19 @@
  */
 
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  formatLegacyInventoryResult,
+  parseLegacyManifest,
+  parseVerifierMode,
+  verifyLegacyInventory,
+  type LegacyInventory,
+  type VerifierMode,
+} from "../lib/analysis/legacy-verifier.ts";
 import { runAnalysis } from "../lib/analysis/run-analysis.ts";
 import { createMockProvider } from "../lib/providers/mock/mock-provider.ts";
 import { assumedWithSource } from "../lib/providers/mock/fixtures/booking-smart-space.invalid.ts";
@@ -37,7 +46,11 @@ import { PROVIDER_SCHEMA_VERSION } from "../lib/contracts/provider-output.ts";
 import { loadDomainProfileByKey } from "../lib/domain/load-profile.ts";
 import type { AnalysisInput } from "../lib/contracts/analysis-input.ts";
 import type { DomainProfile } from "../lib/domain/types.ts";
-import type { AiProvider } from "../lib/providers/types.ts";
+import type {
+  AiProvider,
+  ProviderGeneration,
+  ProviderMetadata,
+} from "../lib/providers/types.ts";
 import type { RunAnalysisResult } from "../lib/analysis/run-analysis.ts";
 
 /** The provider-facing key for the single source in these runs. */
@@ -65,16 +78,231 @@ function brokenProvider(): AiProvider {
   return {
     name: "mock",
     deterministic: true,
-    async generate(): Promise<unknown> {
+    async generate(): Promise<ProviderGeneration> {
       // An `assumed` item carrying a citation — the exact combination the evidence
       // rules exist to reject (AI-OUTPUT-CONTRACT.md §D.6).
-      return assumedWithSource;
+      return {
+        raw: assumedWithSource,
+        metadata: MOCK_METADATA,
+      };
     },
   };
 }
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
+const READ_ONLY_TIMEOUT_MS = 60_000;
+const FORENSIC_SQL_PATH = join(
+  root,
+  "scripts",
+  "forensics",
+  "legacy-analysis-runs-readonly.sql",
+);
+const ACL_SQL_PATH = join(root, "scripts", "verify-analysis-acl.sql");
+const LEGACY_MANIFEST_PATH = join(
+  root,
+  "scripts",
+  "analysis-verification",
+  "legacy-analysis-runs.json",
+);
+
+type ForensicRecord = {
+  record_type: "summary" | "row";
+  result: Record<string, unknown>;
+};
+
+function selectedMode(args: readonly string[]): VerifierMode | "isolated-fixtures" {
+  const modeIndex = args.indexOf("--mode");
+  if (modeIndex === -1) return parseVerifierMode(undefined);
+  const value = args[modeIndex + 1];
+  if (!value || args.length !== 2) {
+    throw new Error(
+      'Usage: node scripts/verify-analysis.mts [--mode clean|linked-legacy|isolated-fixtures]',
+    );
+  }
+  if (value === "isolated-fixtures") return value;
+  return parseVerifierMode(value);
+}
+
+function assertLinkedProjectIdentity(
+  supabaseUrl: string,
+  expectedProjectRef: string | undefined,
+): void {
+  if (!expectedProjectRef) {
+    throw new Error("The legacy manifest does not bind a linked project identity.");
+  }
+  let hostname: string;
+  try {
+    hostname = new URL(supabaseUrl).hostname;
+  } catch {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL is missing or invalid.");
+  }
+  const actualProjectRef = hostname.endsWith(".supabase.co")
+    ? hostname.slice(0, -".supabase.co".length)
+    : "";
+  if (actualProjectRef !== expectedProjectRef) {
+    throw new Error(
+      "Linked legacy mode refused: the public Supabase URL does not match the manifest environment.",
+    );
+  }
+}
+
+function assertIsolatedFixtureTarget(supabaseUrl: string): void {
+  let hostname: string;
+  try {
+    hostname = new URL(supabaseUrl).hostname;
+  } catch {
+    throw new Error("Fixture mode requires a valid local Supabase URL.");
+  }
+  if (!["127.0.0.1", "localhost", "::1"].includes(hostname)) {
+    throw new Error(
+      "Fixture mode is local-only and refuses every linked or remote Supabase URL.",
+    );
+  }
+}
+
+function runSupabaseReadOnlyQuery(mode: VerifierMode, sqlPath: string): string {
+  const target = mode === "linked-legacy" ? "--linked" : "--local";
+  const npxArgs = [
+    "--yes",
+    "supabase@2.109.1",
+    "db",
+    "query",
+    target,
+    "--output",
+    "json",
+    "-f",
+    sqlPath,
+  ];
+  const command =
+    process.platform === "win32"
+      ? {
+          executable: process.env.ComSpec ?? "cmd.exe",
+          args: ["/d", "/s", "/c", "npx.cmd", ...npxArgs],
+        }
+      : { executable: "npx", args: npxArgs };
+  const query = spawnSync(command.executable, command.args, {
+    cwd: root,
+    encoding: "utf8",
+    timeout: READ_ONLY_TIMEOUT_MS,
+    windowsHide: true,
+    maxBuffer: 10 * 1024 * 1024,
+  });
+
+  if (query.error) {
+    const timedOut =
+      "code" in query.error && String(query.error.code).toUpperCase() === "ETIMEDOUT";
+    throw new Error(
+      timedOut
+        ? "Read-only Supabase inventory timed out after 60 seconds."
+        : `Read-only Supabase inventory could not start: ${query.error.message}`,
+    );
+  }
+  if (query.status !== 0) {
+    const safeError = (query.stderr || query.stdout || "unknown Supabase CLI error")
+      .trim()
+      .slice(0, 2_000);
+    throw new Error(`Read-only Supabase inventory failed: ${safeError}`);
+  }
+  return query.stdout;
+}
+
+function parseQueryRows(stdout: string): unknown[] {
+  const firstBrace = stdout.indexOf("{");
+  const lastBrace = stdout.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace < firstBrace) {
+    throw new Error("Read-only inventory did not return a JSON envelope.");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout.slice(firstBrace, lastBrace + 1));
+  } catch {
+    throw new Error("Read-only inventory returned malformed JSON.");
+  }
+
+  const envelope = parsed as { rows?: unknown };
+  const records = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(envelope.rows)
+      ? envelope.rows
+      : null;
+  if (!records) {
+    throw new Error("Read-only inventory JSON did not contain rows.");
+  }
+  return records;
+}
+
+function parseForensicOutput(stdout: string): LegacyInventory {
+  const records = parseQueryRows(stdout);
+  const forensicRecords = records.filter(
+    (record): record is ForensicRecord =>
+      typeof record === "object" &&
+      record !== null &&
+      ((record as ForensicRecord).record_type === "summary" ||
+        (record as ForensicRecord).record_type === "row") &&
+      typeof (record as ForensicRecord).result === "object" &&
+      (record as ForensicRecord).result !== null,
+  );
+  if (forensicRecords.length !== records.length) {
+    throw new Error("Read-only inventory contained an unexpected record shape.");
+  }
+  const summaries = forensicRecords.filter(
+    (record) => record.record_type === "summary",
+  );
+  if (summaries.length !== 1) {
+    throw new Error("Read-only inventory must contain exactly one summary record.");
+  }
+  const summary = summaries[0].result;
+  return {
+    totalRunCount: Number(summary.totalRunCount),
+    contractValidCount: Number(summary.contractValidCount),
+    incompatibleRows: forensicRecords
+      .filter((record) => record.record_type === "row")
+      .map((record) => record.result) as LegacyInventory["incompatibleRows"],
+  };
+}
+
+function verifyAnalysisAcl(stdout: string): void {
+  const rows = parseQueryRows(stdout);
+  if (rows.length !== 1 || typeof rows[0] !== "object" || rows[0] === null) {
+    throw new Error("Analysis persistence ACL query returned an unexpected shape.");
+  }
+  const row = rows[0] as Record<string, unknown>;
+  if (
+    row.function_exists !== true ||
+    row.authenticated_execute !== true ||
+    row.anon_execute !== false ||
+    row.public_execute !== false
+  ) {
+    throw new Error(
+      "Analysis persistence ACL mismatch: expected function=true, authenticated=true, anon=false, PUBLIC=false.",
+    );
+  }
+  console.log("analysis ACL: function=true; authenticated=true; anon=false; PUBLIC=false");
+}
+
+function runReadOnlyLegacyVerification(
+  mode: VerifierMode,
+  supabaseUrl: string,
+): void {
+  const manifest = parseLegacyManifest(
+    JSON.parse(readFileSync(LEGACY_MANIFEST_PATH, "utf8")),
+  );
+  if (manifest.authorizesMutation !== false) {
+    throw new Error("Legacy manifest must explicitly state authorizesMutation=false.");
+  }
+  if (mode === "linked-legacy") {
+    assertLinkedProjectIdentity(supabaseUrl, manifest.linkedProjectRef);
+  }
+  const inventory = parseForensicOutput(
+    runSupabaseReadOnlyQuery(mode, FORENSIC_SQL_PATH),
+  );
+  const result = verifyLegacyInventory(mode, manifest, inventory);
+  console.log(formatLegacyInventoryResult(result));
+  if (mode === "linked-legacy") {
+    verifyAnalysisAcl(runSupabaseReadOnlyQuery(mode, ACL_SQL_PATH));
+  }
+}
 
 function loadEnv(): Record<string, string> {
   const env: Record<string, string> = {};
@@ -96,16 +324,11 @@ function loadEnv(): Record<string, string> {
 }
 
 const env = loadEnv();
-const URL_ = env.NEXT_PUBLIC_SUPABASE_URL;
-const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY;
+const URL_ = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-if (!URL_ || !ANON || !SERVICE) {
-  console.error("missing env — need the Supabase URL, anon key and service-role key in .env.local");
-  process.exit(1);
-}
-
-const admin = createClient(URL_, SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
+let admin: SupabaseClient;
 
 type Check = { name: string; ok: boolean };
 const results: Check[] = [];
@@ -121,6 +344,23 @@ async function check(name: string, fn: () => Promise<string>): Promise<void> {
   }
 }
 
+async function preflight(
+  name: string,
+  fn: () => Promise<string>,
+): Promise<void> {
+  try {
+    const detail = await fn();
+    results.push({ name, ok: true });
+    console.log(`  PASS  ${name}${detail ? ` — ${detail}` : ""}`);
+  } catch (error) {
+    results.push({ name, ok: false });
+    console.log(
+      `  FAIL  ${name} — ${error instanceof Error ? error.message : String(error)}`,
+    );
+    throw error;
+  }
+}
+
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
@@ -129,6 +369,42 @@ function refused(result: { error: { message: string } | null }, what: string): s
   assert(result.error, `${what} was ALLOWED but must be refused`);
   return result.error.message.split("\n")[0];
 }
+
+type PersistencePayload = {
+  p_project: string;
+  p_source: string;
+  p_request_key: string;
+  p_provider: string;
+  p_model: string | null;
+  p_prompt_version: string | null;
+  p_schema_version: string;
+  p_output_lang: "th" | "en";
+  p_validation_status: "valid" | "invalid" | "provider_error";
+  p_raw_output: unknown;
+  p_validated_output: unknown;
+  p_error: unknown;
+  p_items: unknown;
+  p_relations: unknown;
+};
+
+type RunInventoryRow = {
+  id: string;
+  provider: string | null;
+  model: string | null;
+  prompt_version: string | null;
+  schema_version: string | null;
+  validation_status: "valid" | "invalid" | "provider_error";
+  raw_provider_output: unknown;
+  validated_output: unknown;
+  error: unknown;
+  analysis_items: Array<{ count: number }>;
+};
+
+const MOCK_METADATA: ProviderMetadata = {
+  provider: "mock",
+  model: null,
+  promptVersion: null,
+};
 
 const stamp = Date.now();
 const password = `Verify!${stamp}`;
@@ -149,6 +425,158 @@ let sourceValidText = "";
 let sourceOther = "";
 let firstRunId = "";
 let firstRequestKey = "";
+
+function coherentValidPayload(
+  requestKey: string,
+  overrides: Partial<PersistencePayload> = {},
+): PersistencePayload {
+  const payload: PersistencePayload = {
+    p_project: projectA,
+    p_source: sourceValidText,
+    p_request_key: requestKey,
+    p_provider: "mock",
+    p_model: null,
+    p_prompt_version: null,
+    p_schema_version: PROVIDER_SCHEMA_VERSION,
+    p_output_lang: "th",
+    p_validation_status: "valid",
+    p_raw_output: { fixture: "coherent-valid" },
+    p_validated_output: { fixture: "coherent-valid" },
+    p_error: null,
+    p_items: [
+      {
+        local_key: "coherent-item",
+        provider_key: "coherent-item",
+        item_type: "assumption",
+        title: "Coherent persistence fixture",
+        description: "A deterministic write-boundary fixture.",
+        priority: "unassigned",
+        evidence_class: "assumed",
+        origin: "source_analysis",
+        confidence: 0.5,
+        rationale: "Runtime verification only.",
+        attributes: null,
+        source_references: [],
+      },
+    ],
+    p_relations: [],
+  };
+  return { ...payload, ...overrides };
+}
+
+function coherentInvalidPayload(requestKey: string): PersistencePayload {
+  return {
+    ...coherentValidPayload(requestKey),
+    p_validation_status: "invalid",
+    p_raw_output: { fixture: "coherent-invalid" },
+    p_validated_output: null,
+    p_error: { category: "validation_failed", issues: [] },
+    p_items: [],
+    p_relations: [],
+  };
+}
+
+function coherentProviderErrorPayload(requestKey: string): PersistencePayload {
+  return {
+    ...coherentValidPayload(requestKey),
+    p_validation_status: "provider_error",
+    p_raw_output: null,
+    p_validated_output: null,
+    p_error: { category: "timeout", message: "Safe verification message." },
+    p_items: [],
+    p_relations: [],
+  };
+}
+
+async function assertNoRunForRequestKey(requestKey: string): Promise<void> {
+  const { count, error } = await clientA
+    .from("analysis_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectA)
+    .eq("request_key", requestKey);
+  assert(!error, `could not verify refused request ${requestKey}: ${error?.message}`);
+  assert(count === 0, `refused request ${requestKey} left ${count} run rows`);
+}
+
+async function runItemCount(runId: string): Promise<number> {
+  const { count, error } = await clientA
+    .from("analysis_items")
+    .select("id", { count: "exact", head: true })
+    .eq("analysis_run_id", runId);
+  assert(!error, `could not count items for ${runId}: ${error?.message}`);
+  return count ?? 0;
+}
+
+async function projectRelationCount(): Promise<number> {
+  const { count, error } = await clientA
+    .from("item_relations")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectA);
+  assert(!error, `could not count project relations: ${error?.message}`);
+  return count ?? 0;
+}
+
+async function verifyExistingRunInventory(): Promise<string> {
+  const pageSize = 250;
+  const rows: RunInventoryRow[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await admin
+      .from("analysis_runs")
+      .select(
+        "id, provider, model, prompt_version, schema_version, validation_status, raw_provider_output, validated_output, error, analysis_items(count)",
+      )
+      .order("created_at", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    assert(!error, `analysis run inventory failed: ${error?.message}`);
+    const page = (data ?? []) as unknown as RunInventoryRow[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+
+  let metadataViolations = 0;
+  let payloadViolations = 0;
+  for (const row of rows) {
+    // model and prompt_version are deliberately read for migration inventory, but
+    // they remain nullable and are not provider-specific database requirements.
+    void row.model;
+    void row.prompt_version;
+
+    if (
+      typeof row.provider !== "string" ||
+      row.provider.trim() === "" ||
+      typeof row.schema_version !== "string" ||
+      row.schema_version.trim() === ""
+    ) {
+      metadataViolations += 1;
+    }
+
+    const itemCount = row.analysis_items[0]?.count ?? 0;
+    const payloadIsCoherent =
+      (row.validation_status === "valid" &&
+        row.raw_provider_output !== null &&
+        row.validated_output !== null &&
+        row.error === null &&
+        itemCount > 0) ||
+      (row.validation_status === "invalid" &&
+        row.raw_provider_output !== null &&
+        row.validated_output === null &&
+        row.error !== null &&
+        itemCount === 0) ||
+      (row.validation_status === "provider_error" &&
+        row.raw_provider_output === null &&
+        row.validated_output === null &&
+        row.error !== null &&
+        itemCount === 0);
+    if (!payloadIsCoherent) payloadViolations += 1;
+  }
+
+  assert(
+    metadataViolations === 0 && payloadViolations === 0,
+    `inventory found ${metadataViolations} metadata and ${payloadViolations} payload violations across ${rows.length} runs`,
+  );
+  return `${rows.length} rows checked; metadata=coherent, status/payload=coherent`;
+}
 
 async function createUser(email: string, displayName: string): Promise<string> {
   const { data, error } = await admin.auth.admin.createUser({
@@ -276,9 +704,9 @@ async function persist(
     p_project: project,
     p_source: source,
     p_request_key: requestKey,
-    p_provider: "mock",
-    p_model: null,
-    p_prompt_version: null,
+    p_provider: result.metadata.provider,
+    p_model: result.metadata.model,
+    p_prompt_version: result.metadata.promptVersion,
     p_schema_version: PROVIDER_SCHEMA_VERSION,
     p_output_lang: "th",
   };
@@ -315,13 +743,27 @@ async function persist(
     p_validation_status: "provider_error",
     p_raw_output: null,
     p_validated_output: null,
-    p_error: { category: "provider_error", message: result.error },
+    p_error: result.error,
     p_items: [],
   });
 }
 
 async function main(): Promise<void> {
+  assertIsolatedFixtureTarget(URL_);
+  if (!ANON || !SERVICE) {
+    throw new Error(
+      "Fixture mode requires the Supabase anon and service-role keys in .env.local.",
+    );
+  }
+  admin = createClient(URL_, SERVICE, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   console.log(`\nReqWise AI — Slice 4.1 analysis persistence verification against ${URL_}\n`);
+
+  await preflight(
+    "preflight. existing analysis runs satisfy the provider/status/payload contract",
+    verifyExistingRunInventory,
+  );
 
   userA = await createUser(emailA, "Analysis A");
   userB = await createUser(emailB, "Analysis B");
@@ -541,7 +983,14 @@ async function main(): Promise<void> {
 
   // --- 15 ----------------------------------------------------------------
   await check("15. a provider error produces a provider_error run with zero items", async () => {
-    const result: RunAnalysisResult = { status: "provider_error", error: "simulated provider timeout" };
+    const result: RunAnalysisResult = {
+      status: "provider_error",
+      error: {
+        category: "timeout",
+        message: "The analysis provider took too long. Try again.",
+      },
+      metadata: MOCK_METADATA,
+    };
     const { data, error } = await persist(clientA, projectA, sourceOther, `verify-${stamp}-provider-error`, result);
     assert(!error, `persist of the provider_error run failed: ${error?.message}`);
     assert(data.validation_status === "provider_error", `run status is ${data.validation_status}`);
@@ -934,6 +1383,254 @@ async function main(): Promise<void> {
 
     return `same context returned ${firstRunId.slice(0, 8)}… with no new rows; different source (${wrongSource}); different language (${wrongLang})`;
   });
+  // === provider/status/payload persistence boundary ========================
+
+  // --- 28 -----------------------------------------------------------------
+  await check("28. anonymous execution is refused at the RPC privilege boundary", async () => {
+    const requestKey = `verify-${stamp}-acl-anon`;
+    const anonymous = createClient(URL_, ANON, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const result = await anonymous.rpc(
+      "persist_analysis_result",
+      coherentValidPayload(requestKey),
+    );
+    const message = refused(result, "anonymous persistence RPC");
+    assert(
+      /permission denied|not found|schema cache/i.test(message),
+      `anonymous reached the function body: ${message}`,
+    );
+    assert(
+      !/authentication required/i.test(message),
+      "PUBLIC still has execute privilege",
+    );
+    await assertNoRunForRequestKey(requestKey);
+    return message;
+  });
+
+  // --- 29 -----------------------------------------------------------------
+  await check("29. an authenticated coherent mock-valid payload succeeds", async () => {
+    const requestKey = `verify-${stamp}-coherent-valid`;
+    const { data, error } = await clientA.rpc(
+      "persist_analysis_result",
+      coherentValidPayload(requestKey),
+    );
+    assert(!error, `coherent valid payload failed: ${error?.message}`);
+    assert(data.validation_status === "valid", `run status is ${data.validation_status}`);
+    assert(data.duplicate === false, "first coherent valid call was marked duplicate");
+    const itemCount = await runItemCount(data.run_id);
+    assert(itemCount === 1, `coherent valid run wrote ${itemCount} items`);
+    return `run ${String(data.run_id).slice(0, 8)}…, 1 item`;
+  });
+
+  // --- 30 -----------------------------------------------------------------
+  await check(
+    "30. coherent invalid and provider-error payloads persist with zero items and relations",
+    async () => {
+      const relationsBefore = await projectRelationCount();
+      const invalid = await clientA.rpc(
+        "persist_analysis_result",
+        coherentInvalidPayload(`verify-${stamp}-coherent-invalid`),
+      );
+      assert(!invalid.error, `coherent invalid payload failed: ${invalid.error?.message}`);
+      assert(invalid.data.validation_status === "invalid", "invalid payload wrote the wrong status");
+      assert(
+        (await runItemCount(invalid.data.run_id)) === 0,
+        "coherent invalid payload wrote items",
+      );
+
+      const providerError = await clientA.rpc(
+        "persist_analysis_result",
+        coherentProviderErrorPayload(`verify-${stamp}-coherent-provider-error`),
+      );
+      assert(
+        !providerError.error,
+        `coherent provider-error payload failed: ${providerError.error?.message}`,
+      );
+      assert(
+        providerError.data.validation_status === "provider_error",
+        "provider-error payload wrote the wrong status",
+      );
+      assert(
+        (await runItemCount(providerError.data.run_id)) === 0,
+        "coherent provider-error payload wrote items",
+      );
+
+      const relationsAfter = await projectRelationCount();
+      assert(
+        relationsAfter === relationsBefore,
+        `zero-item outcomes changed relation count: ${relationsBefore} -> ${relationsAfter}`,
+      );
+      return "invalid=0 items; provider_error=0 items; relation count unchanged";
+    },
+  );
+
+  // --- 31 -----------------------------------------------------------------
+  await check("31. blank provider or schema version is refused with zero run rows", async () => {
+    const cases: Array<[string, Partial<PersistencePayload>]> = [
+      [`verify-${stamp}-blank-provider`, { p_provider: "  " }],
+      [`verify-${stamp}-blank-schema`, { p_schema_version: "  " }],
+    ];
+    const messages: string[] = [];
+    for (const [requestKey, override] of cases) {
+      const denied = refused(
+        await clientA.rpc(
+          "persist_analysis_result",
+          coherentValidPayload(requestKey, override),
+        ),
+        requestKey,
+      );
+      await assertNoRunForRequestKey(requestKey);
+      messages.push(denied);
+    }
+    return `2/2 refused (${[...new Set(messages)].join("; ")})`;
+  });
+
+  // --- 32 -----------------------------------------------------------------
+  await check("32. non-array items or relations are refused with zero run rows", async () => {
+    const cases: Array<[string, Partial<PersistencePayload>]> = [
+      [`verify-${stamp}-null-items`, { p_items: null }],
+      [`verify-${stamp}-null-relations`, { p_relations: null }],
+      [`verify-${stamp}-object-items`, { p_items: {} }],
+      [`verify-${stamp}-object-relations`, { p_relations: {} }],
+    ];
+    for (const [requestKey, override] of cases) {
+      refused(
+        await clientA.rpc(
+          "persist_analysis_result",
+          coherentValidPayload(requestKey, override),
+        ),
+        requestKey,
+      );
+      await assertNoRunForRequestKey(requestKey);
+    }
+    return "null/object items refused; null/object relations refused";
+  });
+
+  // --- 33 -----------------------------------------------------------------
+  await check("33. valid without validated output is refused with zero run rows", async () => {
+    const requestKey = `verify-${stamp}-valid-without-validated`;
+    const denied = refused(
+      await clientA.rpc(
+        "persist_analysis_result",
+        coherentValidPayload(requestKey, { p_validated_output: null }),
+      ),
+      "valid payload without validated output",
+    );
+    await assertNoRunForRequestKey(requestKey);
+    return denied;
+  });
+
+  // --- 34 -----------------------------------------------------------------
+  await check("34. invalid carrying items is refused with zero run rows", async () => {
+    const requestKey = `verify-${stamp}-invalid-with-items`;
+    const items = coherentValidPayload(requestKey).p_items;
+    const denied = refused(
+      await clientA.rpc("persist_analysis_result", {
+        ...coherentInvalidPayload(requestKey),
+        p_items: items,
+      }),
+      "invalid payload carrying items",
+    );
+    await assertNoRunForRequestKey(requestKey);
+    return denied;
+  });
+
+  // --- 35 -----------------------------------------------------------------
+  await check("35. provider_error carrying raw output is refused with zero run rows", async () => {
+    const requestKey = `verify-${stamp}-provider-error-with-raw`;
+    const denied = refused(
+      await clientA.rpc("persist_analysis_result", {
+        ...coherentProviderErrorPayload(requestKey),
+        p_raw_output: { should_not_exist: true },
+      }),
+      "provider-error payload carrying raw output",
+    );
+    await assertNoRunForRequestKey(requestKey);
+    return denied;
+  });
+
+  // --- 36 -----------------------------------------------------------------
+  await check(
+    "36. replay returns the original run while source, provider, and language collisions are refused",
+    async () => {
+      const requestKey = `verify-${stamp}-boundary-idempotency`;
+      const payload = coherentValidPayload(requestKey);
+      const first = await clientA.rpc("persist_analysis_result", payload);
+      assert(!first.error, `boundary idempotency fixture failed: ${first.error?.message}`);
+      const firstRun = first.data.run_id;
+      const itemsBefore = await runItemCount(firstRun);
+
+      const retry = await clientA.rpc("persist_analysis_result", payload);
+      assert(!retry.error, `same-context replay failed: ${retry.error?.message}`);
+      assert(retry.data.run_id === firstRun, "same-context replay returned a different run");
+      assert(retry.data.duplicate === true, "same-context replay was not marked duplicate");
+      assert(
+        (await runItemCount(firstRun)) === itemsBefore,
+        "same-context replay changed the original item count",
+      );
+
+      const collisions: Array<[string, PersistencePayload]> = [
+        ["source", { ...payload, p_source: sourceOther }],
+        ["provider", { ...payload, p_provider: "gemini" }],
+        ["language", { ...payload, p_output_lang: "en" }],
+      ];
+      for (const [name, collision] of collisions) {
+        refused(
+          await clientA.rpc("persist_analysis_result", collision),
+          `reusing a request key with a different ${name}`,
+        );
+      }
+
+      const { count, error } = await clientA
+        .from("analysis_runs")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", projectA)
+        .eq("request_key", requestKey);
+      assert(!error, `could not count idempotent run: ${error?.message}`);
+      assert(count === 1, `idempotency collisions left ${count} run rows`);
+      return `same context returned ${String(firstRun).slice(0, 8)}…; 3/3 collisions refused`;
+    },
+  );
+
+  // --- 37 -----------------------------------------------------------------
+  await check("37. Gemini provider-error metadata survives persistence", async () => {
+    const result: RunAnalysisResult = {
+      status: "provider_error",
+      error: {
+        category: "timeout",
+        message: "The analysis provider took too long. Try again.",
+      },
+      metadata: {
+        provider: "gemini",
+        model: "configured-model-a",
+        promptVersion: "reqwise-gemini/1.0",
+      },
+    };
+    const { data, error } = await persist(
+      clientA,
+      projectA,
+      sourceOther,
+      `verify-${stamp}-gemini-provider-error-metadata`,
+      result,
+    );
+    assert(!error, `Gemini provider-error persistence failed: ${error?.message}`);
+
+    const { data: stored, error: readError } = await clientA
+      .from("analysis_runs")
+      .select("provider, model, prompt_version")
+      .eq("id", data.run_id)
+      .single();
+    assert(!readError, `Gemini provider-error metadata readback failed: ${readError?.message}`);
+    assert(stored.provider === "gemini", `stored provider is ${stored.provider}`);
+    assert(stored.model === "configured-model-a", `stored model is ${stored.model}`);
+    assert(
+      stored.prompt_version === "reqwise-gemini/1.0",
+      `stored prompt version is ${stored.prompt_version}`,
+    );
+    assert((await runItemCount(data.run_id)) === 0, "Gemini provider-error run wrote items");
+    return "provider=gemini; model and prompt version preserved; 0 items";
+  });
 }
 
 function cleanupNotice(): void {
@@ -945,15 +1642,29 @@ function cleanupNotice(): void {
 }
 
 let failed = false;
+let executedMode: VerifierMode | "isolated-fixtures" | undefined;
 try {
-  await main();
+  const mode = selectedMode(process.argv.slice(2));
+  executedMode = mode;
+  if (mode === "isolated-fixtures") {
+    await main();
+  } else {
+    runReadOnlyLegacyVerification(mode, URL_);
+  }
 } catch (err) {
   failed = true;
   console.error(`\nverification aborted: ${err instanceof Error ? err.message : String(err)}`);
 } finally {
-  cleanupNotice();
+  if (process.argv.includes("isolated-fixtures")) cleanupNotice();
 }
 
 const passed = results.filter((r) => r.ok).length;
-console.log(`\n${passed}/${results.length} checks passed`);
-process.exit(failed || passed !== results.length ? 1 : 0);
+if (executedMode === "isolated-fixtures") {
+  console.log(`\n${passed}/${results.length} checks passed`);
+}
+process.exit(
+  failed ||
+    (executedMode === "isolated-fixtures" && passed !== results.length)
+    ? 1
+    : 0,
+);

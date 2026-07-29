@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
 import { listAnalysisRuns } from "@/lib/analysis/queries";
+import { providerLabel } from "@/lib/providers/labels";
 import {
   LockBadge,
   RevisionBadge,
@@ -214,11 +215,14 @@ export default async function SourceDetailPage({
                     >
                       <span className="flex items-center justify-between gap-2 font-medium text-text">
                         {STATUS_LABEL[run.validationStatus] ?? run.validationStatus}
-                        <span className="font-mono text-[11px] text-text-faint">
+                        <span className="font-mono text-[11px] text-text-muted">
                           {run.itemCount} item{run.itemCount === 1 ? "" : "s"}
                         </span>
                       </span>
-                      <span className="text-text-faint">{formatDate(run.createdAt)}</span>
+                      <span className="flex items-center justify-between gap-2 text-text-muted">
+                        <span>{providerLabel(run.provider)}</span>
+                        <span>{formatDate(run.createdAt)}</span>
+                      </span>
                     </Link>
                   </li>
                 ))}

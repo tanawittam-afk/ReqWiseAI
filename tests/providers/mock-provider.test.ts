@@ -73,7 +73,8 @@ describe("runtime mock strategy — determinism", () => {
     const provider = createMockProvider();
     const a = await provider.generate(inputFor(THAI));
     const b = await provider.generate(inputFor(THAI));
-    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    expect(JSON.stringify(a.raw)).toBe(JSON.stringify(b.raw));
+    expect(a.metadata).toEqual({ provider: "mock", model: null, promptVersion: null });
   });
 
   it("is deterministic end to end", async () => {

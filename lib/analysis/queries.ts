@@ -8,10 +8,14 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemType } from "../contracts/item-types";
+import { safeProviderMessage, type ProviderErrorCategory } from "../providers/errors";
+import type { ProviderKey } from "../providers/types";
 
 export type AnalysisRunSummary = {
   id: string;
   sourceDocumentId: string;
+  provider: ProviderKey;
+  model: string | null;
   validationStatus: "valid" | "invalid" | "provider_error";
   createdAt: string;
   itemCount: number;
@@ -64,6 +68,9 @@ export type AnalysisRunDetail = {
   id: string;
   projectId: string;
   sourceDocumentId: string;
+  provider: ProviderKey;
+  model: string | null;
+  promptVersion: string | null;
   validationStatus: "valid" | "invalid" | "provider_error";
   outputLang: string;
   schemaVersion: string;
@@ -77,6 +84,30 @@ export type AnalysisRunDetail = {
   };
 };
 
+function parseStoredProvider(value: unknown): ProviderKey {
+  switch (value) {
+    case "mock":
+    case "gemini":
+      return value;
+    default:
+      throw new Error("analysis run data has an unsupported provider");
+  }
+}
+
+function parseStoredProviderErrorCategory(value: unknown): ProviderErrorCategory {
+  switch (value) {
+    case "unavailable":
+    case "authentication_failed":
+    case "rate_limited":
+    case "timeout":
+    case "safety_refusal":
+    case "unknown":
+      return value;
+    default:
+      return "unknown";
+  }
+}
+
 /** Newest first — the run just created is the one worth seeing. */
 export async function listAnalysisRuns(
   client: SupabaseClient,
@@ -85,7 +116,7 @@ export async function listAnalysisRuns(
 ): Promise<AnalysisRunSummary[]> {
   const { data, error } = await client
     .from("analysis_runs")
-    .select("id, source_document_id, validation_status, created_at, analysis_items(count)")
+    .select("id, source_document_id, provider, model, validation_status, created_at, analysis_items(count)")
     .eq("project_id", projectId)
     .eq("source_document_id", sourceId)
     .order("created_at", { ascending: false });
@@ -95,6 +126,8 @@ export async function listAnalysisRuns(
   return ((data ?? []) as unknown as Array<{
     id: string;
     source_document_id: string;
+    provider: unknown;
+    model: string | null;
     validation_status: AnalysisRunSummary["validationStatus"];
     created_at: string;
     analysis_items: Array<{ count: number }> | { count: number } | null;
@@ -103,6 +136,8 @@ export async function listAnalysisRuns(
     return {
       id: row.id,
       sourceDocumentId: row.source_document_id,
+      provider: parseStoredProvider(row.provider),
+      model: row.model ?? null,
       validationStatus: row.validation_status,
       createdAt: row.created_at,
       itemCount: countRow?.count ?? 0,
@@ -117,9 +152,10 @@ export function safeErrorSummary(
   if (status === "valid") return null;
   const record = (error ?? {}) as Record<string, unknown>;
   if (status === "provider_error") {
+    const category = parseStoredProviderErrorCategory(record.category);
     return {
-      category: "provider_error",
-      message: "The analysis provider could not produce a result. Try again.",
+      category,
+      message: safeProviderMessage(category),
     };
   }
   const issueCount = Array.isArray(record.issues) ? record.issues.length : 0;
@@ -144,13 +180,30 @@ export async function getAnalysisRun(
 ): Promise<AnalysisRunDetail | null> {
   const { data: run, error: runError } = await client
     .from("analysis_runs")
-    .select("id, project_id, source_document_id, validation_status, output_lang, schema_version, created_at, error")
+    .select(
+      "id, project_id, source_document_id, provider, model, prompt_version, " +
+        "validation_status, output_lang, schema_version, created_at, error",
+    )
     .eq("project_id", projectId)
     .eq("id", runId)
     .maybeSingle();
 
   if (runError) throw new Error(`analysis run query failed: ${runError.message}`);
   if (!run) return null;
+
+  const storedRun = run as unknown as {
+    id: string;
+    project_id: string;
+    source_document_id: string;
+    provider: unknown;
+    model: string | null;
+    prompt_version: string | null;
+    validation_status: AnalysisRunDetail["validationStatus"];
+    output_lang: string;
+    schema_version: string;
+    created_at: string;
+    error: unknown;
+  };
 
   const { data: itemRows, error: itemError } = await client
     .from("analysis_items")
@@ -258,14 +311,17 @@ export async function getAnalysisRun(
   for (const item of items) byType[item.type] = (byType[item.type] ?? 0) + 1;
 
   return {
-    id: run.id,
-    projectId: run.project_id,
-    sourceDocumentId: run.source_document_id,
-    validationStatus: run.validation_status,
-    outputLang: run.output_lang,
-    schemaVersion: run.schema_version,
-    createdAt: run.created_at,
-    errorSummary: safeErrorSummary(run.validation_status, run.error),
+    id: storedRun.id,
+    projectId: storedRun.project_id,
+    sourceDocumentId: storedRun.source_document_id,
+    provider: parseStoredProvider(storedRun.provider),
+    model: storedRun.model ?? null,
+    promptVersion: storedRun.prompt_version ?? null,
+    validationStatus: storedRun.validation_status,
+    outputLang: storedRun.output_lang,
+    schemaVersion: storedRun.schema_version,
+    createdAt: storedRun.created_at,
+    errorSummary: safeErrorSummary(storedRun.validation_status, storedRun.error),
     items,
     summary: { itemCount: items.length, byType },
   };

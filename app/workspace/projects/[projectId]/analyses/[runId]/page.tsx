@@ -19,7 +19,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
 import { getAnalysisRun } from "@/lib/analysis/queries";
+import { toAnalysisWorkspaceRun } from "@/lib/analysis/workspace-view";
 import { getRunHistory } from "@/lib/review/history";
+import { providerLabel } from "@/lib/providers/labels";
+import type { ProviderKey } from "@/lib/providers/types";
 import { formatDate } from "../../../../_components/badges";
 import { AnalysisWorkspace } from "./workspace";
 
@@ -49,7 +52,13 @@ export default async function AnalysisResultPage({
   if (run.validationStatus !== "valid") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-8 sm:px-8">
-        <Header projectId={projectId} runId={runId} source={source} createdAt={run.createdAt} />
+        <Header
+          projectId={projectId}
+          runId={runId}
+          source={source}
+          createdAt={run.createdAt}
+          provider={run.provider}
+        />
         <section
           role="alert"
           className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-danger-border bg-danger-soft p-5"
@@ -94,11 +103,17 @@ export default async function AnalysisResultPage({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
-        <Header projectId={projectId} runId={runId} source={source} createdAt={run.createdAt} />
+        <Header
+          projectId={projectId}
+          runId={runId}
+          source={source}
+          createdAt={run.createdAt}
+          provider={run.provider}
+        />
       </div>
       <AnalysisWorkspace
         source={source}
-        run={run}
+        run={toAnalysisWorkspaceRun(run)}
         history={history}
         canReview={project.status === "active"}
         currentUserId={userData.user?.id ?? null}
@@ -113,15 +128,18 @@ function Header({
   runId,
   source,
   createdAt,
+  provider,
 }: {
   projectId: string;
   runId: string;
   source: { id: string; title: string };
   createdAt: string;
+  provider: ProviderKey;
 }) {
   return (
     <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
       <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">Analysis result</h1>
+      <span className="text-xs font-medium text-text-muted">{providerLabel(provider)}</span>
       <span className="text-xs text-text-faint">{formatDate(createdAt)}</span>
       <Link
         href={`/workspace/projects/${projectId}/traceability?run=${runId}`}

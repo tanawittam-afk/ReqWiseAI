@@ -3,8 +3,9 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-26 (slice 6C — requirements export and the printable handoff —
-shipped, 26/26 runtime checks, verified end to end in the browser)
+Last updated: 2026-07-29 (Phase B — legacy analysis runs gate CLOSED, hosted
+`verify:analysis` green; interactive browser verification gate CLOSED. Live-provider
+Gemini call and the commit remain pending.)
 
 ---
 
@@ -12,21 +13,158 @@ shipped, 26/26 runtime checks, verified end to end in the browser)
 
 **Where you are:** in a dedicated git worktree, on branch `reqwise-ai`.
 
-- **Work in:** `C:/Users/User/Desktop/ReqWiseAI-worktree/ReqWiseAI` — NOT the main repo
-  at `C:/Users/User/Desktop/Claude Code` (that is `portfolio-custom-lottie`, unrelated).
-- **Branch:** `reqwise-ai` · **HEAD:** `b0c6e9c` (slice 6C). Working tree clean.
-- Nothing is blocked.
+- **Work in:** `C:/Users/User/Desktop/ReqWiseAIwithCodex/ReqWiseAI-worktree/ReqWiseAI`.
+- **Branch:** `reqwise-ai`. Phase B changes are **still not committed** — this session
+  only ran verification and updated docs, nothing was staged or committed. Confirm with
+  the owner before committing (see "Both blocked gates closed" below).
+- **Both blocked gates closed (2026-07-29).** See "Both blocked gates closed" section
+  below for the real evidence. **Still pending:** live Gemini credential verification
+  (separate protected gate) and the commit itself.
 
-**Next up: the real Gemini provider, then the change request.** Slice 6C shipped export, so
-the loop now runs source → analysis → review → traceability → document. Two gaps remain, and
-the provider is the one that makes the product real:
+### Phase B current state (2026-07-27)
 
-1. **The real Gemini provider.** Everything downstream is proven against the deterministic
-   mock; the adapter seam (`lib/providers/`) and the validation gate already exist. Its
-   output must satisfy the **typed relation contract** (`AUTHORED_RELATION_TYPES` + the pair
-   matrix, §C.13), not just the item schema — a model that emits `derives_from` or an
-   illegal pair must be refused as an invalid run, not repaired.
-2. **Change requests against an approved requirement.** An answered question routinely
+The server-only provider seam now supports factory-selected `mock` and `gemini`
+implementations. Mock remains the no-key default. Gemini uses native `fetch`, an ordered
+configured model chain, strict JSON with zero repair, exact-evidence and typed-relation
+validation, bounded transport retry, actual provider/model/prompt-version persistence and
+safe canonical errors.
+
+Provider implementation:
+
+- `lib/config/env.ts`
+- `lib/providers/{types,errors,factory,labels}.ts`
+- `lib/providers/gemini/{client,prompt,provider}.ts`
+- `lib/analysis/{action-input,run-analysis,persist,queries,workspace-view}.ts`
+- provider controls under the source analysis route and provider metadata in analysis
+  history
+
+Environment variable names (values are never recorded here):
+
+```text
+AI_PROVIDER
+GEMINI_API_KEY
+GEMINI_MODEL
+GEMINI_FALLBACK_MODELS
+```
+
+Offline evidence:
+
+```text
+npm run verify:gemini  # 10/10 offline checks passed
+```
+
+The verifier uses injected mock transports only and makes no live provider call.
+**Live Gemini verification pending — credential unavailable.**
+
+Migration `20260727000020_analysis_persistence_acl_and_coherence.sql` replaces the
+14-argument persistence RPC in place with provider/status/payload coherence guards and
+authenticated-only execute ACL. It was applied to the linked hosted project after Human
+Approval on 2026-07-27. The exact migration inventory now matches through 20 and the
+catalog ACL check passes (`authenticated=true`, `anon=false`, `PUBLIC=false`).
+
+`npm run verify:analysis` originally stopped before fixture creation because its
+existing-run preflight found 0 metadata violations and 31 status/payload violations
+across 231 runs. Read-only forensics classified 30 rows as verification fixtures with
+high confidence from exact historical script fingerprints, not names alone: 15 match
+`verify-db.mts` (2 business requirements, 1 version and 2 exact review transitions per
+run) and 15 match `verify-sources.mts` (exact validated `{items: []}` plus the script's
+project/source and isolated dependency fingerprint). Run
+`08edaef7-5c4f-45a0-be0a-eec3a7c2818f` has the same empty legacy payload shape but does
+not match either exact known verifier fingerprint; it is classified Unknown /
+Insufficient Evidence and sits inside a mixed project. All 31 are missing raw provider
+output, so no deterministic payload backfill is possible without fabricating history —
+the rows remain unchanged, unbackfilled and undeleted. See
+`docs/forensics/PHASE-B-LEGACY-ANALYSIS-RUNS.md` for the full forensic record.
+
+**This gate is now CLOSED (2026-07-29).** The recommended exact-ID/fingerprint
+legacy-aware verifier (`lib/analysis/legacy-verifier.ts` +
+`scripts/analysis-verification/legacy-analysis-runs.json`, read-only SQL at
+`scripts/forensics/legacy-analysis-runs-readonly.sql`, 18/18 unit tests in
+`tests/analysis/legacy-verifier.test.ts`) already existed uncommitted in the worktree
+from a prior session, and `package.json`'s `verify:analysis` was already pointed at it
+(`--mode linked-legacy`) — but nobody had confirmed it actually passed against the live
+project. It has now been run for real:
+
+```text
+npm run verify:analysis   # --mode linked-legacy, against the linked hosted project
+mode: linked-legacy
+total runs: 231
+contract-valid: 200
+known-legacy-fixture: 30
+known-legacy-unknown: 1        # 08edaef7-5c4f-45a0-be0a-eec3a7c2818f, exactly as forensics pinned it
+unexpected-invalid: 0
+analysis ACL: function=true; authenticated=true; anon=false; PUBLIC=false
+```
+
+Exit code 0. Every one of the 31 legacy rows matched by exact ID **and** deep structural
+fingerprint against the manifest; `unexpected-invalid: 0` means no new incoherent row has
+appeared since the forensics snapshot. The single Unknown row is grandfathered by ID, not
+silently reclassified — it still carries no verifier attribution.
+
+The old blanket preflight (`verifyExistingRunInventory`, reachable only via `--mode
+isolated-fixtures`) is **not dead code and not a duplicate** — `assertIsolatedFixtureTarget`
+(scripts/verify-analysis.mts:150-162) hard-refuses any Supabase URL that isn't
+`localhost`/`127.0.0.1`/`::1`, so it can structurally never run against the 31 hosted
+legacy rows. It is a separate mode for a from-scratch local database, kept intentionally
+strict there while `linked-legacy` mode is the grandfathered check against the real
+hosted data. Migration 20's coherence guard stays strict for every new write in both
+modes — grandfathering only ever applies to the 31 pre-existing rows, never to a new one.
+
+No cleanup, backfill, fixture creation or row mutation was authorized or performed this
+session — only read-only verification and documentation.
+
+## Browser verification (2026-07-30) — Phase B provider adapter, 5/5 checks
+
+Checked via `claude-in-chrome` against a freshly restarted local dev server (the
+previous session's server had gone into a Turbopack panic loop — "Next.js package not
+found" — that froze the renderer; killing the stuck listener PID and deleting `.next`
+before restarting resolved it cleanly, no application code involved), signed in as
+`slice3.demo@reqwise.dev`, project *Smart Space intake — slice 3*, source *ประชุมเก็บ
+ความต้องการระบบจองห้องประชุม* (`5e512f82-e758-46ff-8839-b57fc3ee5eac`).
+
+1. **Provider controls.** `/analyze` rendered both options: Deterministic Mock
+   checked/enabled, Gemini `disabled=true` with `aria-describedby=
+   "gemini-unavailable-explanation"` and its "Gemini is not available in this
+   workspace… try again later" text — confirmed both visually and by reading the raw
+   `<input>` properties, not just the screenshot. Consistent with `.env.local`
+   (`AI_PROVIDER=mock`, empty `GEMINI_API_KEY`). Submitting created a new run
+   (`1924a79f-…`) that completed to 12 requirements / 5 open questions / 1 quality
+   finding.
+2. **History labels.** The new run's header read *"Analysis result · Deterministic
+   Mock · 30 Jul 2026"*; the source detail page's Analysis History list showed all
+   three runs (including the new one) as *"Completed · Deterministic Mock · <date>"*.
+   `providerLabel()` renders correctly in both places and matches the provider actually
+   used.
+3. **Narrow/zoom reflow.** Same-origin-iframe technique from slices 4.2/6C (the browser
+   window was maximized and un-resizable): the `/analyze` route at 390px and 834px both
+   measured `scrollWidth === clientWidth` on `<html>` — no page-level horizontal
+   overflow at either width. A horizontal scrollbar visible under the top nav at 390px
+   is a designed inner scroll region on the nav bar itself, not page overflow.
+4. **Computed contrast.** `getComputedStyle` read against actual resolved background
+   (walking up the DOM to the nearest non-transparent ancestor), WCAG-AA formula:
+   "Deterministic Mock" label 17.39:1, "Gemini" label 7.47:1, the disabled-Gemini
+   explanation text 7.47:1 — all comfortably clear of the 4.5:1 text threshold.
+5. **Secrets absence.** Rendered DOM (`outerHTML`) tested against an API-key-shaped
+   pattern, a `GEMINI_API_KEY=` pattern and a bare `gemini_api_key` mention — zero
+   matches. `read_network_requests` across the whole flow (load → submit → run page →
+   history) showed only same-origin Next.js requests (the form POST, static chunks,
+   fonts) — no client-originated Gemini call, ever. `read_console_messages` showed zero
+   errors/warnings and no accidental logging of env or provider config the entire
+   session.
+
+**Not verified:** an actual live Gemini API call (no credential — separate protected
+gate, unchanged from before) and real device emulation (iframe technique proves the
+CSS breakpoints fire, not touch/UA/DPR — same caveat prior slices carried).
+
+**Both Phase B gates are now closed.** What remains before Phase B can be called
+complete: live Gemini credential verification (separate protected step) and committing
+this uncommitted work (confirm with the owner first — see "Where you are" above).
+
+**After the Phase B gates: change requests against an approved requirement.** Slice 6C
+shipped export and Phase B implements the Gemini adapter, so the loop runs source →
+analysis → review → traceability → document. The next product gap is:
+
+1. **Change requests against an approved requirement.** An answered question routinely
    implies a requirement should change, and the Answer tab says so — *"This answer may
    require a requirement change."* next to a **disabled** *Create change request — Coming
    next*. `approved` and `rejected` are terminal (C.5), so reopening one must be a **new
@@ -384,7 +522,7 @@ but the seam must exist from the start so the engine never learns domain facts.
 | Decision | Choice | Why |
 |---|---|---|
 | Shape | Standalone Next.js app at `ReqWiseAI/` | Not a page inside the Portfolio site — keeps the Portfolio deploy untouched |
-| LLM | Server-side **provider adapter**; Gemini is the configured provider, plus a deterministic mock for local/tests | `GEMINI_API_KEY` already exists in Vercel; proven pattern in the Job Tracker. The adapter is required by the 2026-07-24 spec — no component calls a provider directly |
+| LLM | Server-side **provider adapter**; Gemini is configurable, plus a deterministic mock for local/tests | The adapter is implemented without exposing credentials to components; live-provider verification remains a separate protected gate |
 | Auth + DB | Supabase (Postgres + RLS) | Relational schema (project → source → analysis) shows BA data modelling; `SUPABASE_SETUP.md` at repo root has the RLS pattern |
 | Language | TH/EN toggle on both UI and model output | Thai input → English requirements is the real BA skill being demonstrated |
 | Team | Existing roster — no new role card | ArchitectTam → Noey + DataTam → DevBAmooTam → Meejai |
@@ -524,7 +662,9 @@ NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY   # browser-safe, RLS applies
 SUPABASE_SERVICE_ROLE_KEY              # server only — never NEXT_PUBLIC_
 SUPABASE_ACCESS_TOKEN / _PROJECT_REF   # supabase CLI only, not read by the app
 AI_PROVIDER=mock                       # mock | gemini
-GEMINI_API_KEY=                        # server only, empty until the real provider
+GEMINI_API_KEY=                        # server only
+GEMINI_MODEL=                          # first configured model
+GEMINI_FALLBACK_MODELS=                # optional ordered comma-separated fallbacks
 ```
 
 The hosted Supabase project is **live and linked** (ref `rgfwtflsvnlgfiuoxowm`). No
@@ -928,7 +1068,8 @@ hidden, not mounted and unmounted) and selecting a *different* requirement raise
 ## Open decisions and known consequences
 
 1. **`analysis_runs` is write-once** (no pending→complete row) → no streaming/long-run
-   support. Accepted for MVP; revisit before the real Gemini provider ships.
+   support. The synchronous Gemini adapter preserves this invariant; streaming or
+   background runs remain deferred until the product requires them.
 2. **`analysis_items` has no INSERT RLS policy** — items are written only server-side with
    the service-role client during a run (`lib/supabase/admin.ts`), never the anon client.
 3. **Nothing under a project can be deleted — RESOLVED in slice 2 by archiving.** The

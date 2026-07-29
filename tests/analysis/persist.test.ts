@@ -15,6 +15,18 @@ import { createMockProvider } from "../../lib/providers/mock/mock-provider";
 
 const PROJECT = "project-1";
 const SOURCE = "source-1";
+const MOCK_METADATA = { provider: "mock" as const, model: null, promptVersion: null };
+
+function providerErrorResult(): RunAnalysisResult {
+  return {
+    status: "provider_error",
+    error: {
+      category: "unknown",
+      message: "The analysis provider could not produce a result. Try again.",
+    },
+    metadata: MOCK_METADATA,
+  };
+}
 
 function clientWith(rpcResult: { data?: unknown; error?: { message: string } | null }) {
   return fakeSupabase({}, { rpc: { persist_analysis_result: rpcResult } });
@@ -84,29 +96,78 @@ describe("persistAnalysisResult", () => {
       status: "invalid",
       raw: { schema_version: "1.0.0", items: [] },
       issues: [{ kind: "schema_error", code: "test", path: "items", message: "boom" }],
+      metadata: MOCK_METADATA,
     };
     const client = clientWith({ data: { run_id: "run-2", validation_status: "invalid", duplicate: false } });
     await persistAnalysisResult(client, PROJECT, SOURCE, "request-key-456", bookingInput(), result);
 
     const args = client.rpcCalls[0].args;
     expect(args.p_validation_status).toBe("invalid");
+    expect(args.p_provider).toBe("mock");
+    expect(args.p_raw_output).toEqual({ schema_version: "1.0.0", items: [] });
+    expect(args.p_validated_output).toBeNull();
     expect(args.p_items).toEqual([]);
+    expect(args.p_relations).toEqual([]);
+    expect(args.p_error).toMatchObject({ category: "validation_failed" });
     expect((args.p_error as { issues: unknown[] }).issues).toHaveLength(1);
   });
 
   it("persists a provider_error run with zero items and a safe error category", async () => {
-    const result: RunAnalysisResult = { status: "provider_error", error: "network timeout" };
+    const result: RunAnalysisResult = {
+      status: "provider_error",
+      error: { category: "timeout", message: "The analysis provider took too long. Try again." },
+      metadata: MOCK_METADATA,
+    };
     const client = clientWith({ data: { run_id: "run-3", validation_status: "provider_error", duplicate: false } });
     await persistAnalysisResult(client, PROJECT, SOURCE, "request-key-789", bookingInput(), result);
 
     const args = client.rpcCalls[0].args;
     expect(args.p_validation_status).toBe("provider_error");
+    expect(args.p_raw_output).toBeNull();
+    expect(args.p_validated_output).toBeNull();
     expect(args.p_items).toEqual([]);
-    expect(args.p_error).toEqual({ category: "provider_error", message: "network timeout" });
+    expect(args.p_relations).toEqual([]);
+    expect(args.p_error).toEqual({
+      category: "timeout",
+      message: "The analysis provider took too long. Try again.",
+    });
+  });
+
+  it("persists the actual provider metadata instead of hardcoding mock", async () => {
+    const result: RunAnalysisResult = {
+      status: "provider_error",
+      error: { category: "timeout", message: "The analysis provider took too long. Try again." },
+      metadata: {
+        provider: "gemini",
+        model: "configured-model-b",
+        promptVersion: "reqwise-gemini/1.0",
+      },
+    };
+    const client = clientWith({
+      data: { run_id: "run-g", validation_status: "provider_error", duplicate: false },
+    });
+
+    await persistAnalysisResult(
+      client,
+      PROJECT,
+      SOURCE,
+      "request-key-gemini",
+      bookingInput(),
+      result,
+    );
+
+    expect(client.rpcCalls[0].args).toMatchObject({
+      p_provider: "gemini",
+      p_model: "configured-model-b",
+      p_prompt_version: "reqwise-gemini/1.0",
+      p_validation_status: "provider_error",
+      p_items: [],
+      p_relations: [],
+    });
   });
 
   it("returns a duplicate outcome without treating it as a failure", async () => {
-    const result: RunAnalysisResult = { status: "provider_error", error: "x" };
+    const result = providerErrorResult();
     const client = clientWith({
       data: { run_id: "existing-run", validation_status: "provider_error", duplicate: true },
     });
@@ -120,8 +181,41 @@ describe("persistAnalysisResult", () => {
     });
   });
 
+  it.each([
+    ["null", null],
+    ["an array", []],
+    [
+      "an empty run id",
+      { run_id: "  ", validation_status: "provider_error", duplicate: false },
+    ],
+    [
+      "an unknown validation status",
+      { run_id: "run-1", validation_status: "legacy_status", duplicate: false },
+    ],
+    [
+      "a non-boolean duplicate flag",
+      { run_id: "run-1", validation_status: "provider_error", duplicate: "false" },
+    ],
+  ])("returns a safe failure when RPC success data is %s", async (_case, data) => {
+    const client = clientWith({ data });
+
+    await expect(
+      persistAnalysisResult(
+        client,
+        PROJECT,
+        SOURCE,
+        "request-key-malformed",
+        bookingInput(),
+        providerErrorResult(),
+      ),
+    ).resolves.toEqual({
+      ok: false,
+      error: "The analysis could not be saved. Try again.",
+    });
+  });
+
   it("translates a database refusal into a sentence that names no table or policy", async () => {
-    const result: RunAnalysisResult = { status: "provider_error", error: "x" };
+    const result = providerErrorResult();
     const client = clientWith({ error: { message: "project is archived and read-only" } });
     const outcome = await persistAnalysisResult(client, PROJECT, SOURCE, "request-key-000", bookingInput(), result);
 
@@ -132,7 +226,7 @@ describe("persistAnalysisResult", () => {
   });
 
   it("explains an idempotency collision without leaking the other analysis", async () => {
-    const result: RunAnalysisResult = { status: "provider_error", error: "x" };
+    const result = providerErrorResult();
     const client = clientWith({
       error: { message: "this request identifier has already been used for a different analysis" },
     });
@@ -147,7 +241,7 @@ describe("persistAnalysisResult", () => {
   });
 
   it("sends the output language, so a collision on a different language is detectable", async () => {
-    const result: RunAnalysisResult = { status: "provider_error", error: "x" };
+    const result = providerErrorResult();
     const client = clientWith({ data: { run_id: "r", validation_status: "provider_error", duplicate: false } });
     const input = { ...bookingInput(), outputLang: "en" as const };
     await persistAnalysisResult(client, PROJECT, SOURCE, "request-key-lang", input, result);

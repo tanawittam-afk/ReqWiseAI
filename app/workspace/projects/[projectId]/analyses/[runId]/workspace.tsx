@@ -21,7 +21,6 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import type { AnalysisRunDetail } from "@/lib/analysis/queries";
 import type { ItemHistory } from "@/lib/review/history";
 import {
   EMPTY_FILTERS,
@@ -29,6 +28,7 @@ import {
   partitionItems,
   runSummary,
   tabForType,
+  type AnalysisWorkspaceRun,
   type GroupMode,
   type ItemFilters,
   type WorkspaceTab,
@@ -53,7 +53,7 @@ export function AnalysisWorkspace({
   initialItemId = null,
 }: {
   source: SourceDetail;
-  run: AnalysisRunDetail;
+  run: AnalysisWorkspaceRun;
   /** Every item's versions and activities, loaded with the page. Keyed by item id. */
   history: Record<string, ItemHistory>;
   /** False for an archived project: the record stays readable, nothing is writable. */

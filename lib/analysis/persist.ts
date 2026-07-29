@@ -17,6 +17,35 @@ export type PersistOutcome =
   | { ok: true; runId: string; validationStatus: "valid" | "invalid" | "provider_error"; duplicate: boolean }
   | { ok: false; error: string };
 
+type PersistSuccessRow = {
+  run_id: string;
+  validation_status: "valid" | "invalid" | "provider_error";
+  duplicate: boolean;
+};
+
+const GENERIC_PERSISTENCE_FAILURE = "The analysis could not be saved. Try again.";
+
+function parsePersistSuccessRow(data: unknown): PersistSuccessRow | null {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) return null;
+
+  const row = data as Record<string, unknown>;
+  if (typeof row.run_id !== "string" || row.run_id.trim() === "") return null;
+  if (
+    row.validation_status !== "valid" &&
+    row.validation_status !== "invalid" &&
+    row.validation_status !== "provider_error"
+  ) {
+    return null;
+  }
+  if (typeof row.duplicate !== "boolean") return null;
+
+  return {
+    run_id: row.run_id,
+    validation_status: row.validation_status,
+    duplicate: row.duplicate,
+  };
+}
+
 /** One element of the RPC's `p_items` array. Field names match the SQL side exactly. */
 function toItemPayload(item: NormalizedItem) {
   return {
@@ -68,7 +97,7 @@ function translate(detail: string): string {
   if (/relation/i.test(detail)) {
     return "The analysis produced an invalid traceability link and was not saved. Try again.";
   }
-  return "The analysis could not be saved. Try again.";
+  return GENERIC_PERSISTENCE_FAILURE;
 }
 
 export async function persistAnalysisResult(
@@ -83,7 +112,9 @@ export async function persistAnalysisResult(
     p_project: projectId,
     p_source: sourceId,
     p_request_key: requestKey,
-    p_provider: "mock",
+    p_provider: result.metadata.provider,
+    p_model: result.metadata.model,
+    p_prompt_version: result.metadata.promptVersion,
     p_schema_version: PROVIDER_SCHEMA_VERSION,
     p_output_lang: input.outputLang,
   };
@@ -93,8 +124,6 @@ export async function persistAnalysisResult(
   if (result.status === "valid") {
     rpcArgs = {
       ...common,
-      p_model: null,
-      p_prompt_version: null,
       p_validation_status: "valid",
       p_raw_output: result.raw,
       p_validated_output: result.analysis,
@@ -105,8 +134,6 @@ export async function persistAnalysisResult(
   } else if (result.status === "invalid") {
     rpcArgs = {
       ...common,
-      p_model: null,
-      p_prompt_version: null,
       p_validation_status: "invalid",
       p_raw_output: result.raw,
       p_validated_output: null,
@@ -117,12 +144,13 @@ export async function persistAnalysisResult(
   } else {
     rpcArgs = {
       ...common,
-      p_model: null,
-      p_prompt_version: null,
       p_validation_status: "provider_error",
       p_raw_output: null,
       p_validated_output: null,
-      p_error: { category: "provider_error", message: result.error },
+      p_error: {
+        category: result.error.category,
+        message: result.error.message,
+      },
       p_items: [],
       p_relations: [],
     };
@@ -134,11 +162,8 @@ export async function persistAnalysisResult(
     return { ok: false, error: translate(error.message) };
   }
 
-  const row = data as {
-    run_id: string;
-    validation_status: "valid" | "invalid" | "provider_error";
-    duplicate: boolean;
-  };
+  const row = parsePersistSuccessRow(data);
+  if (!row) return { ok: false, error: GENERIC_PERSISTENCE_FAILURE };
 
   return { ok: true, runId: row.run_id, validationStatus: row.validation_status, duplicate: row.duplicate };
 }

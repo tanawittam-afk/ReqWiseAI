@@ -174,10 +174,9 @@ On Zod failure or a semantic-check failure (§D.5, §D.6):
 2. The run **is still persisted**, with `validation_status = 'invalid'`,
    `raw_provider_output` intact, and the structured validation error stored. A failed run
    is evidence, not garbage — it is how a bad prompt gets diagnosed.
-3. **One bounded repair attempt** (proposed, §Open decisions in ARCHITECTURE.md): the
-   request is re-sent once with the validation error appended. If the second attempt also
-   fails, it is persisted as invalid and the user is told plainly. There is no third
-   attempt and no loop.
+3. **Zero repair.** An invalid provider payload is never sent back to the provider for
+   rewriting. The invalid run is persisted as evidence and the user may explicitly start
+   a new run.
 4. **The output is never silently repaired.** No defaulting a missing `priority`, no
    dropping an item that failed its checks, no coercing a bad `evidenceClass`. A partially
    valid analysis presented as complete is worse than an honest failure.
@@ -237,3 +236,29 @@ tested for real rather than assumed to work.
 
 The mock's output passes through the **exact same validation path** as a real provider. It
 is never trusted, never fast-pathed. A mock that bypassed validation would test nothing.
+
+## D.10 Gemini provider contract
+
+Gemini is a server-only adapter selected by `lib/providers/factory.ts`; the deterministic
+mock remains the default when no real provider is configured.
+
+- The prompt includes each source document verbatim and asks for one strict JSON value
+  matching this contract. It never treats profile context as source evidence.
+- The client uses native `fetch` and an ordered, configured model chain. Retry is bounded
+  to retryable transport failures; a model advances only after its bounded attempts are
+  exhausted.
+- Model text is parsed as JSON exactly once. There is no markdown-fence stripping,
+  best-effort field coercion, item dropping, relation rewriting or model repair request.
+- Parsed output enters the same Zod, evidence-offset and typed-relation validation path as
+  mock output. Any failure produces an `invalid` run with zero normalized items.
+- Successful and failed runs persist the actual provider, model and prompt version used.
+  Read models expose only safe metadata required by the UI.
+- Provider failures are converted to typed canonical categories. Safe projections never
+  contain API keys, prompts, full source text, raw responses, request identifiers or
+  provider-supplied error messages.
+- `GEMINI_API_KEY`, `GEMINI_MODEL` and optional fallback-model configuration are
+  server-only. No `NEXT_PUBLIC_GEMINI_*` variable or provider credential may cross into
+  a client component.
+
+`npm run verify:gemini` exercises the adapter through injected transports only. A live
+Gemini call is a separate protected manual gate and is not implied by offline success.

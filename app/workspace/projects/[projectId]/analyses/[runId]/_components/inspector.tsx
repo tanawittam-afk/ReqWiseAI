@@ -387,10 +387,9 @@ function Relations({
           </li>
         ))}
       </ul>
-      <p className="text-[11px] leading-relaxed text-text-faint">
-        The provider reports which items are related, not how — every edge is stored as
-        <span className="font-mono"> derives_from</span> until the output contract carries a
-        relation kind. Treat these as navigation, not as a claim about the kind of link.
+      <p className="text-xs leading-relaxed text-text-muted">
+        Relations are typed by the provider and validated against the application pair
+        matrix. Legacy derives_from rows remain visible without being reclassified.
       </p>
     </div>
   );

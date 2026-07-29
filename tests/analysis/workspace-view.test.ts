@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { AnalysisItemView } from "../../lib/analysis/queries";
+import type { AnalysisItemView, AnalysisRunDetail } from "../../lib/analysis/queries";
 import {
   EMPTY_FILTERS,
   filterItems,
@@ -20,6 +20,7 @@ import {
   partitionItems,
   runSummary,
   tabForType,
+  toAnalysisWorkspaceRun,
 } from "../../lib/analysis/workspace-view";
 import type { ItemType } from "../../lib/contracts/item-types";
 
@@ -250,6 +251,39 @@ describe("runSummary", () => {
     ]);
     expect(summary.questionsUnresolved).toBe(0);
     expect(summary.findingsUnresolved).toBe(0);
+  });
+});
+
+describe("toAnalysisWorkspaceRun", () => {
+  it("projects only the fields consumed by the client workspace", () => {
+    const fullRun: AnalysisRunDetail = {
+      id: "run-1",
+      projectId: "project-1",
+      sourceDocumentId: "source-1",
+      provider: "gemini",
+      model: "PRIVATE_MODEL",
+      promptVersion: "PRIVATE_PROMPT_VERSION",
+      validationStatus: "valid",
+      outputLang: "th",
+      schemaVersion: "1.0.0",
+      createdAt: "2026-07-27T00:00:00.000Z",
+      errorSummary: null,
+      items: [item({ type: "business_requirement" })],
+      summary: { itemCount: 1, byType: { business_requirement: 1 } },
+    };
+
+    const projection = toAnalysisWorkspaceRun(fullRun);
+
+    expect(Object.keys(projection).sort()).toEqual([
+      "createdAt",
+      "id",
+      "items",
+      "projectId",
+    ]);
+    expect(projection.items).toHaveLength(1);
+    expect(JSON.stringify(projection)).not.toMatch(
+      /PRIVATE_MODEL|PRIVATE_PROMPT_VERSION|model|promptVersion/,
+    );
   });
 });
 

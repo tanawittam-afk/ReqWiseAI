@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "expectedLegacyCount": 31,
+  "linkedProjectRef": "rgfwtflsvnlgfiuoxowm",
+  "authorizesMutation": false,
+  "groups": [
+    {
+      "outcome": "known-legacy-fixture",
+      "origin": "verify-db.mts",
+      "ids": [
+        "17334d0c-4cd1-4c9b-bba1-6144b41cf01f",
+        "46784989-c3a8-40fc-b139-c4b239302bbf",
+        "ad9934d3-336b-428c-99fe-e88085c378f9",
+        "7db5c29d-2025-49e4-88d0-64681ae35ff8",
+        "cc3f9892-f014-49a0-b40a-2dc5ca91faa0",
+        "dfc66265-3267-48ef-af42-9c791d4ebab0",
+        "51bd729f-0e83-4356-973e-3e1f7f5f7d6a",
+        "094a26ed-718b-462b-9ec4-3ce1efc4e7ff",
+        "9a2dffc3-adb8-4e3c-aad0-65a52f69e546",
+        "f9826c3d-6588-454b-a879-d9607a6bed31",
+        "1d1958ef-3e53-413f-88fe-032e37ab1658",
+        "dd8c49b0-669e-48cb-ad6e-9a82b0352f29",
+        "1a308512-86c8-4983-a017-15cb2e1578e4",
+        "627cb99b-3238-4e7d-a98b-4e8cd9bfa3de",
+        "264579c1-d760-4503-aec2-d034697c931c"
+      ],
+      "expectedFingerprint": {
+        "classification": "Verification/Test Data",
+        "classificationConfidence": "high",
+        "status": "valid",
+        "provider": "mock",
+        "model": null,
+        "promptVersion": null,
+        "schemaVersion": "1.0.0",
+        "outputLang": "th",
+        "payloadStructure": {
+          "raw": "sql-null",
+          "validated": "sql-null",
+          "error": "sql-null",
+          "validatedTopLevelKeys": []
+        },
+        "mismatchCodes": [
+          "valid_missing_raw",
+          "valid_missing_validated"
+        ],
+        "downstreamCounts": {
+          "items": 2,
+          "userStories": 0,
+          "acceptanceCriteria": 0,
+          "assumptions": 0,
+          "risks": 0,
+          "questions": 0,
+          "qualityFindings": 0,
+          "sourceReferences": 0,
+          "relations": 0,
+          "versions": 1,
+          "reviews": 2,
+          "workflowChanged": 0
+        },
+        "projectDependencies": {
+          "runs": 1,
+          "sources": 1,
+          "items": 2,
+          "sourceReferences": 0,
+          "relations": 0,
+          "versions": 1,
+          "reviews": 2
+        },
+        "provenanceFingerprint": "verify-db-exact-v1"
+      },
+      "preservationReason": "Preserve the exact historical verify-db rows; the manifest is verification-only and authorizes no mutation."
+    },
+    {
+      "outcome": "known-legacy-fixture",
+      "origin": "verify-sources.mts",
+      "ids": [
+        "821bc911-1120-44c2-afd8-474f8eda1252",
+        "c0c2c80a-150e-45a4-8cb3-8f27d25c7686",
+        "21f7d406-b7d4-4fcc-9de1-0fe08843ee9f",
+        "06781a9c-2085-4f15-89b5-f366988ea7f2",
+        "e8ba0b79-9524-4ed3-892b-71355b443493",
+        "96d79e12-b3df-4762-bf6f-f728e333d595",
+        "9a1bb880-0acb-4af5-b0e7-6c25183ddfa4",
+        "d0d81e34-fe83-47f4-9bfa-5003aa23231e",
+        "2a76ed77-7587-4fc3-a2a9-22216515637a",
+        "f85fc5a4-febf-48e3-a1d8-bb0c0b43f366",
+        "80f7a4d7-8e24-4376-ba38-e5d254df0e8c",
+        "cf281564-8b1c-4440-bd5f-c329c88a367c",
+        "de43efff-33a3-4653-b894-b7ef4a8aaa5a",
+        "284f7794-cc49-4754-ad70-54fd0d6cfe02",
+        "0a6300a7-4259-439f-bf56-1745a31158cb"
+      ],
+      "expectedFingerprint": {
+        "classification": "Verification/Test Data",
+        "classificationConfidence": "high",
+        "status": "valid",
+        "provider": "mock",
+        "model": null,
+        "promptVersion": null,
+        "schemaVersion": "1.0.0",
+        "outputLang": "th",
+        "payloadStructure": {
+          "raw": "sql-null",
+          "validated": "object",
+          "error": "sql-null",
+          "validatedTopLevelKeys": [
+            "items"
+          ]
+        },
+        "mismatchCodes": [
+          "valid_has_zero_items",
+          "valid_missing_raw"
+        ],
+        "downstreamCounts": {
+          "items": 0,
+          "userStories": 0,
+          "acceptanceCriteria": 0,
+          "assumptions": 0,
+          "risks": 0,
+          "questions": 0,
+          "qualityFindings": 0,
+          "sourceReferences": 0,
+          "relations": 0,
+          "versions": 0,
+          "reviews": 0,
+          "workflowChanged": 0
+        },
+        "projectDependencies": {
+          "runs": 1,
+          "sources": 3,
+          "items": 0,
+          "sourceReferences": 0,
+          "relations": 0,
+          "versions": 0,
+          "reviews": 0
+        },
+        "provenanceFingerprint": "verify-sources-exact-v1"
+      },
+      "preservationReason": "Preserve the exact historical verify-sources rows; the manifest is verification-only and authorizes no mutation."
+    },
+    {
+      "outcome": "known-legacy-unknown",
+      "origin": "unknown",
+      "ids": [
+        "08edaef7-5c4f-45a0-be0a-eec3a7c2818f"
+      ],
+      "expectedFingerprint": {
+        "classification": "Unknown / Insufficient Evidence",
+        "classificationConfidence": "low",
+        "status": "valid",
+        "provider": "mock",
+        "model": null,
+        "promptVersion": null,
+        "schemaVersion": "1.0.0",
+        "outputLang": "th",
+        "payloadStructure": {
+          "raw": "sql-null",
+          "validated": "object",
+          "error": "sql-null",
+          "validatedTopLevelKeys": [
+            "items"
+          ]
+        },
+        "mismatchCodes": [
+          "valid_has_zero_items",
+          "valid_missing_raw"
+        ],
+        "downstreamCounts": {
+          "items": 0,
+          "userStories": 0,
+          "acceptanceCriteria": 0,
+          "assumptions": 0,
+          "risks": 0,
+          "questions": 0,
+          "qualityFindings": 0,
+          "sourceReferences": 0,
+          "relations": 0,
+          "versions": 0,
+          "reviews": 0,
+          "workflowChanged": 0
+        },
+        "projectDependencies": {
+          "runs": 6,
+          "sources": 4,
+          "items": 81,
+          "sourceReferences": 59,
+          "relations": 28,
+          "versions": 3,
+          "reviews": 10
+        },
+        "provenanceFingerprint": "preserved-unknown-exact-v1"
+      },
+      "preservationReason": "Provenance is not proven; preserve by default and fail closed on any structural drift."
+    }
+  ]
+}

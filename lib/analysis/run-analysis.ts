@@ -11,13 +11,22 @@ import type { NormalizedAnalysis } from "../contracts/normalized";
 import type { ValidationIssue } from "../contracts/validation-result";
 import { normalizeAnalysis } from "../normalization/normalize.ts";
 import type { NormalizationPorts } from "../normalization/ports";
-import type { AiProvider } from "../providers/types";
+import {
+  ProviderExecutionError,
+  safeProviderMessage,
+  type ProviderErrorCategory,
+} from "../providers/errors.ts";
+import type { AiProvider, ProviderMetadata } from "../providers/types";
 import { validateAnalysis } from "../validation/validate-analysis.ts";
 
 export type RunAnalysisResult =
-  | { status: "valid"; raw: unknown; analysis: NormalizedAnalysis }
-  | { status: "invalid"; raw: unknown; issues: ValidationIssue[] }
-  | { status: "provider_error"; error: string };
+  | { status: "valid"; raw: unknown; analysis: NormalizedAnalysis; metadata: ProviderMetadata }
+  | { status: "invalid"; raw: unknown; issues: ValidationIssue[]; metadata: ProviderMetadata }
+  | {
+      status: "provider_error";
+      error: { category: ProviderErrorCategory; message: string };
+      metadata: ProviderMetadata;
+    };
 
 /**
  * Note the three distinct outcomes, mirroring `analysis_runs.validation_status`:
@@ -34,18 +43,35 @@ export async function runAnalysis(
   input: AnalysisInput,
   ports: NormalizationPorts,
 ): Promise<RunAnalysisResult> {
-  let raw: unknown;
+  let generation;
   try {
-    raw = await provider.generate(input);
-  } catch (err) {
-    return { status: "provider_error", error: err instanceof Error ? err.message : String(err) };
+    generation = await provider.generate(input);
+  } catch (error) {
+    if (error instanceof ProviderExecutionError) {
+      return {
+        status: "provider_error",
+        error: { category: error.category, message: safeProviderMessage(error.category) },
+        metadata: error.metadata,
+      };
+    }
+
+    return {
+      status: "provider_error",
+      error: { category: "unknown", message: safeProviderMessage("unknown") },
+      metadata: { provider: provider.name, model: null, promptVersion: null },
+    };
   }
 
-  const validated = validateAnalysis(raw, input.sourceDocuments);
+  const validated = validateAnalysis(generation.raw, input.sourceDocuments);
   if (!validated.ok) {
-    return { status: "invalid", raw, issues: validated.issues };
+    return {
+      status: "invalid",
+      raw: generation.raw,
+      issues: validated.issues,
+      metadata: generation.metadata,
+    };
   }
 
   const analysis = normalizeAnalysis(validated.value, input.sourceDocuments, ports);
-  return { status: "valid", raw, analysis };
+  return { status: "valid", raw: generation.raw, analysis, metadata: generation.metadata };
 }

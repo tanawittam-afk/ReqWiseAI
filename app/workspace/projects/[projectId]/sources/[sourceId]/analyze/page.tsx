@@ -11,6 +11,11 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
+import {
+  availableDefaultProvider,
+  readServerEnvironment,
+  toProviderOptions,
+} from "@/lib/config/env";
 import { AnalyzeConfirmForm } from "./confirm-form";
 
 export const metadata = { title: "Analyze source — ReqWise AI" };
@@ -47,6 +52,10 @@ export default async function AnalyzeSourcePage({
     );
   }
 
+  const environment = readServerEnvironment();
+  const providerOptions = toProviderOptions(environment);
+  const defaultProvider = availableDefaultProvider(environment);
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-8 sm:px-8">
       <div className="flex flex-col gap-2">
@@ -63,6 +72,8 @@ export default async function AnalyzeSourcePage({
         sourceId={sourceId}
         revisionNumber={source.revisionNumber}
         alreadyLocked={source.locked}
+        providerOptions={providerOptions}
+        defaultProvider={defaultProvider}
       />
     </main>
   );

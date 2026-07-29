@@ -12,7 +12,23 @@
 
 import { ITEM_TYPES, PRIORITIES, type ItemType, type Priority } from "../contracts/item-types";
 import { computeHighlightRanges } from "./highlight";
-import type { AnalysisItemView } from "./queries";
+import type { AnalysisItemView, AnalysisRunDetail } from "./queries";
+
+export type AnalysisWorkspaceRun = Pick<
+  AnalysisRunDetail,
+  "id" | "projectId" | "createdAt" | "items"
+>;
+
+export function toAnalysisWorkspaceRun(
+  run: AnalysisRunDetail,
+): AnalysisWorkspaceRun {
+  return {
+    id: run.id,
+    projectId: run.projectId,
+    createdAt: run.createdAt,
+    items: run.items,
+  };
+}
 
 /**
  * The three tabs.
