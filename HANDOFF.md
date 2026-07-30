@@ -3,23 +3,70 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-29 (Phase B — legacy analysis runs gate CLOSED, hosted
-`verify:analysis` green; interactive browser verification gate CLOSED. Live-provider
-Gemini call and the commit remain pending.)
+Last updated: 2026-07-30 (Change-request slice — schema live on the hosted project,
+`verify:change-requests` 13/13, `verify:review` 30/30, `verify:analysis` green,
+typecheck/lint/build clean, 726/726 unit tests, browser-verified end to end. Ready to
+commit and deploy.)
 
 ---
 
 ## ▶️ RESUME HERE
 
-**Where you are:** in a dedicated git worktree, on branch `reqwise-ai`.
+**Where you are:** `C:/Users/User/Desktop/Claude Code/ReqWiseAI`, branch `main`. This is
+now the **only** worktree — the `reqwise-ai` branch and the
+`ReqWiseAI-worktree`/`ReqWiseAIwithCodex` paths this file used to point at no longer
+exist on disk. Don't go looking for them; build here, on `main`.
 
-- **Work in:** `C:/Users/User/Desktop/ReqWiseAIwithCodex/ReqWiseAI-worktree/ReqWiseAI`.
-- **Branch:** `reqwise-ai`. Phase B changes are **still not committed** — this session
-  only ran verification and updated docs, nothing was staged or committed. Confirm with
-  the owner before committing (see "Both blocked gates closed" below).
-- **Both blocked gates closed (2026-07-29).** See "Both blocked gates closed" section
-  below for the real evidence. **Still pending:** live Gemini credential verification
-  (separate protected gate) and the commit itself.
+- **Change-request feature is complete and uncommitted.** A reviewer can now propose a
+  fix against an already-`approved`/`rejected` requirement without reopening it —
+  `open_change_request` / `resolve_change_request` / `withdraw_change_request`, a new
+  "Change requests" inspector tab, and a "Raise a change request" action on read-only
+  items. Code, migrations and docs are all sitting in the working tree; nothing has been
+  staged. Confirm with the owner before committing.
+- **What last night's "Internal Server Error" actually was: inconclusive, and probably
+  not an app bug.** The obvious suspect — the three new
+  `supabase/migrations/20260727000021-23_*.sql` files never having been pushed — turned
+  out to be wrong: `npx supabase db push --dry-run` reported the linked project already
+  up to date, and `verify:change-requests` passed 13/13 against it immediately, before
+  this session pushed anything. The dev server was also observed today, repeatedly,
+  freezing the Chrome renderer on click/navigate and recovering after a few seconds —
+  the same "no application code involved" flakiness slice 6C's browser check already
+  hit and worked around by killing the stuck process and deleting `.next` (see the
+  Gotchas list). That's the more likely explanation. The analysis-run page and the new
+  Change Requests tab both work correctly end to end as of this session; if a real 500
+  resurfaces, check the terminal running `npm run dev`, not the schema.
+- **⚠️ Data loss this session, accepted by the owner.** `scripts/verify-db-cleanup.sql`
+  (run with explicit approval, after its dry-run) deleted far more than the fixtures the
+  eight `verify-*.mts` scripts create: its `DELETE FROM projects WHERE name LIKE
+  'Verification project%' OR ...` patterns also matched the projects that owned 30 rows
+  `scripts/analysis-verification/legacy-analysis-runs.json` had permanently preserved
+  (the `verify-db.mts` and `verify-sources.mts` legacy-fixture groups, 15 rows each).
+  The linked project has `pitr_enabled: false` and zero physical backups
+  (`npx supabase backups list`), so there was no recovery path. The owner chose to
+  accept the loss over the alternative of leaving `verify:analysis` permanently broken.
+  Fixed up by:
+  - Removing those two groups from `legacy-analysis-runs.json` (only the `unknown`origin
+    group — one still-existing row — remains).
+  - Relaxing `lib/analysis/legacy-verifier.ts`'s schema from hardcoded
+    `expectedLegacyCount: z.literal(31)` / `groups: length(3)` to a general "0 or 1 of
+    each fixture-origin group, 15 IDs if present" shape, so the **generic** unit tests in
+    `tests/analysis/legacy-verifier.test.ts` (which build their own synthetic 31-row
+    manifest, unrelated to the real deleted UUIDs) keep passing unchanged — the old
+    hardcoding had baked one historical snapshot into library code, which is why
+    tightening it to "must be exactly 0" the first time round broke those tests.
+  - Refreshing the surviving `unknown`-provenance row's `projectDependencies` counts in
+    the manifest (unrelated to the deletion — that row's own project has just had
+    ordinary activity, including this session's own verify runs, since the manifest was
+    last generated on 2026-07-27).
+  - Running `verify-db-cleanup.sql` again after `verify:change-requests`/`verify:review`
+    is still owed — this session left its own fresh fixture rows behind; ask before
+    running it, same as before.
+- **Supabase CLI is now authenticated on this machine** (`npx supabase login`, browser
+  OAuth) and the project is linked (`npx supabase link --project-ref
+  rgfwtflsvnlgfiuoxowm`). `npx supabase migration list` / `db push --dry-run` both work
+  without further setup.
+- **Deploy to Vercel is the next step**, requested by the owner this session — see
+  "Vercel deploy" below for status once attempted.
 
 ### Phase B current state (2026-07-27)
 

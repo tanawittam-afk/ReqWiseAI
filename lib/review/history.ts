@@ -16,6 +16,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemStatus } from "../contracts/review.ts";
 import { WORKFLOW_ACTIVITY_LABEL } from "../contracts/workflow.ts";
+import { CHANGE_REQUEST_ACTIVITY_LABEL } from "../contracts/change-requests.ts";
 
 /** The fields a person may edit, and therefore the only fields a diff can report. */
 export const COMPARED_FIELDS = ["title", "description", "priority"] as const;
@@ -248,6 +249,10 @@ export function activityLabel(activity: {
   // there is nothing to derive from the transition.
   const workflow = WORKFLOW_ACTIVITY_LABEL[activityType];
   if (workflow) return workflow;
+
+  // Same reasoning for the four change-request actions.
+  const changeRequest = CHANGE_REQUEST_ACTIVITY_LABEL[activityType];
+  if (changeRequest) return changeRequest;
 
   if (activityType === "approve" || toStatus === "approved") return "Approved";
   if (activityType === "reject" || toStatus === "rejected") return "Rejected";

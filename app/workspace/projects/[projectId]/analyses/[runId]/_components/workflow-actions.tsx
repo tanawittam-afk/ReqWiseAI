@@ -14,12 +14,10 @@
  * rather than in a dialog.
  */
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import {
-  CHANGE_REQUEST_ACTION,
-  CHANGE_REQUEST_HINT,
   WORKFLOW_ACTION_LABEL,
   WORKFLOW_NOTE_LABEL,
   WORKFLOW_NOTE_MAX,
@@ -29,8 +27,11 @@ import {
   workflowNoteRequired,
   type WorkflowState,
 } from "@/lib/contracts/workflow";
+import { isReviewableItemType, isTerminalStatus } from "@/lib/contracts/review";
+import { CHANGE_REQUEST_ACTION_LABEL } from "@/lib/contracts/change-requests";
 import { resolveQuestionAction, updateFindingAction } from "../actions";
 import { EMPTY_REVIEW_STATE } from "../form-state";
+import { ChangeRequestForm, type ChangeRequestCandidate } from "./change-request-form";
 
 /** Constructive first, dismissive last — the same ordering rule as the review actions. */
 const ORDER: WorkflowState[] = [
@@ -64,12 +65,15 @@ export function WorkflowStateChip({ state }: { state: string }) {
 
 export function WorkflowActions({
   item,
+  allItems,
   projectId,
   runId,
   canAct,
   onDirtyChange,
 }: {
   item: AnalysisItemView;
+  /** Every item in the run — used to resolve or offer a change-request target. */
+  allItems: AnalysisItemView[];
   projectId: string;
   runId: string;
   /** False for an archived project: read the record, change nothing. */
@@ -84,8 +88,29 @@ export function WorkflowActions({
   const [pending, setPending] = useState<WorkflowState | null>(null);
   const [note, setNote] = useState("");
   const [followUp, setFollowUp] = useState("");
+  const [raisingChangeRequest, setRaisingChangeRequest] = useState(false);
   const noteId = useId();
   const followUpId = useId();
+
+  // The change request's possible targets: the requirement(s) this question
+  // `raises_question` against, reversed — if the relation names exactly one, no picker
+  // is needed. Otherwise every terminal reviewable item in the run is offered, and the
+  // reviewer picks by hand rather than the UI guessing.
+  const changeRequestCandidates: ChangeRequestCandidate[] = useMemo(() => {
+    const related = item.changeRequestCandidateItemIds
+      .map((id) => allItems.find((candidate) => candidate.id === id))
+      .filter((candidate): candidate is AnalysisItemView => candidate !== undefined);
+    const pool = related.length === 1 ? related : allItems.filter(
+      (candidate) => isReviewableItemType(candidate.type) && isTerminalStatus(candidate.status),
+    );
+    return pool.map((candidate) => ({
+      id: candidate.id,
+      displayId: candidate.displayId,
+      title: candidate.title,
+      description: candidate.description,
+      priority: candidate.priority,
+    }));
+  }, [item.changeRequestCandidateItemIds, allItems]);
 
   // Changing the selected item abandons a half-composed decision. Adjusted during
   // render rather than in an effect, so no frame shows one item's answer under
@@ -256,24 +281,11 @@ export function WorkflowActions({
           )}
 
           {isQuestion && pending === "answered" ? (
-            <div className="flex flex-col gap-1.5 rounded-lg border border-border-soft bg-surface p-2.5">
-              <p className="text-[11.5px] leading-relaxed text-text-muted">{CHANGE_REQUEST_HINT}</p>
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                title="Not available yet"
-                className="min-h-11 w-fit cursor-not-allowed rounded-lg border border-border-soft px-3
-                           text-[12.5px] font-medium text-text-faint opacity-70"
-              >
-                {CHANGE_REQUEST_ACTION}
-              </button>
-              <p className="text-[11px] leading-relaxed text-text-faint">
-                Recording the answer changes nothing about any requirement — not its text, not
-                its status, not its evidence. Acting on it is a change request, and that is the
-                next slice.
-              </p>
-            </div>
+            <p className="text-[11px] leading-relaxed text-text-faint">
+              Recording the answer changes nothing about any requirement — not its text, not its
+              status, not its evidence. Once saved, raise a change request from this tab if it
+              implies a requirement should change.
+            </p>
           ) : null}
 
           <div className="flex items-center gap-2">
@@ -296,6 +308,44 @@ export function WorkflowActions({
           </div>
         </form>
       )}
+
+      {isQuestion && current === "answered" && canAct ? (
+        raisingChangeRequest ? (
+          <ChangeRequestForm
+            projectId={projectId}
+            runId={runId}
+            candidates={changeRequestCandidates}
+            sourceQuestionId={item.id}
+            onCancel={() => {
+              setRaisingChangeRequest(false);
+              onDirtyChange(false);
+            }}
+            onDone={() => setRaisingChangeRequest(false)}
+            onDirtyChange={onDirtyChange}
+          />
+        ) : (
+          <div className="flex flex-col gap-1.5 rounded-lg border border-border-soft bg-surface p-2.5">
+            <p className="text-[11.5px] leading-relaxed text-text-muted">
+              This answer may require a requirement change.
+            </p>
+            <button
+              type="button"
+              onClick={() => setRaisingChangeRequest(true)}
+              disabled={changeRequestCandidates.length === 0}
+              className="min-h-11 w-fit rounded-lg border border-border-soft px-3 text-[12.5px] font-medium
+                         text-text transition-colors duration-150 hover:bg-surface-hover
+                         disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {CHANGE_REQUEST_ACTION_LABEL.pending}
+            </button>
+            {changeRequestCandidates.length === 0 ? (
+              <p className="text-[11px] leading-relaxed text-text-faint">
+                No approved or rejected requirement exists yet to raise a change request against.
+              </p>
+            ) : null}
+          </div>
+        )
+      ) : null}
     </div>
   );
 }

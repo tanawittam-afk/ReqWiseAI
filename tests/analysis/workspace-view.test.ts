@@ -50,6 +50,8 @@ function item(overrides: Partial<AnalysisItemView> & { type: ItemType }): Analys
     followUpOn: null,
     sourceReferences: [],
     relatedDisplayIds: [],
+    changeRequests: [],
+    changeRequestCandidateItemIds: [],
     ...overrides,
   };
 }

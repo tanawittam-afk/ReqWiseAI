@@ -10,6 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ItemType } from "../contracts/item-types";
 import { safeProviderMessage, type ProviderErrorCategory } from "../providers/errors";
 import type { ProviderKey } from "../providers/types";
+import { getChangeRequestsForItems, type ChangeRequestView } from "../review/change-requests.ts";
 
 export type AnalysisRunSummary = {
   id: string;
@@ -62,6 +63,19 @@ export type AnalysisItemView = {
   followUpOn: string | null;
   sourceReferences: AnalysisSourceReferenceView[];
   relatedDisplayIds: string[];
+  /**
+   * Every change request (any status) proposed against this item. Empty for the vast
+   * majority of items — only ever populated for a reviewable type once it has left
+   * `draft`, since `open_change_request()` refuses anything not already terminal.
+   */
+  changeRequests: ChangeRequestView[];
+  /**
+   * For an `open_question` only: the requirement(s) it `raises_question` against,
+   * reversed. Zero means no recorded link (a change request against this answer needs
+   * a manual target); more than one means the UI must not guess which one. Empty for
+   * every other item type.
+   */
+  changeRequestCandidateItemIds: string[];
 };
 
 export type AnalysisRunDetail = {
@@ -245,7 +259,7 @@ export async function getAnalysisRun(
   const itemIds = items_.map((row) => row.id);
   const displayIdById = new Map(items_.map((row) => [row.id, row.display_id]));
 
-  const [refRows, relRows] = await Promise.all([
+  const [refRows, relRows, changeRequestsByItem] = await Promise.all([
     itemIds.length
       ? client
           .from("item_source_references")
@@ -255,10 +269,28 @@ export async function getAnalysisRun(
     itemIds.length
       ? client.from("item_relations").select("from_item_id, to_item_id").in("from_item_id", itemIds)
       : Promise.resolve({ data: [], error: null }),
+    getChangeRequestsForItems(client, storedRun.project_id, itemIds),
   ]);
 
   if (refRows.error) throw new Error(`source reference query failed: ${refRows.error.message}`);
   if (relRows.error) throw new Error(`item relation query failed: ${relRows.error.message}`);
+
+  const { data: raisesQuestionRows, error: raisesQuestionError } = itemIds.length
+    ? await client
+        .from("item_relations")
+        .select("from_item_id, to_item_id")
+        .eq("relation_type", "raises_question")
+        .in("to_item_id", itemIds)
+    : { data: [], error: null };
+  if (raisesQuestionError) {
+    throw new Error(`raises_question relation query failed: ${raisesQuestionError.message}`);
+  }
+  const candidatesByQuestion = new Map<string, string[]>();
+  for (const row of (raisesQuestionRows ?? []) as Array<{ from_item_id: string; to_item_id: string }>) {
+    const list = candidatesByQuestion.get(row.to_item_id) ?? [];
+    list.push(row.from_item_id);
+    candidatesByQuestion.set(row.to_item_id, list);
+  }
 
   const refsByItem = new Map<string, AnalysisSourceReferenceView[]>();
   for (const row of (refRows.data ?? []) as Array<Record<string, unknown>>) {
@@ -305,6 +337,8 @@ export async function getAnalysisRun(
     followUpOn: row.follow_up_on ?? null,
     sourceReferences: refsByItem.get(row.id) ?? [],
     relatedDisplayIds: relatedByItem.get(row.id) ?? [],
+    changeRequests: changeRequestsByItem[row.id] ?? [],
+    changeRequestCandidateItemIds: candidatesByQuestion.get(row.id) ?? [],
   }));
 
   const byType: Partial<Record<ItemType, number>> = {};

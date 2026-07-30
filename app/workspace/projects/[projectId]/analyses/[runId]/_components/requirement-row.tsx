@@ -82,6 +82,7 @@ export function RequirementRow({
   const workflow = isWorkflowItemType(item.type);
   const state = item.workflowState ?? "open";
   const kind = workflow ? findingKind(item) : null;
+  const hasPendingChangeRequest = item.changeRequests.some((changeRequest) => changeRequest.status === "pending");
 
   return (
     <button
@@ -156,6 +157,13 @@ export function RequirementRow({
             <span aria-hidden="true">⇄</span>
             {item.relatedDisplayIds.length}
             <span className="sr-only">related items</span>
+          </span>
+        ) : null}
+        {hasPendingChangeRequest ? (
+          <span className="inline-flex items-center gap-1 font-medium text-warn">
+            <Dot />
+            <span aria-hidden="true">⟳</span>
+            <span>Change pending</span>
           </span>
         ) : null}
       </div>

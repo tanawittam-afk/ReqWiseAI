@@ -250,6 +250,7 @@ export function AnalysisWorkspace({
             inspector never loses its tab or scroll position when the layout changes. */}
         <Inspector
           item={selected}
+          allItems={run.items}
           history={(selected && history[selected.id]) || EMPTY_HISTORY}
           projectId={run.projectId}
           runId={run.id}

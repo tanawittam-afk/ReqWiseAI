@@ -21,6 +21,17 @@ import { readItemEditForm, readReviewActionForm } from "@/lib/contracts/review";
 import { editItem, reviewItem, REVIEW_MESSAGES } from "@/lib/review/service";
 import { resolveQuestion, updateFinding, WORKFLOW_MESSAGES } from "@/lib/review/workflow-service";
 import { readFindingActionForm, readQuestionActionForm } from "@/lib/contracts/workflow";
+import {
+  readOpenChangeRequestForm,
+  readResolveChangeRequestForm,
+  readWithdrawChangeRequestForm,
+} from "@/lib/contracts/change-requests";
+import {
+  openChangeRequest,
+  resolveChangeRequest,
+  withdrawChangeRequest,
+  CHANGE_REQUEST_MESSAGES,
+} from "@/lib/review/change-request-service";
 import { EMPTY_REVIEW_STATE, type ReviewFormState } from "./form-state";
 
 function revalidateRun(projectId: string, runId: string): void {
@@ -158,3 +169,79 @@ const FINDING_OUTCOME: Record<string, string> = {
   dismissed: "Finding dismissed.",
   open: "Finding reopened.",
 };
+
+/**
+ * Raise a change request against an already-approved or already-rejected item.
+ *
+ * `targetItemId` names the item the proposal is against, which is not necessarily
+ * `itemId` — a question's own id, when the form is opened from the Answer tab, is a
+ * different row than the requirement it proposes to change.
+ */
+export async function openChangeRequestAction(
+  _prev: ReviewFormState,
+  formData: FormData,
+): Promise<ReviewFormState> {
+  const projectId = String(formData.get("projectId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+  const targetItemId = String(formData.get("targetItemId") ?? "");
+  if (!targetItemId) return { ...EMPTY_REVIEW_STATE, error: CHANGE_REQUEST_MESSAGES.unavailable };
+
+  const supabase = await createClient();
+  const result = await openChangeRequest(supabase, targetItemId, readOpenChangeRequestForm(formData));
+
+  if (!result.ok) {
+    return { ok: false, message: null, error: result.error, fieldErrors: result.fieldErrors ?? {} };
+  }
+
+  revalidateRun(projectId, runId);
+  return {
+    ok: true,
+    message: "Change request submitted. It stays pending until a reviewer decides it.",
+    error: null,
+    fieldErrors: {},
+  };
+}
+
+export async function resolveChangeRequestAction(
+  _prev: ReviewFormState,
+  formData: FormData,
+): Promise<ReviewFormState> {
+  const projectId = String(formData.get("projectId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+
+  const supabase = await createClient();
+  const result = await resolveChangeRequest(supabase, readResolveChangeRequestForm(formData));
+
+  if (!result.ok) {
+    return { ok: false, message: null, error: result.error, fieldErrors: result.fieldErrors ?? {} };
+  }
+
+  revalidateRun(projectId, runId);
+  return {
+    ok: true,
+    message:
+      result.data.decision === "approved"
+        ? `Change request approved. Saved as version ${result.data.appliedVersionNo}.`
+        : "Change request rejected.",
+    error: null,
+    fieldErrors: {},
+  };
+}
+
+export async function withdrawChangeRequestAction(
+  _prev: ReviewFormState,
+  formData: FormData,
+): Promise<ReviewFormState> {
+  const projectId = String(formData.get("projectId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+
+  const supabase = await createClient();
+  const result = await withdrawChangeRequest(supabase, readWithdrawChangeRequestForm(formData));
+
+  if (!result.ok) {
+    return { ok: false, message: null, error: result.error, fieldErrors: result.fieldErrors ?? {} };
+  }
+
+  revalidateRun(projectId, runId);
+  return { ok: true, message: "Change request withdrawn.", error: null, fieldErrors: {} };
+}

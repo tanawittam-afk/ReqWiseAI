@@ -249,17 +249,3 @@ export const WORKFLOW_ACTIVITY_LABEL: Record<string, string> = {
   quality_dismissed: "Dismissed quality finding",
   quality_reopened: "Reopened quality finding",
 };
-
-/**
- * An answer may well mean a requirement has to change — but this slice never changes
- * one, silently or otherwise. The UI says so and points at the workflow that will.
- */
-export const CHANGE_REQUEST_HINT = "This answer may require a requirement change.";
-
-/**
- * Reworded in slice 6B. "Coming next" was true when slice 6A shipped and stopped being
- * true when 6B took traceability instead; a demo that shows a disabled button promising
- * the *next* thing reads as an unfinished feature rather than a stated boundary.
- * "Planned" says the same thing without dating itself.
- */
-export const CHANGE_REQUEST_ACTION = "Change request workflow planned";

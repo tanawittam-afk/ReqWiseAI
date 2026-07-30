@@ -25,6 +25,7 @@ import { ItemEditForm } from "./item-edit-form";
 import { ReviewActions } from "./review-actions";
 import { WorkflowTab } from "./workflow-tab";
 import { WorkflowStateChip } from "./workflow-actions";
+import { ChangeRequestsTab } from "./change-requests-tab";
 import {
   EVIDENCE_LABEL,
   ORIGIN_LABEL,
@@ -35,17 +36,31 @@ import {
   labelFor,
 } from "./labels";
 
-type InspectorTab = "details" | "evidence" | "relations" | "answer" | "resolution" | "history";
+type InspectorTab =
+  | "details"
+  | "evidence"
+  | "relations"
+  | "answer"
+  | "resolution"
+  | "changeRequests"
+  | "history";
 
 /**
  * The workflow tab's name is the job it does, which differs by type: a question is
  * *answered*, a finding is *resolved*. "Workflow" would be accurate for both and
  * meaningful for neither.
+ *
+ * "Change requests" only appears for a reviewable item that actually has one — most
+ * approved or rejected items never do, and cluttering every one of them with an empty
+ * tab would bury the ones that matter.
  */
-function tabsFor(type: string): InspectorTab[] {
+function tabsFor(type: string, hasChangeRequests: boolean): InspectorTab[] {
   if (type === "open_question") return ["details", "evidence", "answer", "history"];
   if (type === "quality_finding") return ["details", "evidence", "resolution", "history"];
-  return ["details", "evidence", "relations", "history"];
+  const base: InspectorTab[] = ["details", "evidence", "relations"];
+  if (hasChangeRequests) base.push("changeRequests");
+  base.push("history");
+  return base;
 }
 
 const TAB_LABEL: Record<string, string> = {
@@ -54,11 +69,13 @@ const TAB_LABEL: Record<string, string> = {
   relations: "Relations",
   answer: "Answer",
   resolution: "Resolution",
+  changeRequests: "Change requests",
   history: "History",
 };
 
 export function Inspector({
   item,
+  allItems,
   history,
   projectId,
   runId,
@@ -72,6 +89,8 @@ export function Inspector({
   className = "",
 }: {
   item: AnalysisItemView | null;
+  /** Every item in the run — needed to resolve a change request's target picker. */
+  allItems: AnalysisItemView[];
   history: ItemHistory;
   projectId: string;
   runId: string;
@@ -98,7 +117,7 @@ export function Inspector({
   const stopEditing = useCallback(() => onEditingChange(false), [onEditingChange]);
 
   const workflowItem = item !== null && isWorkflowItemType(item.type);
-  const tabs = tabsFor(item?.type ?? "");
+  const tabs = tabsFor(item?.type ?? "", (item?.changeRequests.length ?? 0) > 0);
   // A tab list that changed with the item can leave `tab` pointing at one that is no
   // longer there; falling back to Details is better than rendering nothing.
   const activeTab = tabs.includes(tab) ? tab : "details";
@@ -183,11 +202,20 @@ export function Inspector({
               <WorkflowTab
                 key={item.id}
                 item={item}
+                allItems={allItems}
                 projectId={projectId}
                 runId={runId}
                 canAct={canReview}
                 currentUserId={currentUserId}
                 onDirtyChange={onDirtyChange}
+              />
+            ) : null}
+            {activeTab === "changeRequests" ? (
+              <ChangeRequestsTab
+                changeRequests={item.changeRequests}
+                projectId={projectId}
+                runId={runId}
+                canReview={canReview}
               />
             ) : null}
             {activeTab === "history" ? (
@@ -223,6 +251,7 @@ export function Inspector({
                   onEditingChange(true);
                 }}
                 onShowHistory={() => setTab("history")}
+                onDirtyChange={onDirtyChange}
               />
             </div>
           ) : null}

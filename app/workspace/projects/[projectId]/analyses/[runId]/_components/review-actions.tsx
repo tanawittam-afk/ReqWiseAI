@@ -32,6 +32,7 @@ import type { ItemType } from "@/lib/contracts/item-types";
 import { reviewItemAction } from "../actions";
 import { EMPTY_REVIEW_STATE } from "../form-state";
 import { STATUS_LABEL, labelFor } from "./labels";
+import { ChangeRequestForm } from "./change-request-form";
 
 /** The verb on the button, which is not the same word as the state it produces. */
 const ACTION_LABEL: Record<ItemStatus, string> = {
@@ -52,6 +53,7 @@ export function ReviewActions({
   canReview,
   onEdit,
   onShowHistory,
+  onDirtyChange,
 }: {
   item: AnalysisItemView;
   projectId: string;
@@ -60,10 +62,12 @@ export function ReviewActions({
   canReview: boolean;
   onEdit: () => void;
   onShowHistory: () => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const [state, formAction] = useActionState(reviewItemAction, EMPTY_REVIEW_STATE);
   const [pendingAction, setPendingAction] = useState<ItemStatus | null>(null);
   const [note, setNote] = useState("");
+  const [raisingChangeRequest, setRaisingChangeRequest] = useState(false);
   const noteId = useId();
 
   // Changing the selected item abandons a half-composed decision — adjusted during
@@ -96,6 +100,31 @@ export function ReviewActions({
   }
 
   if (isTerminalStatus(item.status)) {
+    if (raisingChangeRequest) {
+      return (
+        <ChangeRequestForm
+          projectId={projectId}
+          runId={runId}
+          candidates={[
+            {
+              id: item.id,
+              displayId: item.displayId,
+              title: item.title,
+              description: item.description,
+              priority: item.priority,
+            },
+          ]}
+          sourceQuestionId={null}
+          onCancel={() => {
+            setRaisingChangeRequest(false);
+            onDirtyChange(false);
+          }}
+          onDone={() => setRaisingChangeRequest(false)}
+          onDirtyChange={onDirtyChange}
+        />
+      );
+    }
+
     return (
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -116,10 +145,20 @@ export function ReviewActions({
           >
             View history
           </button>
+          {canReview ? (
+            <button
+              type="button"
+              onClick={() => setRaisingChangeRequest(true)}
+              className="min-h-11 rounded-lg border border-border-soft bg-surface px-3 text-[13px] font-medium
+                         text-text transition-colors duration-150 hover:bg-surface-hover"
+            >
+              Raise a change request
+            </button>
+          ) : null}
         </div>
         <p className="text-[11px] leading-relaxed text-text-faint">
           {item.status === "approved"
-            ? "Approved requirements are frozen in this release. Changing one means raising a change request, which is a later slice."
+            ? "Approved requirements are frozen in this release. Raising a change request proposes a new statement without reopening this one for review."
             : "Rejected requirements are kept, not deleted — the record of what was considered and turned down is part of the analysis."}
         </p>
       </div>

@@ -46,6 +46,7 @@ function actor(id: string | null, currentUserId: string | null): string {
 
 export function WorkflowTab({
   item,
+  allItems,
   projectId,
   runId,
   canAct,
@@ -53,6 +54,7 @@ export function WorkflowTab({
   onDirtyChange,
 }: {
   item: AnalysisItemView;
+  allItems: AnalysisItemView[];
   projectId: string;
   runId: string;
   canAct: boolean;
@@ -107,6 +109,7 @@ export function WorkflowTab({
 
       <WorkflowActions
         item={item}
+        allItems={allItems}
         projectId={projectId}
         runId={runId}
         canAct={canAct}
