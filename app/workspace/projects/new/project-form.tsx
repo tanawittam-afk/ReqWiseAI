@@ -35,7 +35,7 @@ export type DomainOption = {
 };
 
 const control =
-  "w-full rounded-lg border border-border-soft bg-surface px-3 py-2.5 text-sm text-text " +
+  "w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2.5 text-sm text-text " +
   "placeholder:text-text-faint transition-colors hover:border-border-strong " +
   "focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25";
 
@@ -77,70 +77,89 @@ export function ProjectForm({ domains }: { domains: DomainOption[] }) {
             />
           </Field>
 
-          <Field
-            label="Description"
-            htmlFor={`${ids}-description`}
-            error={errorFor("description")}
-            hint="Optional. What the work is about, in a sentence or two."
+          {/* Native <details> — collapsed by default so the only field a new project
+              needs (Name) isn't competing with three optional ones for attention.
+              Kept mounted rather than conditionally rendered so a value typed, then
+              collapsed by accident, is never lost before submit. Opens itself if the
+              server already returned an error against one of these fields. */}
+          <details
+            className="group flex flex-col gap-4 border-t border-border-soft pt-4"
+            open={Boolean(
+              errorFor("description") || errorFor("businessObjective") || errorFor("knownStakeholders"),
+            )}
           >
-            <textarea
-              id={`${ids}-description`}
-              name="description"
-              rows={3}
-              maxLength={PROJECT_TEXT_MAX}
-              defaultValue={state.values.description}
-              className={`${control} resize-y`}
-            />
-          </Field>
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text">
+              <span aria-hidden="true" className="transition-transform group-open:rotate-90">
+                ›
+              </span>
+              Description, business objective, stakeholders (optional)
+            </summary>
 
-          <Field
-            label="Business objective"
-            htmlFor={`${ids}-objective`}
-            error={errorFor("businessObjective")}
-            hint="Optional. What the business is trying to achieve — not the software."
-          >
-            <textarea
-              id={`${ids}-objective`}
-              name="businessObjective"
-              rows={3}
-              maxLength={PROJECT_TEXT_MAX}
-              defaultValue={state.values.businessObjective}
-              className={`${control} resize-y`}
-            />
-          </Field>
+            <Field
+              label="Description"
+              htmlFor={`${ids}-description`}
+              error={errorFor("description")}
+              hint="What the work is about, in a sentence or two."
+            >
+              <textarea
+                id={`${ids}-description`}
+                name="description"
+                rows={3}
+                maxLength={PROJECT_TEXT_MAX}
+                defaultValue={state.values.description}
+                className={`${control} resize-y`}
+              />
+            </Field>
 
-          <Field
-            label="Known stakeholders"
-            htmlFor={`${ids}-stakeholders`}
-            error={errorFor("knownStakeholders")}
-            hint={`Optional. One per line, up to ${PROJECT_STAKEHOLDERS_MAX_COUNT}.`}
-          >
-            <textarea
-              id={`${ids}-stakeholders`}
-              name="knownStakeholders"
-              rows={4}
-              value={stakeholders}
-              onChange={(event) => setStakeholders(event.target.value)}
-              placeholder={"Front Desk Staff\nOperations Manager"}
-              className={`${control} resize-y font-mono text-[13px]`}
-            />
-          </Field>
+            <Field
+              label="Business objective"
+              htmlFor={`${ids}-objective`}
+              error={errorFor("businessObjective")}
+              hint="What the business is trying to achieve — not the software."
+            >
+              <textarea
+                id={`${ids}-objective`}
+                name="businessObjective"
+                rows={3}
+                maxLength={PROJECT_TEXT_MAX}
+                defaultValue={state.values.businessObjective}
+                className={`${control} resize-y`}
+              />
+            </Field>
+
+            <Field
+              label="Known stakeholders"
+              htmlFor={`${ids}-stakeholders`}
+              error={errorFor("knownStakeholders")}
+              hint={`One per line, up to ${PROJECT_STAKEHOLDERS_MAX_COUNT}.`}
+            >
+              <textarea
+                id={`${ids}-stakeholders`}
+                name="knownStakeholders"
+                rows={4}
+                value={stakeholders}
+                onChange={(event) => setStakeholders(event.target.value)}
+                placeholder={"Front Desk Staff\nOperations Manager"}
+                className={`${control} resize-y font-mono text-[13px]`}
+              />
+            </Field>
+          </details>
         </Panel>
 
         <Panel
           title="Business domain"
           hint="Guides the questions the analysis asks. It never becomes evidence."
         >
-          <fieldset className="flex flex-col gap-2">
+          <fieldset className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <legend className="sr-only">Business domain</legend>
             {domains.map((domain) => {
               const checked = domainId === domain.id;
               return (
                 <label
                   key={domain.id}
-                  className={`flex min-h-11 items-start gap-3 rounded-lg border p-3 transition-colors ${
+                  className={`flex min-h-11 flex-col gap-1.5 rounded-[var(--radius-card)] border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:outline-offset-2 ${
                     checked
-                      ? "border-accent-border bg-accent-soft"
+                      ? "border-accent bg-accent-soft"
                       : "border-border-soft bg-surface hover:bg-surface-hover"
                   } ${domain.supported ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
                 >
@@ -151,23 +170,15 @@ export function ProjectForm({ domains }: { domains: DomainOption[] }) {
                     checked={checked}
                     disabled={!domain.supported}
                     onChange={() => setDomainId(domain.id)}
-                    className="mt-0.5 size-4 accent-[var(--accent)]"
+                    className="sr-only"
                   />
-                  <span className="flex flex-col gap-1">
-                    <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-text">
-                      {domain.name}
-                      <span className="rounded border border-border-soft px-1.5 py-0.5 text-[11px] font-normal uppercase tracking-wide text-text-faint">
-                        Built-in
-                      </span>
-                      {domain.supported ? null : (
-                        <span className="rounded border border-warn-border bg-warn-soft px-1.5 py-0.5 text-[11px] font-normal text-warn">
-                          Coming soon
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-xs leading-relaxed text-text-muted">
-                      {domain.description}
-                    </span>
+                  <span
+                    className={`text-sm font-medium ${checked ? "text-accent" : "text-text"}`}
+                  >
+                    {domain.name}
+                  </span>
+                  <span className="text-xs leading-relaxed text-text-faint">
+                    {domain.supported ? domain.description : "Coming soon"}
                   </span>
                 </label>
               );
@@ -191,7 +202,7 @@ export function ProjectForm({ domains }: { domains: DomainOption[] }) {
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-4 text-sm transition-colors ${
+                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-card)] border px-4 text-sm transition-colors ${
                   outputLang === option.value
                     ? "border-accent-border bg-accent-soft font-medium text-text"
                     : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"
@@ -254,7 +265,7 @@ export function ProjectForm({ domains }: { domains: DomainOption[] }) {
           {state.error ? (
             <p
               role="alert"
-              className="mt-3 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-sm text-danger"
+              className="mt-3 rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-3 py-2 text-sm text-danger"
             >
               {state.error}
             </p>
@@ -265,13 +276,13 @@ export function ProjectForm({ domains }: { domains: DomainOption[] }) {
               type="submit"
               disabled={pending}
               aria-busy={pending}
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending ? "Creating…" : "Create project"}
             </button>
             <Link
               href="/workspace/projects"
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border-soft px-4 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-border-soft px-4 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
             >
               Cancel
             </Link>
