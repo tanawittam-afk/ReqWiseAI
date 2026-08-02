@@ -1,60 +1,70 @@
 @import "tailwindcss";
 
 /*
- * ReqWise AI — a desktop-class productivity workspace.
+ * ReqWise AI — a "tech" desktop-class productivity workspace.
  *
- * Light-first, warm rather than clinical: a long review session is reading work, and
- * pure white on pure grey is tiring. Depth comes from borders and small background
- * shifts, not from elevation — shadows are reserved for things that genuinely float
- * (popovers, dialogs).
+ * Direction: precise and technical rather than soft — hairline borders instead of
+ * elevation/shadow, a geometric display face for structure, monospace for anything
+ * that is data (display IDs, counts, badges), one saturated electric-blue accent, and
+ * a green "signal" accent reserved for citation/liveness indicators. Adapted from a
+ * neon-on-black reference (see docs/design/INTERFACE.md) toward something readable for
+ * long review sessions: light mode stays near-white and legible, dark mode goes
+ * properly near-black.
  *
- * Dark mode is prepared, not shipped: the same token names are redefined under
- * [data-theme="dark"] so nothing has to be re-plumbed later, and no automatic
- * prefers-color-scheme switch is wired up, because an untested dark theme is worse
- * than none.
+ * Both modes are shipped and switchable. `data-theme` is set on <html> before first
+ * paint by the inline script in app/layout.tsx (reads localStorage, falls back to
+ * prefers-color-scheme) — see app/workspace/_components/theme-toggle.tsx for the
+ * control that changes it at runtime.
  */
 :root {
   /* 1. application background — the desk the work sits on */
-  --app: #f5f3f0;
-  /* 2. navigation / toolbar layer */
-  --chrome: #efece8;
-  --chrome-hover: #e6e2dc;
+  --app: #ffffff;
+  /* 2. navigation / toolbar layer — same as app in light mode; the hairline border
+     does the separating, not a color shift */
+  --chrome: #ffffff;
+  --chrome-hover: #eef0f3;
   /* 3. workspace surface, 4. cards and editable blocks */
   --surface: #ffffff;
-  --surface-muted: #faf9f7;
-  --surface-hover: #f4f2ef;
+  --surface-muted: #f5f6f8;
+  --surface-hover: #eef0f3;
 
-  --border: #e4e0da;
-  --border-strong: #d3cec6;
+  --border: #e2e5ea;
+  --border-strong: #c7ccd3;
 
-  --text: #1b1a18;
-  --text-muted: #56514a;
-  --text-faint: #8b857c;
+  --text: #0b0e14;
+  --text-muted: #5b6472;
+  /* #64707f, not the lighter tone the mockup used — 5.04:1 on white vs. 2.54:1, needed
+     to clear WCAG AA for the small labels this token is actually used on. */
+  --text-faint: #64707f;
 
-  /* Primary product accent — indigo/violet. */
-  --accent: #5348d9;
-  --accent-hover: #443ac2;
-  --accent-soft: #eeecfb;
-  --accent-border: #cdc7f4;
+  /* Primary product accent — electric blue. */
+  --accent: #2f5ced;
+  --accent-hover: #2447c2;
+  --accent-soft: #eaf0fe;
+  --accent-border: #c7d5fc;
   --on-accent: #ffffff;
 
-  /* Secondary analytical accent — used for domain and evidence, never for state. */
-  --signal: #10708c;
-  --signal-soft: #e6f2f6;
-  --signal-border: #bcdae4;
+  /* Secondary "signal" accent — citation/liveness only, never a generic decoration.
+     #0a6b3d, not the brighter #0f9d58 the mockup used — the mockup's shade only reached
+     3.16:1 on --signal-soft (measured live, on the actual domain badge), this reaches
+     5.95:1. */
+  --signal: #0a6b3d;
+  --signal-soft: #e7f7ee;
+  --signal-border: #bceac2;
 
-  --ok: #14724a;
+  --ok: #157347;
   --ok-soft: #e7f4ed;
   --ok-border: #b8ddc8;
-  --warn: #8a5a00;
+  /* #a34c08, not #b45309 — the latter measured 4.48:1 on --warn-soft, just under AA. */
+  --warn: #a34c08;
   --warn-soft: #fbf1de;
   --warn-border: #ecd6a8;
-  --danger: #ad2b1c;
+  --danger: #c0301e;
   --danger-soft: #fbeceb;
   --danger-border: #efc4bf;
 
-  --radius-panel: 14px;
-  --radius-card: 10px;
+  --radius-panel: 6px;
+  --radius-card: 4px;
 
   /* Legacy tokens from the scaffold, still referenced by the marketing/auth pages. */
   --background: var(--app);
@@ -62,32 +72,33 @@
 }
 
 [data-theme="dark"] {
-  --app: #16161a;
-  --chrome: #1d1d22;
-  --chrome-hover: #26262c;
-  --surface: #1f1f25;
-  --surface-muted: #24242b;
-  --surface-hover: #2a2a32;
-  --border: #32323b;
-  --border-strong: #43434f;
-  --text: #f2f0ed;
-  --text-muted: #b4afa7;
-  --text-faint: #837e76;
-  --accent: #8b7cf6;
-  --accent-hover: #9b8ef8;
-  --accent-soft: #241f45;
-  --accent-border: #3b3370;
-  --on-accent: #14122b;
-  --signal: #5cc4dc;
-  --signal-soft: #12303a;
-  --signal-border: #1f4c5b;
-  --ok: #6ee7b7;
+  --app: #0a0b0d;
+  --chrome: #101215;
+  --chrome-hover: #1b1e23;
+  --surface: #101215;
+  --surface-muted: #15171b;
+  --surface-hover: #1b1e23;
+  --border: #22252b;
+  --border-strong: #33373f;
+  --text: #f3f5f7;
+  --text-muted: #9aa3b2;
+  /* #7c8695, not #5b6472 — same WCAG AA fix as light mode (5.1-5.3:1 vs 3.1-3.3:1). */
+  --text-faint: #7c8695;
+  --accent: #5b8dff;
+  --accent-hover: #7ba0ff;
+  --accent-soft: #132043;
+  --accent-border: #2a3e7a;
+  --on-accent: #0b0e14;
+  --signal: #22e27a;
+  --signal-soft: #0e2a1b;
+  --signal-border: #1c4a30;
+  --ok: #4ade80;
   --ok-soft: #10312a;
   --ok-border: #1c5343;
-  --warn: #f3c164;
+  --warn: #f5a524;
   --warn-soft: #33280f;
   --warn-border: #55411a;
-  --danger: #f2a49b;
+  --danger: #f0553f;
   --danger-soft: #3a1c19;
   --danger-border: #5c2b26;
 }
@@ -125,10 +136,14 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* System-first, so the app reads as native on macOS, iPadOS and Windows alike. */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Body copy — Inter, a workhorse face that stays legible dense and small. */
+  --font-sans: var(--font-body-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+  /* Headings, nav labels, buttons — a geometric display face carrying the "tech"
+     character. Opt in with `font-display`; body text is unaffected. */
+  --font-display: var(--font-display-sans), var(--font-sans);
+  /* Anything that is data: display IDs (BR-001), counts, badges, breadcrumbs. */
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html {
@@ -150,6 +165,17 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 5px;
+}
+
+/* Theme toggle (app/workspace/_components/theme-toggle.tsx): which option looks
+   "pressed" is driven entirely by this attribute match against <html>'s own
+   `data-theme` — no React state, so it can never drift from the value that actually
+   controls every other color on the page. */
+[data-theme="light"] .theme-toggle-option[data-theme-option="light"],
+[data-theme="dark"] .theme-toggle-option[data-theme-option="dark"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 @media (prefers-reduced-motion: reduce) {

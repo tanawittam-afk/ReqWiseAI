@@ -11,6 +11,7 @@
  */
 
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "./theme-toggle";
 
 function contextLabel(pathname: string): string {
   if (pathname === "/workspace/projects/new") return "New project";
@@ -48,6 +49,9 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
             ⌘K
           </kbd>
         </button>
+        {/* Temporary home for Phase 2 (token + toggle infrastructure). Phase 3 moves
+            this into the redesigned sidebar per the approved Figma direction. */}
+        <ThemeToggle />
         {children}
       </div>
     </header>
