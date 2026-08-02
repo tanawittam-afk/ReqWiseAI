@@ -389,6 +389,21 @@ next touches `lib/providers/gemini/prompt.ts`.
 `AI_PROVIDER=mock` only, exactly as left by the earlier Production Recovery pass. The
 local dev server was stopped after testing.
 
+**⚠️ Key exposure and rotation, same session.** While verifying the change above, an
+uncommitted `git diff` showed the owner had accidentally typed the real
+`GEMINI_API_KEY` into `.env.example` — the tracked template file, not `.env.local` (the
+gitignored one) — while trying to add it per these instructions. Checked immediately:
+**the key never reached any git commit** (`git log --all -p -- .env.example` had zero
+matches; `HEAD`'s own copy of the file was already the blank template). Fixed with
+`git checkout -- .env.example`, discarding the working-tree change before anything was
+staged. Out of caution, the owner rotated the key anyway: created a new key in Google AI
+Studio, revoked the old one, and put the new key in `.env.local` (verified present by
+byte-length only, value never read). The new key was tested directly against the real
+`generateContent` endpoint (`curl`, key piped from the file into the request header,
+never printed) — `200`, real response — confirming the rotation is live and working.
+Neither key's value appears anywhere in this file, any commit, or any tool output shown
+to the owner.
+
 ### Production runtime environment — corrected on a closer read (2026-08-02, second pass)
 
 The first pass's checklist over-included `SUPABASE_SERVICE_ROLE_KEY` and a Supabase Auth
