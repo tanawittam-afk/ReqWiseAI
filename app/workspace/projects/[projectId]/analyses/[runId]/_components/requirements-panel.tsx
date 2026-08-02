@@ -117,7 +117,7 @@ export function RequirementsPanel({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border-soft px-3 py-2">
-        <label className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-lg border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
+        <label className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
           <span aria-hidden="true" className="text-text-faint">
             ⌕
           </span>
@@ -146,7 +146,7 @@ export function RequirementsPanel({
           type="button"
           onClick={() => setFiltersOpen((open) => !open)}
           aria-expanded={filtersOpen}
-          className={`min-h-9 rounded-lg border px-2.5 text-xs font-medium transition-colors duration-150 ${
+          className={`min-h-9 rounded-[var(--radius-card)] border px-2.5 text-xs font-medium transition-colors duration-150 ${
             hasActiveFilter(filters)
               ? "border-accent-border bg-accent-soft text-accent"
               : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"
@@ -214,7 +214,7 @@ export function RequirementsPanel({
               onClick={() =>
                 set({ type: "all", priority: "all", status: "all", evidenceClass: "all", workflowState: "all" })
               }
-              className="min-h-9 rounded-lg px-2 text-xs font-medium text-accent underline underline-offset-2"
+              className="min-h-9 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2"
             >
               Clear filters
             </button>
@@ -250,7 +250,7 @@ export function RequirementsPanel({
                        a full-width strip, so the target is large in the axis that
                        matters, and every header spent on chrome is a requirement the
                        reader cannot see. */
-                    className="flex min-h-9 w-full items-center gap-2 bg-surface-muted px-3 py-1.5 text-left
+                    className="flex min-h-10 w-full items-center gap-2 bg-surface-muted px-3.5 py-2 text-left
                                transition-colors duration-150 hover:bg-surface-hover"
                   >
                     <span aria-hidden="true" className="w-3 text-[10px] text-text-faint">
@@ -334,7 +334,7 @@ function Select({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="min-h-9 rounded-lg border border-border-soft bg-surface px-2 text-xs font-medium text-text
+      className="min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2 text-xs font-medium text-text
                  transition-colors duration-150 hover:bg-surface-hover"
     >
       {children}

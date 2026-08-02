@@ -89,7 +89,7 @@ export function RequirementRow({
       type="button"
       onClick={onSelect}
       aria-current={active ? "true" : undefined}
-      className={`flex w-full min-h-11 flex-col gap-0.5 border-l-2 px-3 py-1.5 text-left leading-snug
+      className={`flex w-full min-h-11 flex-col gap-1 border-l-2 px-3.5 py-2 text-left leading-snug
                   transition-colors duration-150
                   ${
                     active

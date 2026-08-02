@@ -158,7 +158,7 @@ export function WorkflowActions({
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
         >
           {state.error}
         </p>
@@ -166,14 +166,14 @@ export function WorkflowActions({
       {state.ok && state.message ? (
         <p
           role="status"
-          className="rounded-lg border border-ok-border bg-ok-soft px-3 py-2 text-[12.5px] leading-relaxed text-ok"
+          className="rounded-[var(--radius-card)] border border-ok-border bg-ok-soft px-3 py-2 text-[12.5px] leading-relaxed text-ok"
         >
           {state.message}
         </p>
       ) : null}
 
       {!canAct ? (
-        <p className="rounded-lg border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
+        <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
           This project is archived and read-only. Restore it to answer questions or resolve
           findings. Every answer, resolution and activity stays readable.
         </p>
@@ -184,7 +184,7 @@ export function WorkflowActions({
               key={next}
               type="button"
               onClick={() => setPending(next)}
-              className={`min-h-11 rounded-lg border px-3 text-[13px] font-medium transition-colors duration-150 ${
+              className={`min-h-11 rounded-[var(--radius-card)] border px-3 text-[13px] font-medium transition-colors duration-150 ${
                 next === "answered" || next === "resolved"
                   ? "border-ok-border bg-ok-soft text-ok hover:border-ok"
                   : next === "dismissed" || next === "not_applicable"
@@ -242,7 +242,7 @@ export function WorkflowActions({
                     ? "How this was resolved"
                     : undefined
               }
-              className="w-full resize-y rounded-lg border border-border-soft bg-surface px-3 py-2 text-[13px]
+              className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
                          leading-relaxed text-text placeholder:text-text-faint focus:border-accent
                          focus:outline-none focus:ring-2 focus:ring-accent/25"
             />
@@ -267,7 +267,7 @@ export function WorkflowActions({
                 type="date"
                 value={followUp}
                 onChange={(event) => setFollowUp(event.target.value)}
-                className="min-h-11 w-full rounded-lg border border-border-soft bg-surface px-3 text-[13px]
+                className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px]
                            text-text focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
               />
               {state.fieldErrors.followUpOn ? (
@@ -301,7 +301,7 @@ export function WorkflowActions({
                 setFollowUp("");
                 onDirtyChange(false);
               }}
-              className="min-h-11 rounded-lg px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
+              className="min-h-11 rounded-[var(--radius-card)] px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
             >
               Cancel
             </button>
@@ -324,7 +324,7 @@ export function WorkflowActions({
             onDirtyChange={onDirtyChange}
           />
         ) : (
-          <div className="flex flex-col gap-1.5 rounded-lg border border-border-soft bg-surface p-2.5">
+          <div className="flex flex-col gap-1.5 rounded-[var(--radius-card)] border border-border-soft bg-surface p-2.5">
             <p className="text-[11.5px] leading-relaxed text-text-muted">
               This answer may require a requirement change.
             </p>
@@ -332,7 +332,7 @@ export function WorkflowActions({
               type="button"
               onClick={() => setRaisingChangeRequest(true)}
               disabled={changeRequestCandidates.length === 0}
-              className="min-h-11 w-fit rounded-lg border border-border-soft px-3 text-[12.5px] font-medium
+              className="min-h-11 w-fit rounded-[var(--radius-card)] border border-border-soft px-3 text-[12.5px] font-medium
                          text-text transition-colors duration-150 hover:bg-surface-hover
                          disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -357,7 +357,7 @@ function ConfirmButton({ label, destructive }: { label: string; destructive: boo
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className={`min-h-11 rounded-lg px-4 text-[13px] font-semibold transition-colors duration-150
+      className={`min-h-11 rounded-[var(--radius-card)] px-4 text-[13px] font-semibold transition-colors duration-150
                   disabled:cursor-not-allowed disabled:opacity-60 ${
                     destructive
                       ? "border border-danger-border bg-danger-soft text-danger hover:border-danger"

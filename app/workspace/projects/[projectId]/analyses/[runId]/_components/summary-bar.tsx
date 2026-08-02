@@ -27,7 +27,7 @@ export function SummaryBar({
   onToggleInspector: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border-soft bg-chrome px-4 py-2">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border-soft bg-chrome px-4 py-2.5">
       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-text">
         <span aria-hidden="true" className="size-1.5 rounded-full bg-ok" />
         Analysis completed
@@ -55,7 +55,7 @@ export function SummaryBar({
         type="button"
         onClick={onToggleInspector}
         aria-pressed={inspectorOpen}
-        className={`ml-auto hidden min-h-9 shrink-0 rounded-lg border px-2.5 text-xs font-medium
+        className={`ml-auto hidden min-h-9 shrink-0 rounded-[var(--radius-card)] border px-2.5 text-xs font-medium
                     transition-colors duration-150 lg:block ${
                       inspectorOpen
                         ? "border-accent-border bg-accent-soft text-accent"

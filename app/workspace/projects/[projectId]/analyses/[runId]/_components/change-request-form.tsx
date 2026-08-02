@@ -101,7 +101,7 @@ export function ChangeRequestForm({
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
         >
           {state.error}
         </p>
@@ -116,7 +116,7 @@ export function ChangeRequestForm({
             id={targetId}
             value={targetItemId}
             onChange={(event) => selectTarget(event.target.value)}
-            className="min-h-11 w-full rounded-lg border border-border-soft bg-surface px-3 text-[13px] text-text
+            className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px] text-text
                        focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
           >
             {candidates.map((candidate) => (
@@ -146,7 +146,7 @@ export function ChangeRequestForm({
           maxLength={CR_TITLE_MAX}
           onChange={(event) => setTitle(event.target.value)}
           aria-invalid={state.fieldErrors.proposedTitle ? true : undefined}
-          className="min-h-11 w-full rounded-lg border border-border-soft bg-surface px-3 text-[13px] text-text
+          className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px] text-text
                      focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
         />
         {state.fieldErrors.proposedTitle ? (
@@ -176,7 +176,7 @@ export function ChangeRequestForm({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           aria-invalid={state.fieldErrors.proposedDescription ? true : undefined}
-          className="w-full resize-y rounded-lg border border-border-soft bg-surface px-3 py-2 text-[13px]
+          className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
                      leading-relaxed text-text focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
         />
         {state.fieldErrors.proposedDescription ? (
@@ -195,7 +195,7 @@ export function ChangeRequestForm({
           name="proposedPriority"
           value={priority}
           onChange={(event) => setPriority(event.target.value as Priority)}
-          className="min-h-11 w-full rounded-lg border border-border-soft bg-surface px-3 text-[13px] text-text
+          className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px] text-text
                      focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
         >
           {PRIORITIES.map((value) => (
@@ -225,7 +225,7 @@ export function ChangeRequestForm({
           onChange={(event) => setReason(event.target.value)}
           aria-invalid={state.fieldErrors.reason ? true : undefined}
           placeholder="Why this requirement should change"
-          className="w-full resize-y rounded-lg border border-border-soft bg-surface px-3 py-2 text-[13px]
+          className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
                      leading-relaxed text-text placeholder:text-text-faint focus:border-accent
                      focus:outline-none focus:ring-2 focus:ring-accent/25"
         />
@@ -246,7 +246,7 @@ export function ChangeRequestForm({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-11 rounded-lg px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
+          className="min-h-11 rounded-[var(--radius-card)] px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
         >
           Cancel
         </button>
@@ -262,7 +262,7 @@ function SubmitButton() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="min-h-11 rounded-lg bg-accent px-4 text-[13px] font-semibold text-on-accent
+      className="min-h-11 rounded-[var(--radius-card)] bg-accent px-4 text-[13px] font-semibold text-on-accent
                  transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Submitting…" : "Submit change request"}

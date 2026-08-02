@@ -101,7 +101,7 @@ export function WorkflowTab({
       ) : null}
 
       {state === "acknowledged" ? (
-        <p className="rounded-lg border border-signal-border bg-signal-soft px-3 py-2 text-[12px] leading-relaxed text-signal">
+        <p className="rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-3 py-2 text-[12px] leading-relaxed text-signal">
           Acknowledged means somebody has seen this finding. It is <strong>not</strong> fixed —
           the finding stays open until it is resolved or dismissed.
         </p>

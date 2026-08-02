@@ -83,7 +83,7 @@ export function ItemEditForm({
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
         >
           {state.error}
         </p>
@@ -104,7 +104,7 @@ export function ItemEditForm({
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           aria-invalid={state.fieldErrors.title ? true : undefined}
-          className="w-full resize-y rounded-lg border border-border-soft bg-surface px-3 py-2 text-[13.5px]
+          className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13.5px]
                      leading-snug text-text focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
         />
       </Field>
@@ -124,7 +124,7 @@ export function ItemEditForm({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           aria-invalid={state.fieldErrors.description ? true : undefined}
-          className="w-full resize-y rounded-lg border border-border-soft bg-surface px-3 py-2 text-[13px]
+          className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
                      leading-relaxed text-text focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
         />
       </Field>
@@ -135,7 +135,7 @@ export function ItemEditForm({
           name="priority"
           value={priority}
           onChange={(event) => setPriority(event.target.value)}
-          className="min-h-11 w-full rounded-lg border border-border-soft bg-surface px-3 text-[13.5px]
+          className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13.5px]
                      text-text focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
         >
           {PRIORITIES.map((value) => (
@@ -160,7 +160,7 @@ export function ItemEditForm({
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder="Clarified after the stakeholder call"
-          className="min-h-11 w-full rounded-lg border border-border-soft bg-surface px-3 text-[13px]
+          className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px]
                      text-text placeholder:text-text-faint focus:border-accent focus:outline-none
                      focus:ring-2 focus:ring-accent/25"
         />
@@ -174,7 +174,7 @@ export function ItemEditForm({
             onDirtyChange(false);
             onDone();
           }}
-          className="min-h-11 rounded-lg px-3 text-sm text-text-muted transition-colors duration-150 hover:text-text"
+          className="min-h-11 rounded-[var(--radius-card)] px-3 text-sm text-text-muted transition-colors duration-150 hover:text-text"
         >
           Cancel
         </button>
@@ -195,7 +195,7 @@ function SaveButton() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="min-h-11 rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent
+      className="min-h-11 rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent
                  transition-colors duration-150 hover:bg-accent-hover
                  disabled:cursor-not-allowed disabled:opacity-60"
     >

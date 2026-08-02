@@ -86,7 +86,7 @@ export function SourcePanel({
       </PanelHeader>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border-soft px-4 py-2">
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
           <span aria-hidden="true" className="text-text-faint">
             ⌕
           </span>
@@ -175,7 +175,7 @@ function NavButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="grid size-9 place-items-center rounded-lg border border-border-soft bg-surface text-text-muted
+      className="grid size-9 place-items-center rounded-[var(--radius-card)] border border-border-soft bg-surface text-text-muted
                  transition-colors duration-150 hover:bg-surface-hover hover:text-text
                  disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface"
     >

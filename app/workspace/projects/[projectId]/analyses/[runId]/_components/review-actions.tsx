@@ -140,7 +140,7 @@ export function ReviewActions({
           <button
             type="button"
             onClick={onShowHistory}
-            className="min-h-11 rounded-lg border border-border-soft px-3 text-[13px] text-text-muted
+            className="min-h-11 rounded-[var(--radius-card)] border border-border-soft px-3 text-[13px] text-text-muted
                        transition-colors duration-150 hover:bg-surface-hover hover:text-text"
           >
             View history
@@ -149,7 +149,7 @@ export function ReviewActions({
             <button
               type="button"
               onClick={() => setRaisingChangeRequest(true)}
-              className="min-h-11 rounded-lg border border-border-soft bg-surface px-3 text-[13px] font-medium
+              className="min-h-11 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px] font-medium
                          text-text transition-colors duration-150 hover:bg-surface-hover"
             >
               Raise a change request
@@ -182,7 +182,7 @@ export function ReviewActions({
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
         >
           {state.error}
         </p>
@@ -190,7 +190,7 @@ export function ReviewActions({
       {state.ok && state.message ? (
         <p
           role="status"
-          className="rounded-lg border border-ok-border bg-ok-soft px-3 py-2 text-[12.5px] leading-relaxed text-ok"
+          className="rounded-[var(--radius-card)] border border-ok-border bg-ok-soft px-3 py-2 text-[12.5px] leading-relaxed text-ok"
         >
           {state.message}
         </p>
@@ -201,7 +201,7 @@ export function ReviewActions({
           <button
             type="button"
             onClick={onEdit}
-            className="min-h-11 rounded-lg border border-border-soft bg-surface px-3 text-[13px] font-medium
+            className="min-h-11 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px] font-medium
                        text-text transition-colors duration-150 hover:bg-surface-hover"
           >
             Edit
@@ -211,7 +211,7 @@ export function ReviewActions({
               key={status}
               type="button"
               onClick={() => setPendingAction(status)}
-              className={`min-h-11 rounded-lg border px-3 text-[13px] font-medium transition-colors duration-150 ${
+              className={`min-h-11 rounded-[var(--radius-card)] border px-3 text-[13px] font-medium transition-colors duration-150 ${
                 status === "approved"
                   ? "border-ok-border bg-ok-soft text-ok hover:border-ok"
                   : status === "rejected"
@@ -277,7 +277,7 @@ export function ReviewActions({
                     ? "Why this requirement is not going forward"
                     : "What needs to be clarified, and with whom"
                 }
-                className="w-full resize-y rounded-lg border border-border-soft bg-surface px-3 py-2 text-[13px]
+                className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
                            leading-relaxed text-text placeholder:text-text-faint focus:border-accent
                            focus:outline-none focus:ring-2 focus:ring-accent/25"
               />
@@ -296,7 +296,7 @@ export function ReviewActions({
             <button
               type="button"
               onClick={() => setPendingAction(null)}
-              className="min-h-11 rounded-lg px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
+              className="min-h-11 rounded-[var(--radius-card)] px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
             >
               Cancel
             </button>
@@ -314,7 +314,7 @@ function ConfirmButton({ label, destructive }: { label: string; destructive: boo
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className={`min-h-11 rounded-lg px-4 text-[13px] font-semibold transition-colors duration-150
+      className={`min-h-11 rounded-[var(--radius-card)] px-4 text-[13px] font-semibold transition-colors duration-150
                   disabled:cursor-not-allowed disabled:opacity-60 ${
                     destructive
                       ? "border border-danger-border bg-danger-soft text-danger hover:border-danger"
@@ -328,7 +328,7 @@ function ConfirmButton({ label, destructive }: { label: string; destructive: boo
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rounded-lg border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
+    <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
       {children}
     </p>
   );
