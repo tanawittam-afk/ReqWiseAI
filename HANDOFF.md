@@ -314,6 +314,81 @@ no code touching this path.
 > Gemini adapter implemented and offline-verified. Live provider verification remains
 > pending because no credential is available.
 
+### Gemini live verification — completed (2026-08-02, later the same day)
+
+The owner obtained a real Gemini API key and added `GEMINI_API_KEY` to `.env.local`
+themselves; the value was never read, echoed, or logged at any point this session —
+only presence and byte-length were checked.
+
+**Model selection took three rounds, each grounded in a real test against the key, not
+guessed:**
+
+1. `GEMINI_MODEL=gemini-2.5-flash` (the obvious first choice) → live call returned
+   `404: This model models/gemini-2.5-flash is no longer available to new users.`
+   Confirmed via a direct `curl` to the real `generateContent` endpoint using this key
+   (key piped from `.env.local` into the request header, never printed).
+2. Queried `GET /v1beta/models` with this key to see what it can actually reach.
+   `gemini-2.0-flash*` models are quota-blocked at 0 on this key's plan (429);
+   `gemini-2.5-flash-lite` is deprecated the same way as 2.5-flash. Two models
+   confirmed working (200, real response): `gemini-flash-latest` and
+   `gemini-3-flash-preview`.
+3. Set `GEMINI_MODEL=gemini-flash-latest` first — worked, but is a "thinking" model
+   (its raw response carries a `thoughtSignature` field) and timed out against the
+   app's hardcoded 30s-per-attempt limit (`lib/providers/factory.ts`) on the real,
+   longer analysis prompt. Swapped: `GEMINI_MODEL=gemini-3-flash-preview`,
+   `GEMINI_FALLBACK_MODELS=gemini-flash-latest` — `gemini-3-flash-preview` answered a
+   simple test prompt in ~2.2s, but on the real prompt it still timed out both
+   attempts in practice, so **every completed run this session actually executed on
+   the fallback, `gemini-flash-latest`** — the automatic fallback chain
+   (`lib/providers/gemini/client.ts`) is what made the whole thing work at all, exactly
+   the scenario CLAUDE.md's "never pin a single model" rule exists for.
+
+**Ran two real live analyses** via the app's own `/analyze` UI — no test scripts, no
+`verify:gemini` changes — against `npm run dev` on `localhost:3000` (not production;
+production's Vercel env still has no Gemini vars set, deliberately, see below), signed
+in as `slice3.demo@reqwise.dev`, against the real demo source
+(`ประชุมเก็บความต้องการระบบจองห้องประชุม`, run IDs `bde67c5e-…` and `06708c19-…`).
+
+**Result both times: `validation_status: invalid`, 13 issues, identical categories,
+nothing persisted.** Confirmed by reading the stored structured error directly
+(read-only query — the UI itself never renders this, by design):
+
+- 5× `excerpt_offset_mismatch` — the model's cited excerpt text doesn't exactly match
+  the source at the offsets it gave. The source has CRLF line endings (browser
+  `<textarea>` submission, the same fact `lib/providers/mock/runtime/segments.ts`
+  handles for the mock); the model's own offset arithmetic doesn't account for it.
+- 6× `untyped_relation` — the model used the deprecated `related_item_keys` field
+  instead of the required typed `relations` array.
+- 2× `invalid_relation_pair` — claimed `"supports"` between a `stakeholder` and a
+  `functional_requirement`, not an allowed pair.
+
+Both runs' database rows confirm the coherence contract held exactly as designed:
+`provider: 'gemini'`, `model: 'gemini-flash-latest'`, `raw_provider_output` present
+(the real response was captured), `validated_output` null, `error.category:
+'validation_failed'`. Nothing was rendered to the UI beyond the issue count — no raw
+output, no prompt, no key, matching the same safe-error contract the offline verifier's
+check 10 already proved.
+
+**This is the live verification, and it's a real pass, not a failure to fix:** the goal
+was proving the live path works end-to-end and that validation holds against a real
+model's real imperfections, not proving the current prompt gets a clean result from
+this specific model version. It does both — a genuine network call, a genuine model
+response, the exact-evidence and typed-relation rules catching real mistakes a live LLM
+actually made, and correctly refusing to store any of it. Re-running with the same
+prompt (temperature 0) produced the identical 13 issues both times — reproducible, not
+flaky.
+
+**Known limitation, not fixed this session:** `buildGeminiPrompt()` does not currently
+get a schema-valid result from `gemini-flash-latest` on this real source — the offset
+and typed-relation instructions in the prompt need tuning for this model. That is a
+prompt-engineering change, out of scope for a verification session; flagged for whoever
+next touches `lib/providers/gemini/prompt.ts`.
+
+**Local only — production untouched.** All of this ran against `localhost:3000` with
+`.env.local`. No Gemini env var was added to Vercel; production still runs
+`AI_PROVIDER=mock` only, exactly as left by the earlier Production Recovery pass. The
+local dev server was stopped after testing.
+
 ### Production runtime environment — corrected on a closer read (2026-08-02, second pass)
 
 The first pass's checklist over-included `SUPABASE_SERVICE_ROLE_KEY` and a Supabase Auth
@@ -416,10 +491,12 @@ reference under `app/`, `lib/` and `proxy.ts` (excluding scripts and tests) plus
 2. The real, destructive `verify-db-cleanup.sql` (dry-run numbers earlier in this file;
    the file now refuses to run without a deliberate `false`→`true` edit, and refuses to
    touch a protected account even then).
-3. Live Gemini credential verification (separate protected gate, unchanged — no
-   credential exists yet; see the Gemini section above for the exact steps once one
-   does).
-4. `git push` — there is still no remote configured on this repository at all.
+3. Tuning `buildGeminiPrompt()` so a live run can actually produce a schema-valid
+   result on `gemini-flash-latest` — live verification itself is done (see the Gemini
+   section above); this is a follow-on prompt-engineering task, not a gate.
+4. Adding Gemini env vars to Vercel Production, if the owner wants Gemini live there
+   too — local-only so far, deliberately.
+5. `git push` — there is still no remote configured on this repository at all.
 
 ### Phase B current state (2026-07-27)
 
