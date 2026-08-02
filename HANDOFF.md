@@ -3,24 +3,49 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-02 (Production Recovery and Production Smoke Verification pass —
-**production is fixed and verified live.** The owner approved exactly four actions: set
-the two required Vercel Production env vars, deploy local HEAD, smoke-test, update this
-file. All four done, nothing else touched — no destructive cleanup, no auth-user
-deletion, no demo-project change, no Gemini credential, no git push, no
-`SUPABASE_SERVICE_ROLE_KEY` on Vercel. Same date, separately approved: the mislabeled
-demo project (`bb65eaa1-…`) is now **archived** — see below. See "RESUME HERE" below.)
+Last updated: 2026-08-02 (Tech design system, Phase 5 of 7 — **Analysis Workspace
+3-panel redesign committed**, `fd5a241`. Requirement rows and group headers got more
+breathing room (padding/gap only, no data removed); every remaining `rounded-lg` control
+in the workspace panel and its inspector-tab sub-forms (workflow actions, item edit,
+review actions, change-request form/tab) migrated to the `--radius-card` token used
+since Phase 2. No layout/grid changes, no touch to `workspace-view.ts` or the
+highlight/citation logic. `lint`/`tsc`/`build`/`test` (730 passed) all clean; browser
+sign-in verified light+dark against a real 12-item run — search, group-by, filter, row
+selection, source highlight sync, and inspector tab switch all still work. Figma is no
+longer used for this redesign (Starter-plan rate limit) — remaining phases (6: roll out
+to remaining pages, 7: docs) are designed directly in code. See "RESUME HERE" below.
+
+Earlier same-day entry, still true: Production Recovery and Production Smoke
+Verification pass — **production is fixed and verified live.** The owner approved
+exactly four actions: set the two required Vercel Production env vars, deploy local
+HEAD, smoke-test, update this file. All four done, nothing else touched — no destructive
+cleanup, no auth-user deletion, no demo-project change, no Gemini credential, no git
+push, no `SUPABASE_SERVICE_ROLE_KEY` on Vercel. Same date, separately approved: the
+mislabeled demo project (`bb65eaa1-…`) is now **archived** — see below.)
 
 ---
 
 ## ▶️ RESUME HERE
 
 **Where you are:** `C:/Users/User/Desktop/Claude Code/ReqWiseAI`, branch `main`, HEAD
-`4fb1d0f`. This is the **only** worktree — the `reqwise-ai` branch and the
+`fd5a241`. This is the **only** worktree — the `reqwise-ai` branch and the
 `ReqWiseAI-worktree`/`ReqWiseAIwithCodex` paths this file used to point at no longer
 exist on disk (a same-named, non-git copy of the latter is still sitting on disk from an
 old Codex session; it is not this repo and was not touched). Don't go looking for either;
 build here, on `main`.
+
+- **🚧 Tech design system redesign, in progress — Phase 5 of 7 done.** Plan lives at
+  `C:\Users\User\.claude\plans\reqwise-ai-validated-quasar.md` (has full context and
+  Phase 1-5 detail). Phases 1-4 (tokens+toggle `a9a2aa8`, sidebar/nav `0b9a6fe`,
+  new-project form `e73b157`) and Phase 5 (Analysis Workspace `fd5a241`) are done and
+  browser-verified light+dark. **Next: Phase 6** — roll the same tokens/patterns out to
+  the pages not yet touched (sign-in/up, projects list, exports, traceability), then
+  **Phase 7** — rewrite `docs/design/INTERFACE.md` and `CLAUDE.md`'s "Design direction"
+  section to describe the new system instead of the old
+  "Requirements Intelligence Workspace" one. Figma is **not** used for this anymore
+  (Starter-plan MCP rate limit) — design happens directly in code, informed by the
+  language established in Phases 2-4 (flat `bg-accent-soft`/`text-accent` selection, no
+  shadow/ring; `--radius-card`/`--radius-panel`; hairline borders; mono for IDs/data).
 
 - **✅ Production is fixed and verified live (2026-08-02).** Root cause (recorded below,
   unchanged as history): `proxy.ts`'s middleware threw `Error: Your project's URL and Key
