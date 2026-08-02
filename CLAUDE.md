@@ -18,7 +18,7 @@ the BA thinking visible.
 
 ---
 
-## Core product principle
+## Core product principle-
 
 **The AI assists the Business Analyst. It never decides.** Every rule below follows from
 this — if a change would weaken it, stop and ask.
