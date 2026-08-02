@@ -3,26 +3,55 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-07-30 (Change-request slice — schema live on the hosted project,
-`verify:change-requests` 13/13, `verify:review` 30/30, `verify:analysis` green,
-typecheck/lint/build clean, 726/726 unit tests, browser-verified end to end. Ready to
-commit and deploy.)
+Last updated: 2026-08-02 (Operational closure pass — change-request feature confirmed
+**already committed** at `d599891`, full verification suite re-run against the live
+project, and a **live production incident found and reported, not fixed**: the Vercel
+deployment at that same commit has been crashing on every request since 2026-07-30
+because its project-level env vars were never set. See "RESUME HERE" below before doing
+anything else.)
 
 ---
 
 ## ▶️ RESUME HERE
 
-**Where you are:** `C:/Users/User/Desktop/Claude Code/ReqWiseAI`, branch `main`. This is
-now the **only** worktree — the `reqwise-ai` branch and the
+**Where you are:** `C:/Users/User/Desktop/Claude Code/ReqWiseAI`, branch `main`, HEAD
+`d599891`. This is the **only** worktree — the `reqwise-ai` branch and the
 `ReqWiseAI-worktree`/`ReqWiseAIwithCodex` paths this file used to point at no longer
-exist on disk. Don't go looking for them; build here, on `main`.
+exist on disk (a same-named, non-git copy of the latter is still sitting on disk from an
+old Codex session; it is not this repo and was not touched). Don't go looking for either;
+build here, on `main`.
 
-- **Change-request feature is complete and uncommitted.** A reviewer can now propose a
-  fix against an already-`approved`/`rejected` requirement without reopening it —
-  `open_change_request` / `resolve_change_request` / `withdraw_change_request`, a new
-  "Change requests" inspector tab, and a "Raise a change request" action on read-only
-  items. Code, migrations and docs are all sitting in the working tree; nothing has been
-  staged. Confirm with the owner before committing.
+- **🔴 Production is live but broken — highest priority.** A Vercel deployment already
+  exists (`dpl_Dxgos3hUqvSykkSAqYgJKiGzRtNP`, project `reqwise-ai` /
+  `prj_tFsNGSZefcDwm2s6nUTHu0ZWuwUn`), built from this exact commit (`d599891`), aliased
+  to `reqwise-ai.vercel.app` and two team subdomains, `readyState: READY`, `target:
+  production`. It was deployed by an earlier Claude Code session on 2026-07-30 — this
+  session did not deploy anything and did not change any Vercel configuration.
+  **`proxy.ts` (the middleware, which runs on every request) throws on every single
+  request**: `Error: Your project's URL and Key are required to create a Supabase
+  client!` — `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` were never set
+  on the Vercel project. Confirmed via `get_runtime_errors`: 9 occurrences, 5 distinct
+  users, first seen 2026-07-30T08:45:30Z, **last seen 2026-08-02T07:29:58Z — today,
+  ongoing**. The fix is two steps, both **owner-approval-gated, not done this session**:
+  (1) set the four required env vars (see "Required Vercel environment variables" below)
+  on the Vercel project — dashboard or `vercel env add`, and (2) trigger a new deployment
+  (`NEXT_PUBLIC_*` values are inlined at build time, so setting them alone does not fix
+  an already-built deployment).
+- **Change-request feature is complete and already committed — not a pending action.**
+  A reviewer can now propose a fix against an already-`approved`/`rejected` requirement
+  without reopening it — `open_change_request` / `resolve_change_request` /
+  `withdraw_change_request`, a new "Change requests" inspector tab, and a "Raise a change
+  request" action on read-only items. Commit `d599891`
+  (`feat(reqwise): change requests against approved/rejected requirements`). This
+  session re-reviewed the migration/RPC/contract/service/UI diff line by line against the
+  required rules (approved/rejected item content never moves its `status`; a change
+  request is a new object with its own append-only audit trail; actor always from
+  `auth.uid()`; archived-project, cross-tenant and cross-project writes refused; a
+  partial unique index plus an explicit RPC check enforce one-pending-per-item; direct
+  status mutation refused even for the service role; `verify:change-requests` 13/13
+  against the live database) and found nothing to change. The stale wording that used to
+  sit here ("complete and uncommitted... confirm before committing") described a
+  pre-commit state from a prior session; it has been corrected.
 - **What last night's "Internal Server Error" actually was: inconclusive, and probably
   not an app bug.** The obvious suspect — the three new
   `supabase/migrations/20260727000021-23_*.sql` files never having been pushed — turned
@@ -58,15 +87,176 @@ exist on disk. Don't go looking for them; build here, on `main`.
     the manifest (unrelated to the deletion — that row's own project has just had
     ordinary activity, including this session's own verify runs, since the manifest was
     last generated on 2026-07-27).
-  - Running `verify-db-cleanup.sql` again after `verify:change-requests`/`verify:review`
-    is still owed — this session left its own fresh fixture rows behind; ask before
-    running it, same as before.
+  - Running `verify-db-cleanup.sql` (the real, destructive one) is still owed — every
+    verify session since then, including this one, has left fresh fixture rows behind.
+    **A dry-run was run again today (2026-08-02)** — see "Verification cleanup dry-run
+    (2026-08-02)" below for the current counts. Ask before running the destructive
+    version, same as before.
+- **`verify:analysis` fails again as of today, expectedly — this is not a change-request
+  regression.** Running `verify:db` / `verify:sources` (as this session's full
+  verification pass required) each insert one more minimal `analysis_runs` fixture row
+  (`validation_status: 'valid'`, no `raw_provider_output`) to test revision-locking —
+  the exact shape the 15+15 legacy-fixture groups above used to grandfather, before the
+  data-loss cleanup removed those groups from the manifest and left only the one
+  `unknown` row. With no fixture groups left to absorb them, **every future run of
+  `verify:db` or `verify:sources` will always produce new `unexpected-invalid` rows and
+  fail `verify:analysis`** until someone either re-runs the forensics + expands the
+  manifest (sensitive, given the prior data-loss incident — do not do this without
+  explicit approval) or stops running those two scripts before `verify:analysis`. Today's
+  two new IDs: `611990cd-62a7-411a-a2bd-68ccbcce3bc9` (from `verify:db`),
+  `bd3cb05f-6015-4bd0-ae83-8ebf4ceecbce` (from `verify:sources`). Not fixed this session
+  — flagged for the owner.
+- **The cleanup script has never learned the change-request fixture naming.**
+  `scripts/verify-db-cleanup(-dryrun).sql`'s `account_patterns` / `project_patterns`
+  cover `verify-db`, `-sources`, `-analysis`, `-review`, `-wf`, `-tr`, `-export`, but not
+  `verify-change-requests.mts`'s own accounts (`reqwise-cr-a-*@example.com` /
+  `reqwise-cr-b-*@example.com`) or projects (`Change request verification …`, `Archived
+  CR project …`, `Outsider CR project …`, `Second CR project …`). Every one of the four
+  `verify:change-requests` runs to date (across sessions) is sitting in the `preserved`
+  bucket of the dry-run, not `would_delete` — 8 accounts, 20 projects as of today, and it
+  grows by one more set every time the script runs. Not fixed this session (widening the
+  cleanup patterns is exactly the kind of change that caused the earlier data loss when
+  it was done carelessly) — flagged for the owner to fix deliberately, with its own
+  dry-run review, the next time the script is touched.
 - **Supabase CLI is now authenticated on this machine** (`npx supabase login`, browser
   OAuth) and the project is linked (`npx supabase link --project-ref
   rgfwtflsvnlgfiuoxowm`). `npx supabase migration list` / `db push --dry-run` both work
   without further setup.
-- **Deploy to Vercel is the next step**, requested by the owner this session — see
-  "Vercel deploy" below for status once attempted.
+- **Vercel deploy already happened (2026-07-30) — see the production-incident bullet at
+  the top of this section.** The next action is not "deploy," it is "fix the env vars
+  and redeploy."
+
+## Operational closure pass (2026-08-02)
+
+Full verification sweep at HEAD `d599891`, no code changes, nothing pushed or deployed.
+
+**Static checks:** `npm run typecheck` clean · `npm run lint` clean (1 pre-existing
+warning, `lib/analysis/legacy-verifier.ts:201`, unrelated to change requests) ·
+`npm test` **726/726** · `npm run build` clean, all 18 routes compiled.
+
+**Runtime verification against the live project** (`rgfwtflsvnlgfiuoxowm`):
+
+| Script | Result |
+|---|---|
+| `verify:db` | 8/8 |
+| `verify:projects` | 10/10 |
+| `verify:sources` | 18/18 |
+| `verify:analysis` | **FAILED — expected, see the dedicated bullet above; not a regression** |
+| `verify:review` | 30/30 |
+| `verify:workflow` | 32/32 |
+| `verify:traceability` | 22/22 |
+| `verify:export` | 26/26 |
+| `verify:change-requests` | 13/13 |
+| `verify:gemini` (offline) | 10/10 |
+
+All 22 migrations remain local = remote (`supabase migration list`). No dev server or
+stray ReqWise process was running before this session started; the two `node.exe`
+processes found were an unrelated Firebase MCP server.
+
+### Verification cleanup dry-run (2026-08-02)
+
+`scripts/verify-db-cleanup-dryrun.sql` (read-only, nothing executed):
+
+| Table | Would delete |
+|---|---|
+| `auth.users` | 16 |
+| `projects` | 24 |
+| `source_documents` | 20 |
+| `analysis_runs` | 19 |
+| `analysis_items` | 88 |
+| `item_source_references` | 7 |
+| `item_relations` | 22 |
+| `item_versions` | 11 |
+| `review_activities` | 60 |
+| `organizations` (orphaned personal) | 16 |
+
+**Preserved:** 10 `auth.users` (the 2 real demo accounts + **8 unrecognized
+`verify:change-requests` fixture accounts** — see the cleanup-script-gap bullet above),
+20 `projects` (the 2 real demo accounts' 4 projects + **16 unrecognized change-request
+fixture projects**).
+
+**Demo project requiring manual action** (flagged by the dry-run's `manual_review`
+bucket, cross-checked directly): only one of the four demo-account projects is not what
+its name claims —
+
+| Field | Value |
+|---|---|
+| Project name | `Archived traceability check — slice 6B` |
+| Project ID | `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe` |
+| Current status | `active` (not archived, despite the name) |
+| Owner | `slice3.demo@reqwise.dev` (real demo account) |
+| Recommended action | Archive it by hand (`archive_project()` as that user, with a
+reason) or rename it, before using this account in a demo. Not done this session — the
+cleanup script deliberately never reaches into demo accounts, and this session didn't
+either. |
+
+The other three demo projects (`Smart Space booking — discovery notes`, `Smart Space
+intake — slice 3`, `Walk-in check-in flow`) are correctly named and `active`; no action
+needed.
+
+### Gemini live verification (2026-08-02)
+
+`GEMINI_API_KEY` absent from `.env.local` (checked for presence only, value never read
+or logged). No account or key was created. `npm run verify:gemini` (offline, mocked
+transport, no network call) still passes 10/10.
+
+> Gemini adapter implemented and offline-verified. Live provider verification remains
+> pending because no credential is available.
+
+### Deployment readiness (2026-08-02)
+
+- **Vercel project:** `reqwise-ai` (`prj_tFsNGSZefcDwm2s6nUTHu0ZWuwUn`, team
+  `team_YEqRT8Fb2zsNEQmBYKrrWLLe`), already linked (`.vercel/project.json`), Node 24.x,
+  framework auto-detected as Next.js.
+- **Latest deployment:** `dpl_Dxgos3hUqvSykkSAqYgJKiGzRtNP`, commit `d599891`, `main`,
+  `readyState: READY`, `target: production`, aliased to `reqwise-ai.vercel.app` +
+  2 team subdomains. **Broken — see the production-incident bullet at the top of this
+  file.**
+- **Required Vercel environment variables** (Production, and Preview if previews should
+  work too) — **none of these are confirmed set; the middleware crash proves at least
+  the first two are missing**:
+  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — browser-safe, read by
+    `proxy.ts` and every Supabase client. Missing today; this is the live bug.
+  - `SUPABASE_SERVICE_ROLE_KEY` — server-only, used by seeding and the verify scripts;
+    the app itself no longer needs it for the analysis path (Slice 4+), but keep it set
+    for parity with local dev.
+  - `AI_PROVIDER` — set to `mock` unless Gemini is intentionally going live.
+- **Optional:** `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS` (only if
+  `AI_PROVIDER=gemini`), `APPLICATION_URL` (defaults assumed if unset — confirm what the
+  app actually does without it before relying on that).
+- **Supabase Auth redirect URLs:** the Supabase project's Auth → URL Configuration needs
+  the production origin (`https://reqwise-ai.vercel.app`, plus any custom domain) added
+  to the allowed redirect list, or sign-in/sign-up will fail post-fix even after the env
+  vars are set. Not verified this session — no browser check was run against production
+  (the app is currently down at the middleware layer, so a browser check would not have
+  been meaningful).
+- **Security posture already in code, verified by reading, not by re-deriving:**
+  export download route (`app/workspace/projects/[projectId]/exports/download/[format]/route.ts`)
+  sets `Cache-Control: no-store, max-age=0, must-revalidate`, `X-Content-Type-Options:
+  nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`, and
+  `Content-Disposition: attachment`; the print route lives under the same `/workspace`
+  prefix `proxy.ts` protects, so it is not publicly reachable unauthenticated.
+  `NEXT_PUBLIC_` is used only for the two browser-safe Supabase values everywhere in the
+  repo (`grep`-checked) and no service-role or Gemini key string appears anywhere in the
+  built `.next/static` client bundle.
+- **Vercel deployment protection:** SSO protection is on for all deployments *except*
+  custom domains, meaning `reqwise-ai.vercel.app` (the production alias) is public and
+  preview URLs require team login — a reasonable default, unchanged this session.
+- **Migration state:** all 22 local migrations = remote (`supabase migration list`);
+  nothing to push.
+- **Demo data readiness:** see the manual-action table above — fix the one mislabeled
+  project before a live demo.
+
+**Owner's deployment checklist**, in order:
+1. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `AI_PROVIDER=mock` on the Vercel project (Production environment at minimum).
+2. Confirm the Supabase project's Auth redirect URLs include the production origin.
+3. Trigger a new deployment (env var changes do not retroactively fix an existing build).
+4. Smoke-test sign-in and one full source → analysis → review → export loop against the
+   live URL.
+5. Separately, decide whether to run the real `verify-db-cleanup.sql` (dry-run numbers
+   above), whether to widen its patterns to cover change-request fixtures, and whether to
+   archive/rename `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe`.
 
 ### Phase B current state (2026-07-27)
 
