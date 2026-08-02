@@ -29,7 +29,9 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
   return (
     <header className="screen-only sticky top-0 z-10 flex items-center gap-3 border-b border-border-soft bg-chrome/85 px-4 py-2.5 backdrop-blur-md sm:px-6">
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
-        <span className="hidden text-text-faint sm:inline">ReqWise AI</span>
+        <span className="hidden font-mono text-[11px] tracking-wide text-text-faint uppercase sm:inline">
+          ReqWise AI
+        </span>
         <span aria-hidden="true" className="hidden text-text-faint sm:inline">
           /
         </span>
@@ -41,17 +43,19 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
           type="button"
           disabled
           title="Search and command palette arrive with the analysis workspace"
-          className="hidden h-9 items-center gap-2 rounded-lg border border-border-soft bg-surface px-3 text-sm text-text-faint sm:flex"
+          className="hidden h-9 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-sm text-text-faint sm:flex"
         >
           <span aria-hidden="true">⌕</span>
           <span>Search</span>
-          <kbd className="ml-2 rounded border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px]">
+          <kbd className="ml-2 rounded-[calc(var(--radius-card)_-_1px)] border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px]">
             ⌘K
           </kbd>
         </button>
-        {/* Temporary home for Phase 2 (token + toggle infrastructure). Phase 3 moves
-            this into the redesigned sidebar per the approved Figma direction. */}
-        <ThemeToggle />
+        {/* Sidebar carries the toggle on desktop (md+); the sidebar collapses to a
+            horizontal strip below md with no room for it, so it lives here instead. */}
+        <div className="md:hidden">
+          <ThemeToggle compact />
+        </div>
         {children}
       </div>
     </header>

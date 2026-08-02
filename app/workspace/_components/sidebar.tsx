@@ -19,6 +19,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { ThemeToggle } from "./theme-toggle";
+
 type Item = {
   href: string;
   label: string;
@@ -66,19 +68,19 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
       <div className="flex items-center gap-2.5 px-4 py-3 md:px-3 md:py-4">
         <span
           aria-hidden="true"
-          className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent text-sm font-semibold text-on-accent"
+          className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-card)] bg-accent text-sm font-semibold text-on-accent"
         >
           R
         </span>
         <span className={`flex min-w-0 flex-col ${collapsed ? "md:hidden" : ""}`}>
-          <span className="truncate text-sm font-semibold text-text">ReqWise AI</span>
-          <span className="truncate text-xs text-text-faint">{workspaceName}</span>
+          <span className="truncate font-display text-sm font-bold text-text">ReqWise AI</span>
+          <span className="truncate font-mono text-[11px] text-text-faint">{workspaceName}</span>
         </span>
         <button
           type="button"
           onClick={() => setCollapsed((value) => !value)}
           aria-expanded={!collapsed}
-          className="ml-auto hidden size-8 shrink-0 place-items-center rounded-md text-text-faint
+          className="ml-auto hidden size-8 shrink-0 place-items-center rounded-[var(--radius-card)] text-text-faint
                      transition-colors hover:bg-chrome-hover hover:text-text md:grid"
         >
           <span aria-hidden="true">{collapsed ? "»" : "«"}</span>
@@ -92,7 +94,7 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
         {ITEMS.map((item) => {
           const active = isActive(item);
           const shared =
-            "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-colors min-h-11 md:min-h-0 md:py-2";
+            "flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-sm whitespace-nowrap transition-colors min-h-11 md:min-h-0 md:py-2";
 
           if (!item.ready) {
             return (
@@ -118,7 +120,7 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
                 aria-current={active ? "page" : undefined}
                 className={`${shared} ${
                   active
-                    ? "bg-surface font-medium text-text shadow-[0_1px_2px_rgba(27,26,24,0.06)] ring-1 ring-border-soft"
+                    ? "bg-accent-soft font-medium text-accent"
                     : "text-text-muted hover:bg-chrome-hover hover:text-text"
                 }`}
               >
@@ -131,6 +133,10 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
           );
         })}
       </ul>
+
+      <div className="hidden shrink-0 border-t border-border-soft p-2 md:flex md:justify-center">
+        <ThemeToggle compact={collapsed} />
+      </div>
     </nav>
   );
 }

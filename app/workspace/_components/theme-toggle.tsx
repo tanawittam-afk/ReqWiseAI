@@ -25,11 +25,18 @@ function apply(next: "light" | "dark") {
   }
 }
 
-export function ThemeToggle() {
+/**
+ * `compact` drops the text label and shrinks each option to a square icon button — for
+ * the sidebar's collapsed (icon-only) state, where the full pill does not fit.
+ */
+export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   return (
     <div
       aria-label="Color theme"
-      className="inline-flex items-center gap-0.5 rounded-lg bg-chrome-hover p-0.5"
+      className={
+        "inline-flex items-center gap-0.5 rounded-[var(--radius-card)] bg-chrome-hover p-0.5" +
+        (compact ? " flex-col" : "")
+      }
     >
       {(["light", "dark"] as const).map((option) => (
         <button
@@ -38,10 +45,14 @@ export function ThemeToggle() {
           data-theme-option={option}
           onClick={() => apply(option)}
           aria-label={`Switch to ${option} theme`}
-          className="theme-toggle-option flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-text-faint transition-colors hover:text-text-muted"
+          title={compact ? `Switch to ${option} theme` : undefined}
+          className={
+            "theme-toggle-option flex items-center justify-center gap-1.5 rounded-[calc(var(--radius-card)_-_1px)] text-xs font-medium text-text-faint transition-colors hover:text-text-muted " +
+            (compact ? "size-8" : "px-3 py-1.5")
+          }
         >
           <span aria-hidden="true">{option === "light" ? "☀" : "☾"}</span>
-          <span className="capitalize">{option}</span>
+          {!compact && <span className="capitalize">{option}</span>}
         </button>
       ))}
     </div>
