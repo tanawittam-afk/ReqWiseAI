@@ -3,12 +3,15 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-02 (Operational closure pass — change-request feature confirmed
-**already committed** at `d599891`, full verification suite re-run against the live
-project, and a **live production incident found and reported, not fixed**: the Vercel
-deployment at that same commit has been crashing on every request since 2026-07-30
-because its project-level env vars were never set. See "RESUME HERE" below before doing
-anything else.)
+Last updated: 2026-08-02 (Production Recovery and Verification Closure pass —
+`verify:analysis`'s structural failure is **fixed** (deterministic, ID-free fingerprint
+recognition; proven repeatable across two full fixture-minting sequences), the cleanup
+script now **recognizes change-request fixtures and refuses to touch unknown/protected
+rows** by construction, and the full runtime + static suite is green end to end. The
+**live production incident is still not fixed** — the Vercel deployment has been
+crashing on every request since 2026-07-30 because its project-level env vars were never
+set; that fix is owner-approval-gated and was only prepared as a checklist, not applied.
+See "RESUME HERE" below before doing anything else.)
 
 ---
 
@@ -88,36 +91,69 @@ build here, on `main`.
     ordinary activity, including this session's own verify runs, since the manifest was
     last generated on 2026-07-27).
   - Running `verify-db-cleanup.sql` (the real, destructive one) is still owed — every
-    verify session since then, including this one, has left fresh fixture rows behind.
-    **A dry-run was run again today (2026-08-02)** — see "Verification cleanup dry-run
-    (2026-08-02)" below for the current counts. Ask before running the destructive
-    version, same as before.
-- **`verify:analysis` fails again as of today, expectedly — this is not a change-request
-  regression.** Running `verify:db` / `verify:sources` (as this session's full
-  verification pass required) each insert one more minimal `analysis_runs` fixture row
-  (`validation_status: 'valid'`, no `raw_provider_output`) to test revision-locking —
-  the exact shape the 15+15 legacy-fixture groups above used to grandfather, before the
-  data-loss cleanup removed those groups from the manifest and left only the one
-  `unknown` row. With no fixture groups left to absorb them, **every future run of
-  `verify:db` or `verify:sources` will always produce new `unexpected-invalid` rows and
-  fail `verify:analysis`** until someone either re-runs the forensics + expands the
-  manifest (sensitive, given the prior data-loss incident — do not do this without
-  explicit approval) or stops running those two scripts before `verify:analysis`. Today's
-  two new IDs: `611990cd-62a7-411a-a2bd-68ccbcce3bc9` (from `verify:db`),
-  `bd3cb05f-6015-4bd0-ae83-8ebf4ceecbce` (from `verify:sources`). Not fixed this session
-  — flagged for the owner.
-- **The cleanup script has never learned the change-request fixture naming.**
-  `scripts/verify-db-cleanup(-dryrun).sql`'s `account_patterns` / `project_patterns`
-  cover `verify-db`, `-sources`, `-analysis`, `-review`, `-wf`, `-tr`, `-export`, but not
-  `verify-change-requests.mts`'s own accounts (`reqwise-cr-a-*@example.com` /
-  `reqwise-cr-b-*@example.com`) or projects (`Change request verification …`, `Archived
-  CR project …`, `Outsider CR project …`, `Second CR project …`). Every one of the four
-  `verify:change-requests` runs to date (across sessions) is sitting in the `preserved`
-  bucket of the dry-run, not `would_delete` — 8 accounts, 20 projects as of today, and it
-  grows by one more set every time the script runs. Not fixed this session (widening the
-  cleanup patterns is exactly the kind of change that caused the earlier data loss when
-  it was done carelessly) — flagged for the owner to fix deliberately, with its own
-  dry-run review, the next time the script is touched.
+    verify session leaves fresh fixture rows behind, by design (the immutability
+    triggers make it impossible for a script to clean up after itself). **Still not
+    executed** — only its dry-run has ever been run. See "Verification cleanup dry-run
+    (2026-08-02)" below for the current counts and the new safety gates.
+- **`verify:analysis`'s structural failure is fixed (2026-08-02) — see
+  `lib/analysis/legacy-verifier.ts`.** The read-only forensics SQL
+  (`scripts/forensics/legacy-analysis-runs-readonly.sql`) already computed a
+  deterministic, **ID-free** structural fingerprint for exactly this shape of row
+  (`verify_db_exact_fingerprint` / `verify_sources_exact_fingerprint`, ~15 structural
+  equalities each, exposed as `provenanceFingerprint: "verify-db-exact-v1" |
+  "verify-sources-exact-v1"`) — it had simply never been wired up on the TypeScript
+  side, which still demanded every row's exact ID be hand-entered in
+  `legacy-analysis-runs.json` before it would pass. `verifyLegacyInventory()` now trusts
+  that fingerprint for any row **not** already on the manifest: a row is
+  `known-legacy-fixture` if its `provenanceFingerprint` is one of the two recognized
+  values **and** its `classification`/`classificationConfidence` agree (defense in
+  depth against the SQL and the boolean ever disagreeing) — anything else still fails
+  closed as `unexpected-invalid`, unchanged. Nothing about `persist_analysis_result()`'s
+  coherence contract changed, no raw or validated output was fabricated, the one
+  `known-legacy-unknown` row (`08edaef7-…`) was never touched or retyped, and no
+  historical row was modified — this is a read-only classification change. Proven
+  repeatable this session: two full passes of `verify:db` → `verify:sources` →
+  `verify:analysis`, no DB reset between them, each pass minting two more fixture rows
+  with new random IDs — `verify:analysis` passed both times with `unexpected-invalid: 0`
+  and the fixture count growing on its own (4 → 6), no manifest edit. 4 new unit tests in
+  `tests/analysis/legacy-verifier.test.ts` cover the auto-recognition path directly,
+  including that a row merely *claiming* the fingerprint string without the matching
+  classification is still rejected. **Trade-off accepted:** classification for these two
+  known scripts no longer requires exact-ID review before being trusted — it trusts the
+  SQL's own ~15-condition structural proof instead. That SQL was already written and
+  already computing this; the only change is finally reading the field it produces.
+- **The cleanup script now recognizes change-request fixtures (2026-08-02) and gained
+  two new safety gates — see `scripts/verify-db-cleanup(-dryrun).sql`.** Added
+  `reqwise-cr-%@example.com` and the four `verify-change-requests.mts` project-name
+  prefixes (`Change request verification %`, `Archived CR project %`, `Outsider CR
+  project %`, `Second CR project %`) to both files' patterns — exact literal prefixes
+  read directly from the script's `emailA`/`emailB` and its four `newProject()` call
+  sites, not guessed. The dry-run confirmed exactly what the prior session's forensic
+  read had estimated: **8 accounts, 16 projects** (not 20 — the earlier estimate
+  included the 4 real demo projects, which were always separately preserved) now
+  correctly classified `would_delete` instead of silently accumulating in `preserved`
+  forever. Two things that did **not** exist before this session:
+  - **An `unknown` bucket in the dry-run** — any account or project matching neither a
+    recognized fixture pattern nor a known demo account. Confirmed **empty (0 accounts,
+    0 projects)** today, meaning every row in this project is accounted for. A non-empty
+    result in the future means a new `verify-*.mts` script needs a pattern added, or a
+    real unrecognized row exists — the file's own comment says not to fix that by
+    widening a pattern before finding out which.
+  - **A pre-flight refusal in the destructive file itself** — before any trigger is
+    disabled or any row deleted, a `DO` block computes the exact same doomed-users /
+    doomed-projects sets into temp tables and raises an exception if either the two
+    protected demo emails or a project they own appears in them — checked against the
+    demo emails by name, not re-derived from the patterns, so a bug in the patterns
+    cannot talk the check into agreeing with itself. On top of that, the file now
+    refuses to run at all (`if not (false) then raise exception`) until someone
+    deliberately edits that literal `false` to `true` immediately before running —
+    the exact failure mode from 2026-07-30 (a pattern too broad, run without a second
+    look) now requires an active, visible, one-line edit to reproduce, not just running
+    a filename. **Still not executed this session** — the dry-run (which needs no flag)
+    was run and reviewed; the destructive file was reviewed for correctness by structural
+    comparison to the now-validated dry-run query, not executed (the harness's own
+    permission classifier declined the attempt on sight of the filename, independently
+    of this instruction).
 - **Supabase CLI is now authenticated on this machine** (`npx supabase login`, browser
   OAuth) and the project is linked (`npx supabase link --project-ref
   rgfwtflsvnlgfiuoxowm`). `npx supabase migration list` / `db push --dry-run` both work
@@ -127,6 +163,14 @@ build here, on `main`.
   and redeploy."
 
 ## Operational closure pass (2026-08-02)
+
+Two passes this date. The **first** (below, unchanged as a historical record) found and
+reported the `verify:analysis` structural failure, the cleanup-script gap, and the live
+production incident, without fixing any of them. The **second — "Production Recovery and
+Verification Closure"** — fixed the first two (see the RESUME HERE bullets above) and
+re-verified the whole suite twice to prove repeatability; the production incident is
+still unfixed (owner-approval-gated) but its checklist below was corrected on a closer
+read of the actual runtime code.
 
 Full verification sweep at HEAD `d599891`, no code changes, nothing pushed or deployed.
 
@@ -141,7 +185,7 @@ warning, `lib/analysis/legacy-verifier.ts:201`, unrelated to change requests) ·
 | `verify:db` | 8/8 |
 | `verify:projects` | 10/10 |
 | `verify:sources` | 18/18 |
-| `verify:analysis` | **FAILED — expected, see the dedicated bullet above; not a regression** |
+| `verify:analysis` | **FAILED (first pass) — see the fix below; PASSED on every run since** |
 | `verify:review` | 30/30 |
 | `verify:workflow` | 32/32 |
 | `verify:traceability` | 22/22 |
@@ -153,55 +197,144 @@ All 22 migrations remain local = remote (`supabase migration list`). No dev serv
 stray ReqWise process was running before this session started; the two `node.exe`
 processes found were an unrelated Firebase MCP server.
 
-### Verification cleanup dry-run (2026-08-02)
+### Production Recovery and Verification Closure (2026-08-02, second pass)
 
-`scripts/verify-db-cleanup-dryrun.sql` (read-only, nothing executed):
+**`verify:analysis` fixed and proven repeatable.** Full detail in the RESUME HERE bullet
+above; summary here is the repeatability evidence. Two complete cycles, same session, no
+DB reset between them, HEAD unchanged at `d599891` until the fix commit:
+
+| Cycle | `verify:db` | `verify:sources` | `verify:analysis` immediately after |
+|---|---|---|---|
+| 1 (pre-fix) | 8/8, +1 fixture row | 18/18, +1 fixture row | **FAILED** — 2 `unexpected-invalid` |
+| 1 (post-fix, same rows) | — | — | **PASSED** — `known-legacy-fixture: 4`, `unexpected-invalid: 0` |
+| 2 | 8/8, +1 more fixture row | 18/18, +1 more fixture row | **PASSED** — `known-legacy-fixture: 6`, `unexpected-invalid: 0` |
+
+Every one of the 6 fixture rows (and the 1 preserved `known-legacy-unknown` row) was
+recognized without a single manifest edit — the fix is the point: the suite no longer
+needs `legacy-analysis-runs.json` touched every time `verify:db`/`verify:sources` run.
+`npm run verify:analysis` run a third time afterward, with no further fixture-minting in
+between, produced byte-identical `known-legacy-fixture`/`known-legacy-unknown`/
+`unexpected-invalid` counts — the classification is deterministic, not order- or
+timing-sensitive.
+
+**Cleanup script coverage — before/after this session:**
+
+| | Before | After |
+|---|---|---|
+| `verify:change-requests` accounts | 8, stuck in `preserved` forever | 8, now `would_delete` |
+| `verify:change-requests` projects | 16, stuck in `preserved` forever | 16, now `would_delete` |
+| `unknown` bucket | did not exist | exists, **confirmed empty** (0 accounts, 0 projects) |
+| Pre-flight protected-account/project check | did not exist | exists in the destructive file, runs before any trigger is touched |
+| Explicit destructive flag | filename was the only gate | filename **and** a literal `false`→`true` edit required in the same file |
+
+Full current dry-run table (`scripts/verify-db-cleanup-dryrun.sql`, read-only, nothing
+executed):
 
 | Table | Would delete |
 |---|---|
-| `auth.users` | 16 |
-| `projects` | 24 |
-| `source_documents` | 20 |
-| `analysis_runs` | 19 |
-| `analysis_items` | 88 |
+| `auth.users` | 24 |
+| `projects` | 40 |
+| `source_documents` | 32 |
+| `analysis_runs` | 31 |
+| `analysis_items` | 128 |
 | `item_source_references` | 7 |
 | `item_relations` | 22 |
-| `item_versions` | 11 |
-| `review_activities` | 60 |
-| `organizations` (orphaned personal) | 16 |
+| `item_versions` | 15 |
+| `review_activities` | 132 (32 of which are change-request activity) |
+| `change_requests` | 20 |
+| `organizations` (orphaned personal) | 24 |
 
-**Preserved:** 10 `auth.users` (the 2 real demo accounts + **8 unrecognized
-`verify:change-requests` fixture accounts** — see the cleanup-script-gap bullet above),
-20 `projects` (the 2 real demo accounts' 4 projects + **16 unrecognized change-request
-fixture projects**).
+**Preserved: exactly 2 `auth.users`, exactly 4 `projects`** — the two real demo accounts
+and their four projects, nothing else. **`unknown`: 0 accounts, 0 projects** — every row
+in this project is now either a recognized fixture or a known demo account.
 
-**Demo project requiring manual action** (flagged by the dry-run's `manual_review`
-bucket, cross-checked directly): only one of the four demo-account projects is not what
-its name claims —
+**Demo project review — read-only, not modified.** The ID in this session's brief had a
+typo (`bb65eaa1-sba-b3d4-fb7eb219c1fe`); the real one, unchanged from the prior report,
+is below.
 
 | Field | Value |
 |---|---|
-| Project name | `Archived traceability check — slice 6B` |
 | Project ID | `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe` |
-| Current status | `active` (not archived, despite the name) |
+| Project name | `Archived traceability check — slice 6B` |
+| Current status | `active` (contradicts the name) |
 | Owner | `slice3.demo@reqwise.dev` (real demo account) |
-| Recommended action | Archive it by hand (`archive_project()` as that user, with a
-reason) or rename it, before using this account in a demo. Not done this session — the
-cleanup script deliberately never reaches into demo accounts, and this session didn't
-either. |
+| Related data | 1 source document, 1 analysis run, **17 analysis items**, 0 change requests |
+| Referenced in browser verification docs? | **Yes** — `HANDOFF.md`'s slice 6B browser-verification record names it directly (*"a hand-made project … from the slice-6B browser check"*), with the same 17-item count confirmed live today |
+| Does the cleanup script treat it as protected? | **Yes**, in both the old and new dry-run — it is owned by a protected demo email, so it appears in `preserved`/`manual_review`, never in `would_delete`, regardless of its name |
 
-The other three demo projects (`Smart Space booking — discovery notes`, `Smart Space
-intake — slice 3`, `Walk-in check-in flow`) are correctly named and `active`; no action
-needed.
+**Recommendation: Archive without rename.** This is not a throwaway fixture — the 17
+items are real evidence that a human manually exercised the slice-6B traceability
+feature against an archived project, which is exactly what an "Archived traceability
+check" is for. Deleting it (option: delete as fixture) would destroy that evidence for
+no reason — it isn't cluttering any automated count, and the cleanup script already
+leaves it alone by design. Renaming is unnecessary: the name describes the project's
+*purpose*, and archiving is what makes the name accurate again, since archived-project
+data stays fully readable afterward (`verify:traceability` check 18 already proves this
+for exactly this shape of project). Preserving it as-is (no action) is what has already
+been happening and is the thing actually worth fixing — a demo walkthrough of this
+account would show a project that claims to be archived but accepts edits. **Not
+executed this session** — archiving requires calling `archive_project()` as
+`slice3.demo@reqwise.dev`, a write to a real account, outside this session's scope.
 
 ### Gemini live verification (2026-08-02)
 
 `GEMINI_API_KEY` absent from `.env.local` (checked for presence only, value never read
 or logged). No account or key was created. `npm run verify:gemini` (offline, mocked
-transport, no network call) still passes 10/10.
+transport, no network call) still passes 10/10 — confirmed again on the second pass with
+no code touching this path.
 
 > Gemini adapter implemented and offline-verified. Live provider verification remains
 > pending because no credential is available.
+
+### Production runtime environment — corrected on a closer read (2026-08-02, second pass)
+
+The first pass's checklist over-included `SUPABASE_SERVICE_ROLE_KEY` and a Supabase Auth
+redirect requirement without checking whether the running app's own code actually needs
+either. It does not, on both counts — corrected here by grepping every `process.env.*`
+reference under `app/`, `lib/` and `proxy.ts` (excluding scripts and tests) plus reading
+`lib/config/env.ts` in full:
+
+- **Required, browser-safe:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  — read directly by `proxy.ts` (with a non-null `!` assertion, which is exactly why an
+  unset value throws instead of degrading) and by `lib/supabase/env.ts` /
+  `lib/config/env.ts`'s `readServerEnvironment()`, which throws
+  `Missing required environment variable` if either is blank. **Confirmed missing in
+  production; this is the whole incident.**
+- **`SUPABASE_SERVICE_ROLE_KEY` is *not* required on Vercel.** `lib/supabase/admin.ts` is
+  the only file that reads it, and grepping every non-test file under `app/` and `lib/`
+  for an import of `supabase/admin` returns **zero results** — nothing in the deployed
+  app imports it. It exists only for `scripts/*.mts` (seeding, the nine verify scripts),
+  all of which run from a developer machine via the Supabase CLI, never inside the
+  Vercel deployment. CLAUDE.md already says this in words ("Since Slice 4, the analysis
+  run path does NOT use this key"); this session confirmed it by import graph, not by
+  re-reading the comment. Setting it on Vercel would not be wrong, just unnecessary —
+  the prior checklist's "keep it set for parity with local dev" was an unverified
+  assumption and is retracted.
+- **Optional, server-only, all with safe defaults if unset** (`readServerEnvironment()`
+  never throws for any of these): `AI_PROVIDER` (defaults to `mock`), `GEMINI_API_KEY` /
+  `GEMINI_MODEL` / `GEMINI_FALLBACK_MODELS` (Gemini simply reports `available: false` and
+  the UI shows the already-verified "Gemini is not available in this workspace" state —
+  see the 2026-07-30 browser verification entry below), `APPLICATION_URL` (`null` if
+  unset, read but never dereferenced in a way that throws).
+- **No Supabase Auth redirect URL requirement.** Grepped for `redirectTo` /
+  `emailRedirectTo` across `app/` and `lib/` — zero matches. `app/auth/actions.ts` calls
+  `supabase.auth.signInWithPassword()` and a plain `supabase.auth.signUp()` with no
+  redirect option; there is no OAuth, no magic link, and no `/auth/callback` route in the
+  app. The prior checklist's redirect-URL step was carried over from a generic Supabase
+  checklist without checking which auth method this app actually uses — retracted as a
+  *required* step. **One related item that was not verified and is not retracted:** if
+  the Supabase project's Auth → URL Configuration "Site URL" is still `localhost:3000`
+  (the local-dev default), a real user's sign-up confirmation email (if email
+  confirmation is enabled on the Supabase project — not checked this session, requires
+  reading the Supabase dashboard, not the code) would link back to localhost. Worth a
+  five-minute dashboard check before the first real external sign-up, but it is not
+  what is breaking the site today, and it is not the same thing as a redirect allow-list.
+- **Build behavior matches the observed incident exactly.** None of the 18 routes are
+  statically prerendered against Supabase (all marked `ƒ` dynamic except `/` and
+  `/_not-found`), so `next build` never touches `NEXT_PUBLIC_SUPABASE_URL` at build time
+  — consistent with the deployment's own `readyState: READY` (the build succeeded) next
+  to `get_runtime_errors` showing the middleware throwing on every request (the
+  *runtime*, not the build, is where the missing values bite).
 
 ### Deployment readiness (2026-08-02)
 
@@ -213,23 +346,17 @@ transport, no network call) still passes 10/10.
   2 team subdomains. **Broken — see the production-incident bullet at the top of this
   file.**
 - **Required Vercel environment variables** (Production, and Preview if previews should
-  work too) — **none of these are confirmed set; the middleware crash proves at least
-  the first two are missing**:
-  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — browser-safe, read by
-    `proxy.ts` and every Supabase client. Missing today; this is the live bug.
-  - `SUPABASE_SERVICE_ROLE_KEY` — server-only, used by seeding and the verify scripts;
-    the app itself no longer needs it for the analysis path (Slice 4+), but keep it set
-    for parity with local dev.
-  - `AI_PROVIDER` — set to `mock` unless Gemini is intentionally going live.
+  work too) — see "Production runtime environment" above for how each was derived:
+  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — **required**, missing
+    today, this is the live bug.
+  - `AI_PROVIDER=mock` — not strictly required (defaults to `mock`), setting it
+    explicitly just makes the choice visible in the Vercel dashboard.
+  - `SUPABASE_SERVICE_ROLE_KEY` — **not required**; nothing deployed imports it.
 - **Optional:** `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS` (only if
-  `AI_PROVIDER=gemini`), `APPLICATION_URL` (defaults assumed if unset — confirm what the
-  app actually does without it before relying on that).
-- **Supabase Auth redirect URLs:** the Supabase project's Auth → URL Configuration needs
-  the production origin (`https://reqwise-ai.vercel.app`, plus any custom domain) added
-  to the allowed redirect list, or sign-in/sign-up will fail post-fix even after the env
-  vars are set. Not verified this session — no browser check was run against production
-  (the app is currently down at the middleware layer, so a browser check would not have
-  been meaningful).
+  `AI_PROVIDER=gemini` is intentionally going live), `APPLICATION_URL`.
+- **Supabase Auth:** no redirect URL change required for the app's actual auth method
+  (password-based, no OAuth, no magic link — see above). Optionally check the dashboard's
+  Site URL before the first real sign-up, unrelated to today's incident.
 - **Security posture already in code, verified by reading, not by re-deriving:**
   export download route (`app/workspace/projects/[projectId]/exports/download/[format]/route.ts`)
   sets `Cache-Control: no-store, max-age=0, must-revalidate`, `X-Content-Type-Options:
@@ -244,19 +371,20 @@ transport, no network call) still passes 10/10.
   preview URLs require team login — a reasonable default, unchanged this session.
 - **Migration state:** all 22 local migrations = remote (`supabase migration list`);
   nothing to push.
-- **Demo data readiness:** see the manual-action table above — fix the one mislabeled
-  project before a live demo.
+- **Demo data readiness:** see the demo-project-review table above — archive the one
+  mislabeled project before a live demo (recommended, not executed).
 
 **Owner's deployment checklist**, in order:
-1. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
-   `AI_PROVIDER=mock` on the Vercel project (Production environment at minimum).
-2. Confirm the Supabase project's Auth redirect URLs include the production origin.
-3. Trigger a new deployment (env var changes do not retroactively fix an existing build).
-4. Smoke-test sign-in and one full source → analysis → review → export loop against the
+1. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` on the Vercel
+   project (Production environment at minimum; Preview too if preview deploys should
+   work). `SUPABASE_SERVICE_ROLE_KEY` is not needed there.
+2. Trigger a new deployment (env var changes do not retroactively fix an existing build).
+3. Smoke-test sign-in and one full source → analysis → review → export loop against the
    live URL.
-5. Separately, decide whether to run the real `verify-db-cleanup.sql` (dry-run numbers
-   above), whether to widen its patterns to cover change-request fixtures, and whether to
-   archive/rename `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe`.
+4. Separately: decide whether to run the real `verify-db-cleanup.sql` (dry-run numbers
+   above; it now refuses to run until its `false`→`true` flag is edited, and refuses to
+   touch a protected account even then), and whether to archive
+   `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe`.
 
 ### Phase B current state (2026-07-27)
 

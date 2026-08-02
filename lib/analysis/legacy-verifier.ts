@@ -209,6 +209,37 @@ function sameFingerprint(
   return JSON.stringify(expected) === JSON.stringify(actual);
 }
 
+/**
+ * `scripts/forensics/legacy-analysis-runs-readonly.sql` already computes these two
+ * booleans itself (`verify_db_exact_fingerprint` / `verify_sources_exact_fingerprint`)
+ * from ~15 structural equalities per script — exact project name, exact source title,
+ * exact mock/schema/lang metadata, null payload shape, exact item/version/review-
+ * transition counts for verify-db.mts, and exact project-local isolation (the run is
+ * the project's only run, the project's only downstream rows are this run's own) for
+ * verify-sources.mts — and reports the result as `provenanceFingerprint`. Every one of
+ * those conditions is already proven safe by the SQL that only reads structural shape,
+ * never content; nothing here re-derives them from row content.
+ *
+ * A row carrying one of these two values needs no manifest entry to be recognized as a
+ * known verification fixture — which is what makes `verify:db` / `verify:sources`
+ * repeatable: each run mints one new fixture row with a new ID, and this classifies it
+ * without anyone updating a manifest by hand. Contrast the one `known-legacy-unknown`
+ * row, whose provenance was never proven (`preserved-unknown-exact-v1`) and which stays
+ * on the manifest's exact-ID allowlist for that reason.
+ */
+const AUTO_RECOGNIZED_FIXTURE_PROVENANCE = new Set([
+  "verify-db-exact-v1",
+  "verify-sources-exact-v1",
+]);
+
+function isAutoRecognizedFixture(row: z.infer<typeof inventoryRowSchema>): boolean {
+  return (
+    AUTO_RECOGNIZED_FIXTURE_PROVENANCE.has(row.provenanceFingerprint) &&
+    row.classification === "Verification/Test Data" &&
+    row.classificationConfidence === "high"
+  );
+}
+
 export function verifyLegacyInventory(
   mode: VerifierMode,
   manifest: LegacyManifest,
@@ -264,31 +295,47 @@ export function verifyLegacyInventory(
 
   const actualIds = new Set(ids);
   const missingIds = [...expected.keys()].filter((id) => !actualIds.has(id));
-  const unexpectedIds = ids.filter((id) => !expected.has(id));
   if (missingIds.length > 0) {
     throw new Error(
       `Linked legacy inventory is missing ${missingIds.length} expected legacy row(s): ${missingIds.join(", ")}`,
     );
   }
-  if (unexpectedIds.length > 0) {
+
+  // A row absent from the manifest is not automatically unexpected: it may be a fresh
+  // verify-db.mts / verify-sources.mts fixture the read-only forensics SQL itself
+  // already recognized by structural fingerprint (see isAutoRecognizedFixture above).
+  // Only a row that is neither on the manifest nor auto-recognized fails closed.
+  const stillUnexpectedIds = ids.filter((id) => {
+    if (expected.has(id)) return false;
+    const row = inventory.incompatibleRows.find((r) => r.id === id);
+    return !row || !isAutoRecognizedFixture(row);
+  });
+  if (stillUnexpectedIds.length > 0) {
     throw new Error(
-      `Linked legacy inventory contains ${unexpectedIds.length} unexpected invalid row(s): ${unexpectedIds.join(", ")}`,
+      `Linked legacy inventory contains ${stillUnexpectedIds.length} unexpected invalid row(s): ${stillUnexpectedIds.join(", ")}`,
     );
   }
 
   const rows: LegacyInventoryResult["rows"] = [];
   for (const row of inventory.incompatibleRows) {
     const expectedRow = expected.get(row.id);
-    if (!expectedRow) {
+    if (expectedRow) {
+      const actualFingerprint = fingerprintOf(row);
+      if (!sameFingerprint(expectedRow.fingerprint, actualFingerprint)) {
+        throw new Error(
+          `Safe fingerprint mismatch or downstream drift for legacy row ${row.id}.`,
+        );
+      }
+      rows.push({ id: row.id, outcome: expectedRow.outcome });
+      continue;
+    }
+
+    if (!isAutoRecognizedFixture(row)) {
+      // Unreachable: stillUnexpectedIds above already fails closed on this row. Kept
+      // as a second gate so a future edit to one check alone cannot silently open it.
       throw new Error(`Unexpected invalid row ${row.id}.`);
     }
-    const actualFingerprint = fingerprintOf(row);
-    if (!sameFingerprint(expectedRow.fingerprint, actualFingerprint)) {
-      throw new Error(
-        `Safe fingerprint mismatch or downstream drift for legacy row ${row.id}.`,
-      );
-    }
-    rows.push({ id: row.id, outcome: expectedRow.outcome });
+    rows.push({ id: row.id, outcome: "known-legacy-fixture" });
   }
 
   const fixtureCount = rows.filter(

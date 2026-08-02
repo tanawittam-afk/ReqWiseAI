@@ -296,6 +296,65 @@ describe("legacy analysis-run verifier", () => {
     expect(() => verifyLinked(input)).toThrow(/unexpected|invalid/i);
   });
 
+  it("auto-recognizes a fresh verify-db.mts fixture absent from the manifest by its structural provenance fingerprint", () => {
+    const input = linkedInventory();
+    input.totalRunCount += 1;
+    input.incompatibleRows.push(
+      ...rowsFor([EXTRA_INVALID_ID], {
+        ...structuredClone(DB_FINGERPRINT),
+        provenanceFingerprint: "verify-db-exact-v1",
+      }),
+    );
+
+    const result = verifyLinked(input);
+
+    expect(
+      result.rows.find((row) => row.id === EXTRA_INVALID_ID),
+    ).toMatchObject({ id: EXTRA_INVALID_ID, outcome: "known-legacy-fixture" });
+    expect(result.outcomeCounts["known-legacy-fixture"]).toBe(31);
+  });
+
+  it("auto-recognizes a fresh verify-sources.mts fixture absent from the manifest by its structural provenance fingerprint", () => {
+    const input = linkedInventory();
+    input.totalRunCount += 1;
+    input.incompatibleRows.push(
+      ...rowsFor([EXTRA_INVALID_ID], {
+        ...structuredClone(SOURCE_FINGERPRINT),
+        provenanceFingerprint: "verify-sources-exact-v1",
+      }),
+    );
+
+    const result = verifyLinked(input);
+
+    expect(
+      result.rows.find((row) => row.id === EXTRA_INVALID_ID),
+    ).toMatchObject({ id: EXTRA_INVALID_ID, outcome: "known-legacy-fixture" });
+    expect(result.outcomeCounts["known-legacy-fixture"]).toBe(31);
+  });
+
+  it("does not auto-recognize a row merely claiming a fixture provenance string without the matching classification", () => {
+    const input = linkedInventory();
+    input.totalRunCount += 1;
+    input.incompatibleRows.push(
+      ...rowsFor([EXTRA_INVALID_ID], {
+        ...structuredClone(UNKNOWN_FINGERPRINT),
+        provenanceFingerprint: "verify-db-exact-v1",
+      }),
+    );
+
+    expect(() => verifyLinked(input)).toThrow(/unexpected|invalid/i);
+  });
+
+  it("does not auto-recognize an absent row whose provenance fingerprint is the preserved-unknown shape", () => {
+    const input = linkedInventory();
+    input.totalRunCount += 1;
+    input.incompatibleRows.push(
+      ...rowsFor([EXTRA_INVALID_ID], UNKNOWN_FINGERPRINT),
+    );
+
+    expect(() => verifyLinked(input)).toThrow(/unexpected|invalid/i);
+  });
+
   it("rejects a linked inventory that omits an expected legacy row", () => {
     const input = linkedInventory();
     input.totalRunCount -= 1;
