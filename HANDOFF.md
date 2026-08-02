@@ -3,43 +3,60 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-02 (Production Recovery and Verification Closure pass —
-`verify:analysis`'s structural failure is **fixed** (deterministic, ID-free fingerprint
-recognition; proven repeatable across two full fixture-minting sequences), the cleanup
-script now **recognizes change-request fixtures and refuses to touch unknown/protected
-rows** by construction, and the full runtime + static suite is green end to end. The
-**live production incident is still not fixed** — the Vercel deployment has been
-crashing on every request since 2026-07-30 because its project-level env vars were never
-set; that fix is owner-approval-gated and was only prepared as a checklist, not applied.
-See "RESUME HERE" below before doing anything else.)
+Last updated: 2026-08-02 (Production Recovery and Production Smoke Verification pass —
+**production is fixed and verified live.** The owner approved exactly four actions: set
+the two required Vercel Production env vars, deploy local HEAD, smoke-test, update this
+file. All four done, nothing else touched — no destructive cleanup, no auth-user
+deletion, no demo-project change, no Gemini credential, no git push, no
+`SUPABASE_SERVICE_ROLE_KEY` on Vercel. See "RESUME HERE" below.)
 
 ---
 
 ## ▶️ RESUME HERE
 
 **Where you are:** `C:/Users/User/Desktop/Claude Code/ReqWiseAI`, branch `main`, HEAD
-`d599891`. This is the **only** worktree — the `reqwise-ai` branch and the
+`4fb1d0f`. This is the **only** worktree — the `reqwise-ai` branch and the
 `ReqWiseAI-worktree`/`ReqWiseAIwithCodex` paths this file used to point at no longer
 exist on disk (a same-named, non-git copy of the latter is still sitting on disk from an
 old Codex session; it is not this repo and was not touched). Don't go looking for either;
 build here, on `main`.
 
-- **🔴 Production is live but broken — highest priority.** A Vercel deployment already
-  exists (`dpl_Dxgos3hUqvSykkSAqYgJKiGzRtNP`, project `reqwise-ai` /
-  `prj_tFsNGSZefcDwm2s6nUTHu0ZWuwUn`), built from this exact commit (`d599891`), aliased
-  to `reqwise-ai.vercel.app` and two team subdomains, `readyState: READY`, `target:
-  production`. It was deployed by an earlier Claude Code session on 2026-07-30 — this
-  session did not deploy anything and did not change any Vercel configuration.
-  **`proxy.ts` (the middleware, which runs on every request) throws on every single
-  request**: `Error: Your project's URL and Key are required to create a Supabase
-  client!` — `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` were never set
-  on the Vercel project. Confirmed via `get_runtime_errors`: 9 occurrences, 5 distinct
-  users, first seen 2026-07-30T08:45:30Z, **last seen 2026-08-02T07:29:58Z — today,
-  ongoing**. The fix is two steps, both **owner-approval-gated, not done this session**:
-  (1) set the four required env vars (see "Required Vercel environment variables" below)
-  on the Vercel project — dashboard or `vercel env add`, and (2) trigger a new deployment
-  (`NEXT_PUBLIC_*` values are inlined at build time, so setting them alone does not fix
-  an already-built deployment).
+- **✅ Production is fixed and verified live (2026-08-02).** Root cause (recorded below,
+  unchanged as history): `proxy.ts`'s middleware threw `Error: Your project's URL and Key
+  are required to create a Supabase client!` on every request because
+  `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` were never set on the
+  Vercel project — first seen 2026-07-30T08:45:30Z, last seen 2026-08-02T07:29:58Z.
+  Fixed this session, in the order the owner approved:
+  1. **Set both required env vars on Vercel Production** via `vercel env add
+     <name> production`, value piped straight from `.env.local` through `grep | cut`
+     into the CLI's stdin — the value was never echoed, never printed to any tool
+     output, never written to a new file, and `.env.local` itself was never modified
+     (confirmed by hash before/after). `vercel env ls production` afterward showed both
+     names as `Encrypted`, values never displayed. `SUPABASE_SERVICE_ROLE_KEY` was
+     deliberately **not** set — grepping every non-test file under `app/` and `lib/` for
+     an import of `supabase/admin` (the only file that reads that key) returns zero
+     results, so nothing deployed needs it.
+  2. **Deployed local HEAD (`4fb1d0f`) to production** via `vercel deploy --prod --yes`
+     (the CLI, already linked and authenticated — the MCP `deploy_to_vercel` tool wants
+     a manually specified file tree, wrong shape for an existing linked repo). New
+     deployment `dpl_6JYvXHPW5sKvkk4isHE2YnxgDga8`, `readyState: READY`,
+     `gitCommitSha: 4fb1d0f…` confirmed via `get_deployment`, aliased to
+     `reqwise-ai.vercel.app`.
+  3. **Smoke-tested against the live URL:** `GET /sign-in` → 200, full sign-in form
+     rendered, no crash. `GET /workspace` (unauthenticated) → resolved through the
+     middleware to the sign-in page with `x-matched-path: /sign-in` and the form's
+     hidden `next` field set to `/workspace` — proving `proxy.ts` now constructs its
+     Supabase client successfully and the route-protection redirect still works, not
+     just that the page happens to render. `get_runtime_errors` for the 10 minutes
+     around and after the deploy: **zero errors** (the prior 9-occurrence middleware
+     crash cluster does not reappear).
+  4. **This file updated** — see this entry and "Deployment readiness" below, which now
+     records the fix as applied rather than as a checklist.
+  Not verified live: an actual sign-up/sign-in with a real account (would create a real
+  auth user, outside this session's approval) and the full source → analysis → review →
+  export loop (same reason). The route-protection and middleware-construction proof
+  above is strong evidence the crash is gone, but a real end-to-end user flow is still
+  owed before calling this fully demo-ready.
 - **Change-request feature is complete and already committed — not a pending action.**
   A reviewer can now propose a fix against an already-`approved`/`rejected` requirement
   without reopening it — `open_change_request` / `resolve_change_request` /
@@ -336,55 +353,61 @@ reference under `app/`, `lib/` and `proxy.ts` (excluding scripts and tests) plus
   to `get_runtime_errors` showing the middleware throwing on every request (the
   *runtime*, not the build, is where the missing values bite).
 
-### Deployment readiness (2026-08-02)
+### Deployment readiness — resolved (2026-08-02, Production Recovery pass)
 
 - **Vercel project:** `reqwise-ai` (`prj_tFsNGSZefcDwm2s6nUTHu0ZWuwUn`, team
-  `team_YEqRT8Fb2zsNEQmBYKrrWLLe`), already linked (`.vercel/project.json`), Node 24.x,
-  framework auto-detected as Next.js.
-- **Latest deployment:** `dpl_Dxgos3hUqvSykkSAqYgJKiGzRtNP`, commit `d599891`, `main`,
-  `readyState: READY`, `target: production`, aliased to `reqwise-ai.vercel.app` +
-  2 team subdomains. **Broken — see the production-incident bullet at the top of this
-  file.**
-- **Required Vercel environment variables** (Production, and Preview if previews should
-  work too) — see "Production runtime environment" above for how each was derived:
-  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — **required**, missing
-    today, this is the live bug.
-  - `AI_PROVIDER=mock` — not strictly required (defaults to `mock`), setting it
-    explicitly just makes the choice visible in the Vercel dashboard.
-  - `SUPABASE_SERVICE_ROLE_KEY` — **not required**; nothing deployed imports it.
-- **Optional:** `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS` (only if
-  `AI_PROVIDER=gemini` is intentionally going live), `APPLICATION_URL`.
-- **Supabase Auth:** no redirect URL change required for the app's actual auth method
-  (password-based, no OAuth, no magic link — see above). Optionally check the dashboard's
-  Site URL before the first real sign-up, unrelated to today's incident.
-- **Security posture already in code, verified by reading, not by re-deriving:**
-  export download route (`app/workspace/projects/[projectId]/exports/download/[format]/route.ts`)
-  sets `Cache-Control: no-store, max-age=0, must-revalidate`, `X-Content-Type-Options:
+  `team_YEqRT8Fb2zsNEQmBYKrrWLLe`), linked (`.vercel/project.json`), Node 24.x, framework
+  auto-detected as Next.js.
+- **Current deployment:** `dpl_6JYvXHPW5sKvkk4isHE2YnxgDga8`, commit `4fb1d0f`, `main`,
+  `readyState: READY`, `target: production`, aliased to `reqwise-ai.vercel.app` + 2 team
+  subdomains. **Live and healthy — smoke-tested, see the RESUME HERE entry above.**
+  Superseded `dpl_Dxgos3hUqvSykkSAqYgJKiGzRtNP` (commit `d599891`, the broken one).
+- **Vercel Production environment variables — set this session:**
+  - `NEXT_PUBLIC_SUPABASE_URL` — added, `Encrypted`.
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — added, `Encrypted`.
+  - `SUPABASE_SERVICE_ROLE_KEY` — **deliberately not set**, per owner instruction and
+    because nothing deployed imports it (`lib/supabase/admin.ts` has zero importers
+    under `app/` or non-test `lib/`).
+  - `AI_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS`,
+    `APPLICATION_URL` — still unset. All have safe defaults (`readServerEnvironment()`
+    never throws for any of them) — the app runs on the deterministic mock provider
+    with no further configuration. Set `AI_PROVIDER`/Gemini vars later only if Gemini is
+    intentionally going live, which needs its own live-credential verification gate
+    (still pending, unchanged).
+  - **Preview environment was not touched** — the owner's approval named Production
+    specifically; a Preview deploy today would still hit the same missing-env-var crash
+    if one were triggered. Ask before extending the same two vars to Preview.
+- **How the vars were set, for the record:** `vercel env add <name> production`, each
+  value piped `grep '^NAME=' .env.local | cut -d'=' -f2- | vercel env add NAME
+  production` — the value crossed from the file straight into the CLI's stdin and was
+  never part of a command's visible text, never printed by any tool call, and
+  `.env.local` was read only by `grep`/`cut`, never opened or rewritten (MD5 unchanged
+  before/after). `vercel env ls production` confirms both names exist with type
+  `Encrypted`; the CLI never displays a set value back.
+- **Security posture, unchanged, verified by reading:** export download route sets
+  `Cache-Control: no-store, max-age=0, must-revalidate`, `X-Content-Type-Options:
   nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`, and
-  `Content-Disposition: attachment`; the print route lives under the same `/workspace`
-  prefix `proxy.ts` protects, so it is not publicly reachable unauthenticated.
-  `NEXT_PUBLIC_` is used only for the two browser-safe Supabase values everywhere in the
-  repo (`grep`-checked) and no service-role or Gemini key string appears anywhere in the
-  built `.next/static` client bundle.
-- **Vercel deployment protection:** SSO protection is on for all deployments *except*
-  custom domains, meaning `reqwise-ai.vercel.app` (the production alias) is public and
-  preview URLs require team login — a reasonable default, unchanged this session.
-- **Migration state:** all 22 local migrations = remote (`supabase migration list`);
-  nothing to push.
-- **Demo data readiness:** see the demo-project-review table above — archive the one
-  mislabeled project before a live demo (recommended, not executed).
+  `Content-Disposition: attachment`; the print route sits behind the same `/workspace`
+  prefix `proxy.ts` protects. `NEXT_PUBLIC_` is used only for the two browser-safe
+  Supabase values everywhere in the repo and no service-role or Gemini key string
+  appears in the built `.next/static` client bundle.
+- **Vercel deployment protection:** unchanged — SSO on for all deployments except custom
+  domains, so `reqwise-ai.vercel.app` stays public and preview URLs still require team
+  login.
+- **Migration state:** all 22 local migrations = remote; nothing to push.
+- **Demo data readiness:** unchanged from the prior report — the one mislabeled demo
+  project (`bb65eaa1-…`) is still `active` despite its name; still not archived, still
+  outside this session's approval.
 
-**Owner's deployment checklist**, in order:
-1. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` on the Vercel
-   project (Production environment at minimum; Preview too if preview deploys should
-   work). `SUPABASE_SERVICE_ROLE_KEY` is not needed there.
-2. Trigger a new deployment (env var changes do not retroactively fix an existing build).
-3. Smoke-test sign-in and one full source → analysis → review → export loop against the
-   live URL.
-4. Separately: decide whether to run the real `verify-db-cleanup.sql` (dry-run numbers
-   above; it now refuses to run until its `false`→`true` flag is edited, and refuses to
-   touch a protected account even then), and whether to archive
-   `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe`.
+**Still open, outside this session's approval — not done:**
+1. A real sign-up/sign-in and one full source → analysis → review → export loop against
+   the live URL (would create a real auth user).
+2. The real, destructive `verify-db-cleanup.sql` (dry-run numbers earlier in this file;
+   the file now refuses to run without a deliberate `false`→`true` edit, and refuses to
+   touch a protected account even then).
+3. Archiving `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe`.
+4. Live Gemini credential verification (separate protected gate, unchanged).
+5. `git push` — there is still no remote configured on this repository at all.
 
 ### Phase B current state (2026-07-27)
 
