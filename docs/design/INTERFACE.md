@@ -1,17 +1,28 @@
 # Final Interface Direction — Three-Panel Requirements Workspace
 
-**Status:** authoritative. Supplied by the owner on 2026-07-25 together with the rendered
-reference `preview-2.png`, and reproduced here verbatim.
+**Status:** authoritative. The structural direction (§1, §3–8, §10–15) was supplied by the
+owner on 2026-07-25 together with the rendered reference `preview-2.png` and held for the
+"Requirements Intelligence Workspace" visual language. On 2026-08-02 the owner asked for a
+whole-app "tech" visual redesign (dark-mode-first, light+dark toggle, hairline borders over
+soft shadows) — shipped across 7 phases, `HANDOFF.md` has the commit-by-commit record. This
+document now describes that shipped state: the three-panel **structure** below is unchanged
+from 2026-07-25, but **§2's highlight-colour line and all of §9 (Visual Style) are rewritten**
+to match what actually shipped, replacing the old off-white/indigo/violet direction.
 
 **This supersedes** the earlier "dark graphite or deep navy foundation" wording that stood
-in `CLAUDE.md` → *Design direction* until 2026-07-25. Where the two disagree, this file
-wins; `CLAUDE.md` now carries the condensed version and points here.
+in `CLAUDE.md` → *Design direction* before 2026-07-25, and the 2026-07-25 "off-white,
+Apple-inspired productivity" visual language that stood here before 2026-08-02. Where this
+file and `CLAUDE.md` disagree, this file wins; `CLAUDE.md` carries the condensed version and
+points here.
 
-**Reference image:** [`preview-2.png`](./preview-2.png) — Preview 2, the final structural
-reference. Note that the render contains elements the product has no data for (quality
-score, per-group coverage percentages, sparklines, notifications, a ⌘K command bar). They
-are **not** part of the direction and are not to be reproduced by inventing a metric; see
-`ARCHITECTURE.md` §A.4, where the quality-score panel is explicitly deferred.
+**Reference image:** [`preview-2.png`](./preview-2.png) — Preview 2, the structural
+reference the three-panel layout below was built from. Note that the render contains
+elements the product has no data for (quality score, per-group coverage percentages,
+sparklines, notifications, a ⌘K command bar) **and shows the superseded off-white/indigo
+colour scheme, not the shipped one.** Use it for panel proportions and layout only — for
+colour, radius, and type, follow §9 below and `app/globals.css`. The invented-metric
+elements are not part of the direction and are not to be reproduced; see `ARCHITECTURE.md`
+§A.4, where the quality-score panel is explicitly deferred.
 
 ---
 
@@ -79,7 +90,8 @@ When a requirement is selected, highlight its related source excerpt.
 
 The highlight must:
 
-* Use a subtle violet or blue background
+* Use the signal accent (`--signal-soft` background, `--signal-border` outline — a green
+  reserved for citation and liveness only, never a generic decoration; see §9)
 * Preserve text readability
 * Avoid excessive glow
 * Scroll into view when practical
@@ -263,7 +275,7 @@ The sidebar should:
 * Avoid deeply nested navigation
 * Preserve the current project context
 
-Do not copy macOS Finder or Apple application icons directly.
+Icons are plain geometry — never a copy of a macOS or Apple application icon.
 
 ---
 
@@ -290,36 +302,66 @@ The toolbar should remain visually stable when switching between source, analysi
 
 ### 9. Visual Style
 
-Use a modern, premium, Apple-inspired productivity style without directly copying macOS or iPadOS.
+Use a precise, technical style — a "tech" workspace built for long review sessions, not a
+cyberpunk marketing page. The reference point (`neoconda.com`, dark-mode-first, neon-green
+accent, sharp geometric grid) was adapted, not copied: the geometric precision and hairline
+structure carried over; the neon saturation and pure-black-only palette did not, because a
+tool read for hours a day needs a light mode too and needs contrast that survives WCAG AA
+in both directions.
+
+Shipped in two mandatory modes, switchable at runtime — not a "prepared but unshipped"
+placeholder. `data-theme` is set on `<html>` before first paint (an inline script in
+`app/layout.tsx`, reading `localStorage` and falling back to `prefers-color-scheme` only on
+a first visit), and the toggle in the sidebar/toolbar (`app/workspace/_components/
+theme-toggle.tsx`) changes it at runtime. Every colour is a CSS custom property under
+`:root` (light) and `[data-theme="dark"]` (dark) in `app/globals.css` — a component never
+hardcodes a colour literal or reaches for Tailwind's `dark:` variant; both react to the same
+attribute the toggle writes, or they silently stop following it (this broke once — see
+`HANDOFF.md`, the `auth-form.tsx` incident).
 
 Primary visual direction:
 
-* Soft off-white application background
-* White or lightly tinted workspace panels
-* Subtle cool-gray borders
-* Light violet selection surfaces
-* Indigo or violet primary accent
-* Cyan secondary analytical accent
-* Controlled green, amber, and red status colors
-* Soft shadows used sparingly
-* Restrained corner radii
-* Clear typography hierarchy
+* Depth comes from hairline borders and background-shade shifts, never from a shadow
+  around a resting panel (`--border`, `--border-strong` on hover) — see the two named
+  exceptions below
+* One saturated primary accent (`--accent`, electric blue) for interactive/selection state
+* One separate accent (`--signal`, green) reserved exclusively for citation and liveness
+  indicators — never a generic decoration, never interchangeable with `--accent`
+* Controlled `--ok` / `--warn` / `--danger` status colours, always paired with a word, never
+  colour alone
+* Sharp, small corner radii — `--radius-card: 4px` for controls/inputs/buttons/badges,
+  `--radius-panel: 6px` for panel/card containers — not Tailwind's default `rounded-lg`/
+  `rounded-md`/`rounded-xl`
+* Selection/active state is flat: `bg-accent-soft` background with `text-accent`/
+  `border-accent-border`, never a shadow or ring
+* Mono type (`font-mono`, JetBrains Mono) for anything that is data — display IDs
+  (`BR-001`), counts, badges, breadcrumbs; a geometric display face (`font-display`, Space
+  Grotesk) for headings and nav labels; Inter for body copy
 * High information density without feeling crowded
+
+Two deliberate exceptions carry a real box-shadow, because both are transient overlays
+floating above the surrounding content rather than panels resting in the layout: the
+inspector drawer at the `lg` breakpoint (`analyses/[runId]/workspace.tsx`, dropped again at
+`xl` once it becomes a static grid column) and the account-menu dropdown in
+`app/workspace/layout.tsx`. No other surface in the application uses a shadow.
 
 Avoid:
 
-* Heavy dark dashboard styling
-* Neon visual effects
+* Neon saturation as a resting-state colour — reserve high saturation for `--signal`
+  citation moments only, not the whole palette
 * Permanent glowing relationship lines
 * Excessive glassmorphism
 * Large gradients behind content
 * Floating decorative orbs
-* Oversized KPI cards
+* Oversized KPI cards or an invented metric to fill a layout (`--` see §6)
 * Marketing-style hero sections
 * Chat bubbles as the primary interface
-* Strong shadows around every panel
+* A shadow around a panel that is not one of the two named exceptions above
+* Tailwind's `dark:` variant on any component — theming goes through the `[data-theme]`
+  tokens, never a parallel dark-mode class set
 
-The interface should feel futuristic because of its interaction quality and information architecture, not because of excessive visual effects.
+The interface should feel technical because of its precision, density, and interaction
+quality, not because of decorative effects.
 
 ---
 
@@ -444,7 +486,7 @@ The Analysis Workspace is complete when:
 * The interface works with mouse, keyboard, trackpad, and touch
 * Tablet portrait uses a single-panel switcher
 * No critical action depends only on hover
-* The interface looks like a coherent productivity application
+* The interface looks like a coherent, precise technical workspace
 * Visual effects never distract from requirement analysis
 * The implementation remains maintainable with standard web technologies
 
@@ -465,5 +507,5 @@ Where the direction leaves room, these are the choices this codebase has already
 | §5 tabs | Details · Evidence · Relations. History and Notes arrive with slice 5, when `item_versions` and `review_activities` first hold rows |
 | §6 summary | Run status, items, open questions, risks, quality findings, source count. **No quality score** |
 | §7 sidebar | All nine entries present; unbuilt ones rendered disabled rather than hidden, the convention already in `app/workspace/_components/sidebar.tsx` |
-| §9 tokens | Already defined in `app/globals.css` — do not introduce new colour literals in components |
+| §9 tokens | `--accent` (electric blue, interactive/selection), `--signal` (green, citation/liveness only), `--radius-card: 4px`, `--radius-panel: 6px`, `--border`/`--border-strong`, `--text`/`--text-muted`/`--text-faint` — all in `app/globals.css` under `:root` and `[data-theme="dark"]`; do not introduce a new colour literal or a Tailwind `dark:` class in a component |
 | §10 motion | 120–220ms; `prefers-reduced-motion` is neutralised globally in `app/globals.css` |

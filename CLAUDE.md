@@ -211,25 +211,33 @@ guess. This is the sharpest test of the core principle above.
 
 ---
 
-## Design direction — "Requirements Intelligence Workspace"
+## Design direction — "tech" workspace, light + dark
 
 > **Full specification: [`docs/design/INTERFACE.md`](docs/design/INTERFACE.md)** — the
-> owner's Final Interface Direction (2026-07-25) plus the rendered reference
-> `docs/design/preview-2.png`. That file is authoritative; this section is its summary.
+> three-panel structure comes from the owner's Final Interface Direction (2026-07-25); the
+> visual language (this section's "Visual character") was replaced 2026-08-02 with a
+> "tech" redesign shipped across 7 phases (`HANDOFF.md` has the commit record). That file
+> is authoritative; this section is its summary.
 >
-> **It supersedes the earlier "dark graphite or deep navy foundation" wording that stood
-> here.** The application is light-first. Do not revive the dark direction — a dark theme
-> is prepared in `app/globals.css` but deliberately not shipped.
+> **Dark mode is shipped, not prepared-and-unused.** Both `:root` (light) and
+> `[data-theme="dark"]` are fully defined in `app/globals.css`, switchable at runtime via
+> the toggle in the sidebar/toolbar, persisted to `localStorage`. Every component reads
+> the shared tokens — never a hardcoded colour, never Tailwind's `dark:` variant (that
+> bypasses the toggle and follows the OS instead; this broke once in `auth-form.tsx`, see
+> `HANDOFF.md`).
 
-A modern analytical workspace. Not a generic admin dashboard. Not a chatbot page.
-Usability, information density and long-form reading come before decorative effects.
+A precise, technical analytical workspace. Not a generic admin dashboard. Not a chatbot
+page. Usability, information density and long-form reading come before decorative effects.
 
-**Visual character:** soft off-white application background · white or lightly tinted
-workspace panels · subtle cool-gray borders · light violet selection surfaces · indigo
-primary accent · cyan secondary accent, reserved for evidence · controlled green / amber /
-red status colors · soft shadows used sparingly · restrained corner radii · clear
-typographic hierarchy · high density without crowding · motion of 120–220ms, only for
-panel collapse, inspector opening, selection, highlight navigation and loading.
+**Visual character:** hairline borders and background-shade shifts for depth, not shadows
+(two named exceptions only — see `INTERFACE.md` §9) · one saturated primary accent
+(`--accent`, blue) for interaction/selection · a second accent (`--signal`, green) reserved
+exclusively for citation/liveness, never decoration · controlled `--ok`/`--warn`/`--danger`
+status colors, always paired with a word · sharp small radii (`--radius-card: 4px` controls,
+`--radius-panel: 6px` panels), never Tailwind's default `rounded-lg`/`rounded-md` ·
+mono type (JetBrains Mono) for IDs/counts/badges, a geometric display face (Space Grotesk)
+for headings/nav, Inter for body · high density without crowding · motion of 120–220ms,
+only for panel collapse, inspector opening, selection, highlight navigation and loading.
 
 **Signature interface** — the Analysis Workspace is a stable **three-panel** layout:
 **Source Document · Requirements · Requirement Inspector**. The requirements panel is the
@@ -245,11 +253,12 @@ panel with in-panel search and highlight navigation · grouped compact requireme
 requirement inspector · domain selector · source editor · open-question queue ·
 traceability map · version comparison view · command palette · review status controls.
 
-**Avoid:** heavy dark dashboard styling · neon effects · permanent glowing relationship
-lines · excessive gradients or glassmorphism · floating decorative orbs · oversized KPI
-cards · marketing-style hero sections inside the app · generic template dashboards · chat
-bubbles as the primary interaction · a strong shadow around every panel · decoration that
-costs readability.
+**Avoid:** neon saturation as a resting-state color (reserve it for `--signal` citation
+moments only) · permanent glowing relationship lines · excessive gradients or
+glassmorphism · floating decorative orbs · oversized KPI cards · marketing-style hero
+sections inside the app · generic template dashboards · chat bubbles as the primary
+interaction · a shadow on any panel other than the two named transient-overlay exceptions
+· a Tailwind `dark:` class on any component · decoration that costs readability.
 
 **Never invent a metric to fill a mockup.** The reference render shows a quality score,
 coverage percentages and sparklines; no such data exists, and the quality-score panel is
