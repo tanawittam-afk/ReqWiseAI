@@ -50,7 +50,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Toolbar>
           <details className="relative">
-            <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-text-muted transition-colors hover:bg-chrome-hover hover:text-text">
+            <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-[var(--radius-card)] px-2 text-sm text-text-muted transition-colors hover:bg-chrome-hover hover:text-text">
               <span
                 aria-hidden="true"
                 className="grid size-6 place-items-center rounded-full bg-accent-soft text-xs font-semibold text-accent"
@@ -59,12 +59,14 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
               </span>
               <span className="hidden max-w-[16ch] truncate sm:inline">{user.email}</span>
             </summary>
-            <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-border-soft bg-surface p-1.5 shadow-[0_8px_24px_rgba(27,26,24,0.12)]">
+            {/* Transient overlay, not a resting panel — the one other deliberate shadow
+                exception besides the inspector drawer (docs/design/INTERFACE.md §9). */}
+            <div className="absolute right-0 z-20 mt-1 w-56 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-1.5 shadow-[0_8px_24px_rgba(27,26,24,0.12)]">
               <p className="truncate px-2.5 py-1.5 text-xs text-text-faint">{user.email}</p>
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="w-full rounded-lg px-2.5 py-2 text-left text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+                  className="w-full rounded-[var(--radius-card)] px-2.5 py-2 text-left text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
                 >
                   Sign out
                 </button>

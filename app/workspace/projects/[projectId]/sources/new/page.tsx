@@ -36,7 +36,7 @@ export default async function NewSourcePage({
         </p>
         <Link
           href={`/workspace/projects/${projectId}`}
-          className="inline-flex min-h-11 items-center rounded-lg border border-border-soft px-4 text-sm
+          className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft px-4 text-sm
                      text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
           Back to the project

@@ -24,7 +24,7 @@ export function AnalysisProviderControls({
             return (
               <label
                 key={option.key}
-                className={`flex min-h-11 items-start gap-3 rounded-lg border px-3 py-2.5 ${
+                className={`flex min-h-11 items-start gap-3 rounded-[var(--radius-card)] border px-3 py-2.5 ${
                   option.available
                     ? "border-border-soft bg-surface text-text"
                     : "cursor-not-allowed border-border-soft bg-surface-muted text-text-muted"
@@ -62,7 +62,7 @@ export function AnalysisProviderControls({
           type="submit"
           disabled={pending}
           aria-busy={pending}
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-5 text-sm
+          className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-5 text-sm
                      font-semibold text-on-accent transition-colors hover:bg-accent-hover
                      disabled:cursor-not-allowed disabled:opacity-60"
         >

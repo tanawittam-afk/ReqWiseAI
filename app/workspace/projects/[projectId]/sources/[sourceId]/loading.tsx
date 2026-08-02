@@ -6,7 +6,7 @@ export default function SourceLoading() {
         Loading source document
       </p>
       <div aria-hidden="true" className="flex flex-col gap-5">
-        <div className="h-7 w-64 rounded-md bg-surface" />
+        <div className="h-7 w-64 rounded-[var(--radius-card)] bg-surface" />
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
           <div className="h-[60vh] rounded-[var(--radius-panel)] border border-border-soft bg-surface" />
           <div className="h-56 rounded-[var(--radius-panel)] border border-border-soft bg-surface" />

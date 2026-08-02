@@ -61,7 +61,7 @@ export default async function SourcesPage({
           {archived ? null : (
             <Link
               href={`/workspace/projects/${projectId}/sources/new`}
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                          font-semibold text-on-accent transition-colors hover:bg-accent-hover"
             >
               Add source
@@ -73,7 +73,7 @@ export default async function SourcesPage({
       {archived ? (
         <p
           role="status"
-          className="rounded-lg border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
+          className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
         >
           This project is archived — sources are read-only. Restore the project to add or
           edit them.
@@ -91,7 +91,7 @@ export default async function SourcesPage({
           {archived ? null : (
             <Link
               href={`/workspace/projects/${projectId}/sources/new`}
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                          font-semibold text-on-accent transition-colors hover:bg-accent-hover"
             >
               Add the first source

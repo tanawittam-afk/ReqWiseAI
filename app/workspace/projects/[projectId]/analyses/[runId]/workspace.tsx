@@ -189,14 +189,14 @@ export function AnalysisWorkspace({
           <button
             type="button"
             onClick={discardAndSelect}
-            className="ml-auto min-h-9 rounded-lg border border-warn-border px-2.5 font-medium transition-colors duration-150 hover:border-warn"
+            className="ml-auto min-h-9 rounded-[var(--radius-card)] border border-warn-border px-2.5 font-medium transition-colors duration-150 hover:border-warn"
           >
             Discard and open {blocked.displayId}
           </button>
           <button
             type="button"
             onClick={() => setBlockedSelection(null)}
-            className="min-h-9 rounded-lg px-2.5 font-medium underline underline-offset-2"
+            className="min-h-9 rounded-[var(--radius-card)] px-2.5 font-medium underline underline-offset-2"
           >
             Keep editing
           </button>
@@ -288,7 +288,7 @@ function Segment({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`min-h-11 flex-1 rounded-lg border px-3 text-sm font-medium transition-colors duration-150 ${
+      className={`min-h-11 flex-1 rounded-[var(--radius-card)] border px-3 text-sm font-medium transition-colors duration-150 ${
         active
           ? "border-accent-border bg-accent-soft text-accent"
           : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"

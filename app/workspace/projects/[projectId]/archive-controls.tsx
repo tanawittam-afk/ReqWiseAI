@@ -38,7 +38,7 @@ export function ArchiveControls({
           <SubmitButton
             idleLabel="Restore project"
             busyLabel="Restoring…"
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
           />
         </form>
       </section>
@@ -64,19 +64,19 @@ export function ArchiveControls({
               type="text"
               maxLength={2000}
               placeholder="Client paused the engagement"
-              className="w-full rounded-lg border border-border-soft bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
+              className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
             />
           </label>
           <div className="flex items-center gap-3">
             <SubmitButton
               idleLabel="Archive project"
               busyLabel="Archiving…"
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-warn-border bg-warn-soft px-4 text-sm font-semibold text-warn transition-colors hover:border-warn disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 text-sm font-semibold text-warn transition-colors hover:border-warn disabled:cursor-not-allowed disabled:opacity-60"
             />
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-2 text-sm text-text-muted transition-colors hover:text-text"
+              className="rounded-[var(--radius-card)] px-3 py-2 text-sm text-text-muted transition-colors hover:text-text"
             >
               Cancel
             </button>
@@ -86,7 +86,7 @@ export function ArchiveControls({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border-soft px-4 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-card)] border border-border-soft px-4 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
           Archive project…
         </button>

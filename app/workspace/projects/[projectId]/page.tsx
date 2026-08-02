@@ -72,7 +72,7 @@ export default async function ProjectOverviewPage({
       {error ? (
         <p
           role="alert"
-          className="rounded-lg border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
         >
           {error === "archive"
             ? "The project could not be archived."
@@ -83,7 +83,7 @@ export default async function ProjectOverviewPage({
       {archived ? (
         <section
           role="status"
-          className="flex flex-col gap-1 rounded-lg border border-warn-border bg-warn-soft px-4 py-3"
+          className="flex flex-col gap-1 rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3"
         >
           <p className="text-sm font-semibold text-warn">
             This project is archived — read-only
@@ -168,7 +168,7 @@ export default async function ProjectOverviewPage({
                 </p>
                 <Link
                   href={`/workspace/projects/${projectId}/sources/new`}
-                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4
+                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4
                              text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
                 >
                   Add source information
@@ -189,7 +189,7 @@ export default async function ProjectOverviewPage({
                   {archived ? null : (
                     <Link
                       href={`/workspace/projects/${projectId}/sources/new`}
-                      className="rounded-md border border-border-soft px-2.5 py-1.5 text-xs font-medium
+                      className="rounded-[var(--radius-card)] border border-border-soft px-2.5 py-1.5 text-xs font-medium
                                  text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
                     >
                       Add source

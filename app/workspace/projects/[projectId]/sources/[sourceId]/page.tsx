@@ -83,7 +83,7 @@ export default async function SourceDetailPage({
       {archived ? (
         <p
           role="status"
-          className="rounded-lg border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
+          className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
         >
           This project is archived — this document is read-only. Restore the project to
           edit it.
@@ -91,7 +91,7 @@ export default async function SourceDetailPage({
       ) : source.locked ? (
         <section
           role="status"
-          className="flex flex-col gap-1 rounded-lg border border-signal-border bg-signal-soft px-4 py-3"
+          className="flex flex-col gap-1 rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-4 py-3"
         >
           <p className="text-sm font-semibold text-signal">
             Revision {source.revisionNumber} has been analysed and is now permanent
@@ -106,7 +106,7 @@ export default async function SourceDetailPage({
       ) : null}
 
       {source.supersededById ? (
-        <p className="rounded-lg border border-border-soft bg-surface-muted px-4 py-3 text-sm text-text-muted">
+        <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-4 py-3 text-sm text-text-muted">
           A newer revision of this document exists.{" "}
           <Link
             href={`${base}/${source.supersededById}`}
@@ -192,7 +192,7 @@ export default async function SourceDetailPage({
               </p>
               <Link
                 href={`${base}/${source.id}/analyze`}
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                            font-semibold text-on-accent transition-colors hover:bg-accent-hover"
               >
                 Analyze requirements
@@ -210,7 +210,7 @@ export default async function SourceDetailPage({
                   <li key={run.id}>
                     <Link
                       href={`/workspace/projects/${projectId}/analyses/${run.id}`}
-                      className="flex flex-col gap-0.5 rounded-lg border border-border-soft px-3 py-2 text-xs
+                      className="flex flex-col gap-0.5 rounded-[var(--radius-card)] border border-border-soft px-3 py-2 text-xs
                                  transition-colors hover:border-accent-border hover:bg-accent-soft"
                     >
                       <span className="flex items-center justify-between gap-2 font-medium text-text">
@@ -242,7 +242,7 @@ export default async function SourceDetailPage({
               </p>
               <Link
                 href={`${base}/${source.id}/edit`}
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-sm
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                            font-semibold text-on-accent transition-colors hover:bg-accent-hover"
               >
                 {source.locked

@@ -47,7 +47,7 @@ export function AnalyzeConfirmForm({
       {state.error ? (
         <p
           role="alert"
-          className="rounded-lg border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
         >
           {state.error}
         </p>

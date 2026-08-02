@@ -13,7 +13,7 @@ export default function SourceNotFound() {
       </p>
       <Link
         href="/workspace/projects"
-        className="rounded-md border border-border-soft px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        className="rounded-[var(--radius-card)] border border-border-soft px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
       >
         Back to projects
       </Link>

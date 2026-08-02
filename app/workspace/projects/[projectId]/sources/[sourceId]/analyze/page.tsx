@@ -44,7 +44,7 @@ export default async function AnalyzeSourcePage({
         </Link>
         <p
           role="alert"
-          className="rounded-lg border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
+          className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
         >
           This project is archived and read-only. Restore it before running an analysis.
         </p>
