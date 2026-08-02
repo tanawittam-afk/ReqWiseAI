@@ -8,7 +8,8 @@ Last updated: 2026-08-02 (Production Recovery and Production Smoke Verification 
 the two required Vercel Production env vars, deploy local HEAD, smoke-test, update this
 file. All four done, nothing else touched — no destructive cleanup, no auth-user
 deletion, no demo-project change, no Gemini credential, no git push, no
-`SUPABASE_SERVICE_ROLE_KEY` on Vercel. See "RESUME HERE" below.)
+`SUPABASE_SERVICE_ROLE_KEY` on Vercel. Same date, separately approved: the mislabeled
+demo project (`bb65eaa1-…`) is now **archived** — see below. See "RESUME HERE" below.)
 
 ---
 
@@ -287,11 +288,21 @@ no reason — it isn't cluttering any automated count, and the cleanup script al
 leaves it alone by design. Renaming is unnecessary: the name describes the project's
 *purpose*, and archiving is what makes the name accurate again, since archived-project
 data stays fully readable afterward (`verify:traceability` check 18 already proves this
-for exactly this shape of project). Preserving it as-is (no action) is what has already
-been happening and is the thing actually worth fixing — a demo walkthrough of this
-account would show a project that claims to be archived but accepts edits. **Not
-executed this session** — archiving requires calling `archive_project()` as
-`slice3.demo@reqwise.dev`, a write to a real account, outside this session's scope.
+for exactly this shape of project).
+
+**✅ Executed the same day, separately approved: archived (2026-08-02).** Signed in as
+`slice3.demo@reqwise.dev` via the browser at `reqwise-ai.vercel.app` (a stale session for
+a different real account, `tanawittam@gmail.com`, was already open in that browser tab —
+signed it out first, then signed in as the correct demo account and confirmed the
+project list matched — 2 projects, "Archived traceability check — slice 6B" among them,
+before touching anything). Opened the project, clicked *Archive project…*, entered the
+reason *"Restoring the name's own claim — created for slice 6B's archived-project
+traceability check; archiving now to match its name."*, confirmed. Page now reads
+*"This project is archived — read-only… Nothing was deleted: sources, analysis runs and
+review history are all intact."*, `Status: Archived`, `Archived: 02 Aug 2026`, counts
+unchanged (1 source, 1 run, 17 requirements) — matches the recommendation above exactly.
+Reversible via the same page's *Restore project* action if ever needed. Signed back out
+afterward.
 
 ### Gemini live verification (2026-08-02)
 
@@ -395,9 +406,9 @@ reference under `app/`, `lib/` and `proxy.ts` (excluding scripts and tests) plus
   domains, so `reqwise-ai.vercel.app` stays public and preview URLs still require team
   login.
 - **Migration state:** all 22 local migrations = remote; nothing to push.
-- **Demo data readiness:** unchanged from the prior report — the one mislabeled demo
-  project (`bb65eaa1-…`) is still `active` despite its name; still not archived, still
-  outside this session's approval.
+- **Demo data readiness:** the one mislabeled demo project (`bb65eaa1-…`) is now
+  **archived**, matching its name — see the demo-project-review entry above for exactly
+  how and when.
 
 **Still open, outside this session's approval — not done:**
 1. A real sign-up/sign-in and one full source → analysis → review → export loop against
@@ -405,9 +416,10 @@ reference under `app/`, `lib/` and `proxy.ts` (excluding scripts and tests) plus
 2. The real, destructive `verify-db-cleanup.sql` (dry-run numbers earlier in this file;
    the file now refuses to run without a deliberate `false`→`true` edit, and refuses to
    touch a protected account even then).
-3. Archiving `bb65eaa1-ea83-48ba-b3d4-fb7eb219c1fe`.
-4. Live Gemini credential verification (separate protected gate, unchanged).
-5. `git push` — there is still no remote configured on this repository at all.
+3. Live Gemini credential verification (separate protected gate, unchanged — no
+   credential exists yet; see the Gemini section above for the exact steps once one
+   does).
+4. `git push` — there is still no remote configured on this repository at all.
 
 ### Phase B current state (2026-07-27)
 
