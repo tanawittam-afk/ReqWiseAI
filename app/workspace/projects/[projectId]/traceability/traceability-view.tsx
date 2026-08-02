@@ -270,7 +270,7 @@ function Toolbar({
             value={filters.query}
             onChange={(event) => setFilter("query", event.target.value)}
             placeholder="Search id or title"
-            className="min-h-11 w-44 rounded-lg border border-border-soft bg-surface px-2.5 text-sm text-text
+            className="min-h-11 w-44 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2.5 text-sm text-text
                        placeholder:text-text-faint focus:border-accent-border focus:outline-none"
           />
         </label>
@@ -327,21 +327,21 @@ function Toolbar({
         <button
           type="button"
           onClick={onClear}
-          className="min-h-11 rounded-lg border border-border-soft px-2.5 text-xs font-medium text-text-muted
+          className="min-h-11 rounded-[var(--radius-card)] border border-border-soft px-2.5 text-xs font-medium text-text-muted
                      transition-colors hover:bg-surface-hover hover:text-text"
         >
           Clear filters
         </button>
 
         {/* View switch. Two buttons rather than a select: it is the primary control. */}
-        <div role="group" aria-label="View" className="flex rounded-lg border border-border-soft">
+        <div role="group" aria-label="View" className="flex rounded-[var(--radius-panel)] border border-border-soft">
           {(["matrix", "map"] as const).map((option) => (
             <button
               key={option}
               type="button"
               aria-pressed={view === option}
               onClick={() => setView(option)}
-              className={`min-h-11 px-3 text-xs font-medium capitalize transition-colors first:rounded-l-lg last:rounded-r-lg ${
+              className={`min-h-11 px-3 text-xs font-medium capitalize transition-colors first:rounded-l-[var(--radius-card)] last:rounded-r-[var(--radius-card)] ${
                 view === option ? "bg-accent-soft text-accent" : "text-text-muted hover:bg-surface-hover"
               }`}
             >
@@ -366,7 +366,7 @@ function Toolbar({
           type="button"
           aria-expanded={inspectorOpen}
           onClick={() => setInspectorOpen(!inspectorOpen)}
-          className="hidden min-h-11 rounded-lg border border-border-soft px-2.5 text-xs font-medium
+          className="hidden min-h-11 rounded-[var(--radius-card)] border border-border-soft px-2.5 text-xs font-medium
                      text-text-muted transition-colors hover:bg-surface-hover hover:text-text lg:block"
         >
           {inspectorOpen ? "Hide inspector" : "Show inspector"}
@@ -426,7 +426,7 @@ function PaneSwitcher({
     <div
       role="group"
       aria-label="Traceability panes"
-      className="flex overflow-x-auto rounded-lg border border-border-soft bg-surface"
+      className="flex overflow-x-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface"
     >
       {tabs.map((tab) => (
         <button
@@ -462,7 +462,7 @@ function Select({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-11 rounded-lg border border-border-soft bg-surface px-2 text-xs capitalize
+        className="min-h-11 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2 text-xs capitalize
                    text-text-muted focus:border-accent-border focus:outline-none"
       >
         {options.map((option) => (

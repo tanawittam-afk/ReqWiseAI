@@ -59,7 +59,7 @@ export function TraceInspector({
       <header className="flex flex-col gap-1">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="font-mono text-xs font-semibold text-text-muted">{item.displayId}</span>
-          <span className="rounded border border-border-soft px-1.5 py-px text-[10px] text-text-faint">
+          <span className="rounded-[var(--radius-card)] border border-border-soft px-1.5 py-px text-[10px] text-text-faint">
             {TYPE_LABEL[item.type] ?? item.type}
           </span>
         </span>
@@ -108,7 +108,7 @@ export function TraceInspector({
       {workspaceHref ? (
         <Link
           href={workspaceHref}
-          className="mt-1 inline-flex min-h-11 items-center justify-center rounded-lg border border-border-soft
+          className="mt-1 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-border-soft
                      px-3 text-sm font-medium text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
           Open in Analysis Workspace
@@ -169,7 +169,7 @@ function RelationList({
                       {relation.legacy ? (
                         <span
                           title={LEGACY_EXPLANATION}
-                          className="rounded border border-border-strong px-1 text-[10px] text-text-faint"
+                          className="rounded-[var(--radius-card)] border border-border-strong px-1 text-[10px] text-text-faint"
                         >
                           {LEGACY_BADGE}
                         </span>

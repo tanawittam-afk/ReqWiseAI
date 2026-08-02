@@ -76,7 +76,7 @@ export default async function ExportPage({
           ← {input.project.name}
         </Link>
         {input.project.status === "archived" ? (
-          <span className="rounded border border-warn-border bg-warn-soft px-1.5 py-px text-[10px] font-medium text-warn">
+          <span className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-1.5 py-px text-[10px] font-medium text-warn">
             Archived — read-only
           </span>
         ) : null}
@@ -162,7 +162,7 @@ function ReadinessCard({
       </h2>
 
       {/* The level is a word, never a colour alone. */}
-      <p role="status" className={`rounded-md border px-2.5 py-1.5 text-sm font-semibold ${tone}`}>
+      <p role="status" className={`rounded-[var(--radius-card)] border px-2.5 py-1.5 text-sm font-semibold ${tone}`}>
         {READINESS_LABEL[readiness.level]}
       </p>
 

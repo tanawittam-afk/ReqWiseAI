@@ -51,7 +51,7 @@ export default async function TraceabilityPage({
           ← {project.name}
         </Link>
         {project.status === "archived" ? (
-          <span className="rounded border border-warn-border bg-warn-soft px-1.5 py-px text-[10px] font-medium text-warn">
+          <span className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-1.5 py-px text-[10px] font-medium text-warn">
             Archived — read-only
           </span>
         ) : null}

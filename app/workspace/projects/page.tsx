@@ -49,7 +49,7 @@ export default async function ProjectsPage({
 
         <Link
           href="/workspace/projects/new"
-          className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover sm:min-h-10"
+          className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover sm:min-h-10"
         >
           New project
         </Link>
@@ -59,7 +59,7 @@ export default async function ProjectsPage({
       <div
         role="group"
         aria-label="Filter projects"
-        className="inline-flex w-fit gap-0.5 rounded-lg border border-border-soft bg-chrome p-0.5"
+        className="inline-flex w-fit gap-0.5 rounded-[var(--radius-panel)] border border-border-soft bg-chrome p-0.5"
       >
         {PROJECT_FILTERS.map((value) => {
           const active = value === filter;
@@ -68,9 +68,9 @@ export default async function ProjectsPage({
               key={value}
               href={`/workspace/projects?filter=${value}`}
               aria-current={active ? "true" : undefined}
-              className={`min-h-9 rounded-md px-3.5 py-1.5 text-sm capitalize transition-colors ${
+              className={`min-h-9 rounded-[var(--radius-card)] px-3.5 py-1.5 text-sm capitalize transition-colors ${
                 active
-                  ? "bg-surface font-medium text-text shadow-[0_1px_2px_rgba(27,26,24,0.07)]"
+                  ? "bg-accent-soft font-medium text-accent"
                   : "text-text-muted hover:text-text"
               }`}
             >
@@ -89,8 +89,8 @@ export default async function ProjectsPage({
               <Link
                 href={`/workspace/projects/${project.id}`}
                 className="group flex h-full flex-col gap-3 rounded-[var(--radius-card)] border border-border-soft bg-surface p-4
-                           transition-[border-color,box-shadow,transform] duration-150
-                           hover:border-border-strong hover:shadow-[0_2px_10px_rgba(27,26,24,0.07)]"
+                           transition-colors duration-150
+                           hover:border-border-strong"
               >
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-[15px] font-semibold leading-snug text-text group-hover:text-accent">
@@ -154,7 +154,7 @@ function EmptyState({ filter }: { filter: ProjectFilter }) {
       </p>
       <Link
         href="/workspace/projects/new"
-        className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+        className="mt-5 inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
       >
         Create your first project
       </Link>

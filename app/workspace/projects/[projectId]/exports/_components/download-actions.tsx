@@ -47,7 +47,7 @@ export function DownloadActions({
 
   if (disabled) {
     return (
-      <p className="rounded-lg border border-border-soft bg-surface-muted px-3 py-2.5 text-[13px] text-text-muted">
+      <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2.5 text-[13px] text-text-muted">
         Downloads are unavailable until the blocking problems above are resolved. The
         printable view is unavailable for the same reason.
       </p>
@@ -72,7 +72,7 @@ export function DownloadActions({
               window.setTimeout(() => setBusy((current) => (current === format ? null : current)), BUSY_MS);
             }}
             aria-disabled={isBusy}
-            className={`flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border-soft
+            className={`flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-card)] border border-border-soft
                         bg-surface px-3 py-2 transition-colors hover:bg-surface-hover
                         ${isBusy ? "pointer-events-none opacity-60" : ""}`}
           >
@@ -91,7 +91,7 @@ export function DownloadActions({
         href={`${base}/print?${query}`}
         target="_blank"
         rel="noopener"
-        className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-accent-border
+        className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-card)] border border-accent-border
                    bg-accent-soft px-3 py-2 transition-colors hover:bg-surface-hover"
       >
         <span className="flex flex-col">

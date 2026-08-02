@@ -119,7 +119,7 @@ export function ScopePanel({
               onClick={() => applyPreset(value)}
               disabled={pending}
               aria-pressed={preset === value}
-              className={`flex min-h-11 flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left transition-colors
+              className={`flex min-h-11 flex-col items-start gap-0.5 rounded-[var(--radius-card)] border px-3 py-2 text-left transition-colors
                 ${
                   preset === value
                     ? "border-accent-border bg-accent-soft"
@@ -146,7 +146,7 @@ export function ScopePanel({
         {EXPORT_STATUS_SCOPES.map((value) => (
           <label
             key={value}
-            className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover"
+            className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-[var(--radius-card)] px-2 py-2 hover:bg-surface-hover"
           >
             <input
               type="radio"
@@ -192,7 +192,7 @@ export function ScopePanel({
         onToggle={toggleSection}
       />
 
-      <label className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover">
+      <label className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-[var(--radius-card)] px-2 py-2 hover:bg-surface-hover">
         <input
           type="checkbox"
           checked={scope.includeConfidence}
@@ -249,7 +249,7 @@ function SectionGroup({
       {sections.map((section) => (
         <label
           key={section}
-          className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-surface-hover"
+          className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[var(--radius-card)] px-2 py-1.5 hover:bg-surface-hover"
         >
           <input
             type="checkbox"

@@ -288,7 +288,7 @@ export function ExportDocument({ pkg }: { pkg: ExportPackage }) {
         {project.archived ? (
           <p
             role="status"
-            className="rounded-md border border-warn-border bg-warn-soft px-3 py-2 text-[13px] text-warn"
+            className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-3 py-2 text-[13px] text-warn"
           >
             {pkg.notices[0]}
           </p>

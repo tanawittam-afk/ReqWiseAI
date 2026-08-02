@@ -172,12 +172,12 @@ function Cell({
         {item.hasSourceEvidence ? (
           <span
             title="Cited in the source"
-            className="rounded border border-signal-border bg-signal-soft px-1 text-[10px] font-medium text-signal"
+            className="rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-1 text-[10px] font-medium text-signal"
           >
             Cited
           </span>
         ) : (
-          <span className="rounded border border-border-soft px-1 text-[10px] text-text-faint">
+          <span className="rounded-[var(--radius-card)] border border-border-soft px-1 text-[10px] text-text-faint">
             No citation
           </span>
         )}
@@ -198,7 +198,7 @@ function StatusWord({ status }: { status: string }) {
           ? "border-warn-border bg-warn-soft text-warn"
           : "border-border-soft text-text-faint";
   return (
-    <span className={`rounded border px-1 text-[10px] font-medium capitalize ${tone}`}>
+    <span className={`rounded-[var(--radius-card)] border px-1 text-[10px] font-medium capitalize ${tone}`}>
       {status.replace(/_/g, " ")}
     </span>
   );

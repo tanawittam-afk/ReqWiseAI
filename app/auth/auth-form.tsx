@@ -17,8 +17,8 @@ type Props = {
 };
 
 const fieldClass =
-  "w-full rounded-md border border-black/15 bg-white px-3 py-2 text-sm outline-none " +
-  "focus:border-black/40 dark:border-white/20 dark:bg-black/20 dark:focus:border-white/50";
+  "w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-sm text-text outline-none " +
+  "transition-colors hover:border-border-strong focus:border-accent";
 
 export function AuthForm({ action, submitLabel, withDisplayName = false, next }: Props) {
   const [state, formAction, pending] = useActionState(action, emptyAuthState);
@@ -31,7 +31,7 @@ export function AuthForm({ action, submitLabel, withDisplayName = false, next }:
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium">Display name</span>
           <input name="display_name" type="text" autoComplete="name" className={fieldClass} />
-          <span className="text-xs opacity-60">Names your personal workspace.</span>
+          <span className="text-xs text-text-faint">Names your personal workspace.</span>
         </label>
       ) : null}
 
@@ -59,12 +59,12 @@ export function AuthForm({ action, submitLabel, withDisplayName = false, next }:
       </label>
 
       {state.error ? (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-danger">
           {state.error}
         </p>
       ) : null}
       {state.notice ? (
-        <p role="status" className="text-sm text-emerald-700 dark:text-emerald-400">
+        <p role="status" className="text-sm text-ok">
           {state.notice}
         </p>
       ) : null}
@@ -72,8 +72,8 @@ export function AuthForm({ action, submitLabel, withDisplayName = false, next }:
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background
-                   transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="min-h-11 rounded-[var(--radius-card)] bg-accent px-4 text-sm font-medium text-on-accent
+                   transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? "Working…" : submitLabel}
       </button>

@@ -39,7 +39,7 @@ export function DomainBadge({ name }: { name: string }) {
 
 export function LangBadge({ lang }: { lang: string }) {
   return (
-    <span className="rounded-md border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-text-faint">
+    <span className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-text-faint">
       {lang === "th" ? "TH" : "EN"}
     </span>
   );
@@ -47,7 +47,7 @@ export function LangBadge({ lang }: { lang: string }) {
 
 export function SourceKindBadge({ kind }: { kind: SourceKind }) {
   return (
-    <span className="rounded-md border border-border-soft bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-muted">
+    <span className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-muted">
       {SOURCE_KIND_LABELS[kind]}
     </span>
   );
@@ -75,7 +75,7 @@ export function LockBadge({ locked }: { locked: boolean }) {
 
 export function RevisionBadge({ revision }: { revision: number }) {
   return (
-    <span className="rounded-md border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-text-faint">
+    <span className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-text-faint">
       rev {revision}
     </span>
   );
