@@ -3,9 +3,97 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-03 (`buildGeminiPrompt()` tuned to fix the offset and relation
-validation failures the 2026-08-02 live verification found — see "Gemini prompt tuning"
-below.)
+Last updated: 2026-08-03 (**UX/UI Master Plan agreed — 8 phases, none started yet.** See
+"UX/UI Master Plan" immediately below; it is the next body of work and supersedes nothing
+that has already shipped. Same day, earlier: `buildGeminiPrompt()` tuned to fix the offset
+and relation validation failures the 2026-08-02 live verification found — see "Gemini
+prompt tuning" below.)
+
+---
+
+## 🗺️ UX/UI Master Plan (agreed 2026-08-03) — the next body of work
+
+**Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
+starting any phase; this section is the index and the state pointer.
+
+**Status: agreed, nothing implemented.** No phase has begun.
+
+### Why
+
+The engine works; everything around it does not communicate that. Three findings from a
+code audit this date, each verified:
+
+1. **7 of 9 sidebar items are dead.** `app/workspace/_components/sidebar.tsx:35-49` marks
+   them `ready: false` and renders a `<span aria-disabled="true" title="Coming in a later
+   slice">` — the `href` is never attached, and those route directories do not exist. Only
+   *Workspace* (a redirect) and *Projects* work.
+2. **The forms feel heavy but demand almost nothing.** The true minimum path is 3 typed
+   values and **zero** decisions, spread across 3 full-page forms, 3 redirects and 12
+   visible controls. `/analyze` is a whole screen whose only control is pre-checked.
+3. **No way in for anyone without an account.** Zero demo/sample/prefill affordances exist
+   (`grep` for sample|demo|example|try across `app/` returns one code comment). Sign-up
+   with email confirmation returns no session, so a recruiter must leave, open email, and
+   come back.
+
+**Goal:** a BA can do real work in it, and a recruiter understands within a minute —
+without signing up — that it works and is easy to use.
+
+### Phases
+
+| # | Phase | Core deliverable |
+|---|---|---|
+| 1 | Foundation kit | i18n primitives (`<T>`, `useLocale`, `LangToggle`, CSS swap) ported from `../Portfolio/site` · `lucide-react` behind one `icon.tsx` mapping · UI primitives extracted from existing local copies |
+| 2 | **Public demo** (top priority) | `/demo` — the real three-panel workspace, no login, rendered from a **live `runAnalysis()` call, zero database access** · guided annotation layer · TH/EN |
+| 3 | Landing page | Rewrite `app/page.tsx` into a real introduction with screenshots captured from `/demo` |
+| 4 | Remove friction | Merge create-project + paste-text into one screen · derive the source title · delete `/analyze` as a required step · one-click "try an example" |
+| 5 | Navigation + Dashboard | Every menu item real (Dashboard · Projects · Reviews · Domain Profiles · Settings) · fix the `startsWith` active-state bug · project sub-nav · Dashboard from real queries only |
+| 6 | Mobile | Whole-app responsive pass, not just the demo |
+| 7 | Visual polish + i18n sweep | Icon rollout · motion 120–220ms · spacing/type rhythm · `EmptyState` for the ~12 ad-hoc empties · skip link + `<main id>` |
+| 8 | General Software domain | Enrich the profile to booking's depth, **verify a real analysis yields properly**, then enable |
+
+### The one architectural decision worth knowing
+
+**The demo does not read the database.** `AnalysisWorkspace` is a pure-props client
+component (`workspace.tsx:47-67`) that constructs no Supabase client, and
+`runAnalysis()` is documented "No database, no auth, no HTTP" with deterministic ports
+already in production code (`lib/normalization/ports.ts`). So `/demo` calls the shipped
+`runAnalysis()` → `validateAnalysis()` → `normalizeAnalysis()` chain at render time and
+shows genuine validated output.
+
+This is **not** a hardcoded fixture — nothing is hand-written, and the mock provider
+analyses the text it is given (since slice 4.1), it does not replay a fixture.
+
+The alternative — a public RLS policy over a flagged demo project — was considered and
+**rejected**: it needs ten `to anon` SELECT policies plus a `SECURITY DEFINER` helper (the
+largest security-boundary expansion this project has made), and because
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` ships in the browser the demo project would become a
+directly-queryable public PostgREST endpoint. Service-role SSR was rejected harder — this
+file records twice that `SUPABASE_SERVICE_ROLE_KEY` is deliberately absent from Vercel,
+verified by import graph, and that property is worth more than a demo.
+**Deferred, not dead:** if live-DB provenance is ever wanted, do public RLS as its own
+owner-approved slice with a `verify-demo.mts` that queries as `anon` and proves it sees the
+demo project and nothing else.
+
+### Traps recorded in the plan (read them before the phase they belong to)
+
+`INTERFACE.md` §7 documents the disabled-sidebar convention and must be rewritten in the
+same commit as Phase 5 · hide the provider *choice* but keep the provider *disclosure* on
+the run header · never bind `outputLang` to the TH/EN UI toggle (CLAUDE.md keeps them
+separate) · `<T>` is chrome-only and the `@media print` block must hide the inactive
+language or exports print both · the one-click example must **force** `provider: "mock"`
+or it becomes an unmetered Gemini spend endpoint · the activity feed cannot name another
+person (RLS on `profiles`) and must not gain a policy as a dashboard side effect · verify
+General Software yields a real analysis **before** flipping its flag · do not mass-migrate
+to the new primitives.
+
+### Approved dependency
+
+`lucide-react` — the only addition to the locked stack, owner-approved 2026-08-03 (the
+sibling `Portfolio/site` already uses it). Keep it behind one `app/_components/icon.tsx`
+mapping module so a swap stays a one-file change. **Nothing else** may be added without
+asking.
+
+---
 
 Earlier entry, still true: 2026-08-02 (Tech design system — **all 7 phases done, redesign complete.**
 Phase 7 closed out in two commits: `90463fc` finished the token migration Phase 6 missed
