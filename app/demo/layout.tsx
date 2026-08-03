@@ -1,0 +1,22 @@
+/**
+ * The demo shell. Deliberately not `app/workspace/layout.tsx` — that layout calls
+ * `getUser()` and redirects a signed-out visitor to `/sign-in`, which is exactly the
+ * traffic this route exists to receive. `/demo` is also excluded from `proxy.ts`'s
+ * matcher (Phase 2 of the 2026-08-03 UX/UI plan), so nothing here or upstream ever
+ * touches Supabase — this page renders from the engine's own output, not a query.
+ *
+ * Same one-viewport-tall shell convention as the workspace layout, so the Analysis
+ * Workspace beneath it gets the same scroll behaviour (each panel scrolls on its own,
+ * the page itself never does).
+ */
+
+import { DemoHeader } from "./_components/demo-header";
+
+export default function DemoLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-dvh flex-col bg-app">
+      <DemoHeader />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+    </div>
+  );
+}

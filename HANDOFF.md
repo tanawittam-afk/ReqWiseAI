@@ -3,12 +3,12 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-03 (**UX/UI Master Plan Phase 1 (Foundation kit) shipped** — TH/EN
-i18n mechanism, `lucide-react` icon mapping, and extracted UI primitives. See "UX/UI
-Master Plan" immediately below for what's done and what's next. Same day, earlier: the
-plan itself was agreed, and before that `buildGeminiPrompt()` was tuned to fix the offset
-and relation validation failures the 2026-08-02 live verification found — see "Gemini
-prompt tuning" below.)
+Last updated: 2026-08-03 (**UX/UI Master Plan Phase 2 (public demo) shipped** — `/demo`
+renders the real engine's live output, no login, no database access. See "UX/UI Master
+Plan" immediately below for what's done and what's next. Same day, earlier: Phase 1
+(Foundation kit) shipped, the plan itself was agreed, and before that `buildGeminiPrompt()`
+was tuned to fix the offset and relation validation failures the 2026-08-02 live
+verification found — see "Gemini prompt tuning" below.)
 
 ---
 
@@ -17,7 +17,7 @@ prompt tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phase 1 (Foundation kit) done. Phases 2–8 not started.**
+**Status: Phases 1–2 done. Phases 3–8 not started.**
 
 ### Phase 1 — shipped 2026-08-03
 
@@ -53,11 +53,96 @@ starting any phase; this section is the index and the state pointer.
   console errors/warnings and **zero** network requests (confirmed via
   `read_console_messages` and `read_network_requests` after the click, not just by eye).
 
-### Up next: Phase 2 — the public demo (top priority)
+### Phase 2 — shipped 2026-08-03: the public demo
 
-Read the "The one architectural decision worth knowing" section above and the full plan
-(`abundant-herding-ember.md`) before starting: the demo renders `lib/demo/build.ts`'s
-live `runAnalysis()` output, zero database access, not a public RLS policy.
+**`/demo` is live, public, no login required.** Confirmed by the build itself: it
+compiles as `○` (static, prerendered) alongside every other truly static route — no
+per-request cost, because nothing on the page reads a database or a session.
+
+- **`lib/demo/`** — headless, DB-free, exactly mirroring the real query shapes:
+  - `scenario.ts` — a fresh TH/EN meeting-notes source, authored (not copied from the
+    test fixture) and hand-tuned against the mock strategy's real trigger words
+    (`lib/providers/mock/runtime/lexicon.ts`) so it genuinely exercises obligation,
+    staff, customer, booking and an unresolved-cancellation line — not hoping the
+    engine finds something to say.
+  - `ports.ts` — `demoPorts()`, mirroring `lib/analysis/production-ports.ts` with a
+    **fixed clock** (`2026-08-01T00:00:00.000Z`) so server and client agree byte-for-byte
+    and nothing hydration-mismatches. Unlike the production port, this allocator's
+    `displayIds` output *is* the real display id shown — nothing persists to overwrite it.
+  - `build.ts` — `buildDemoRun(lang)`: `createMockProvider()` → `runAnalysis()`, throws
+    if the result isn't `valid`, memoized per language.
+  - `view.ts` — maps `NormalizedAnalysis` onto `AnalysisWorkspaceRun` / `SourceDetail` /
+    `Record<string, ItemHistory>`, replicating `lib/analysis/queries.ts`'s own
+    `relatedDisplayIds`/`changeRequestCandidateItemIds` derivation field-for-field.
+    `workflowState` is `'open'` for `open_question`/`quality_finding` and `null`
+    otherwise — the same CHECK constraint the database enforces, not a guess.
+    `history` is honestly `{versions:[],activities:[]}` per item: nothing was ever
+    reviewed, so there is nothing to show.
+- **The architectural decision, verified before writing any UI:** `AnalysisWorkspace`
+  (`.../analyses/[runId]/workspace.tsx`) is pure-props with no Supabase client, and
+  every mutating `<form>` inside `Inspector`/`ReviewActions`/`WorkflowTab`/
+  `ChangeRequestsTab`/`ItemEditForm` is conditionally rendered **only** when
+  `canReview`/`canAct` is true — read line by line to confirm, not assumed. `/demo`
+  passes `canReview={false}`, so zero mutating forms ever reach the DOM, and every
+  server action in `actions.ts` re-derives auth via `createClient()` + RLS regardless.
+  Demo item ids are sequential strings (`item-1`, …), not real UUIDs, so even a crafted
+  submission resolves to nothing. No panel component contains a single `Link`/`href` —
+  confirmed by grep — so there was nothing to neutralise.
+- **`proxy.ts`** — `/demo` added to the matcher's negative lookahead alongside
+  `_next/static` etc., so it is a genuinely static request, not one that calls
+  `supabase.auth.getUser()` on every load for no reason.
+- **`app/demo/`** — own `layout.tsx` (not `workspace/layout.tsx`, which calls
+  `getUser()` and redirects) with a minimal `DemoHeader` (brand, theme + lang toggles,
+  Sign in / Create account). `page.tsx` computes both language datasets server-side;
+  `DemoWorkspace` (client) picks between them via `useLocale()` and remounts
+  `AnalysisWorkspace` on locale change — a deliberate, documented exception to "UI
+  language and output language are two separate controls," scoped to this one
+  no-account demo page (see the file's own comment for why the real app keeps them
+  separate but this page does not need to).
+  A persistent, non-dismissible banner states plainly what the page is: read-only,
+  engine-generated, no account, no database.
+- **`app/demo/_components/tour.tsx`** — the guided-explanation layer. Deliberately
+  **not** pixel-anchored markers glued to each panel (that would mean duplicating
+  `workspace.tsx`'s three-breakpoint layout logic in a second file — exactly the "fork
+  the shared component" risk the plan chose not to take). Instead: a floating button
+  opening a rail of four real, keyboard-reachable buttons, each toggling its own
+  explanation via `aria-expanded`/`aria-controls` — never a hover tooltip. Auto-opens
+  once for a first-time visitor via `useSyncExternalStore` (the same technique
+  `useLocale()` uses, not a `useEffect`+`setState` pair — the latter tripped
+  `react-hooks/set-state-in-effect` and risked a hydration mismatch besides), stays
+  closed on repeat visits once dismissed. Copy is about BA judgment ("nothing here
+  fabricates a quotation to look more certain than it is"), not features.
+- **Entry points** — `/` gained a primary "See the demo" button (ahead of Sign
+  in/workspace), `/sign-in` and `/sign-up` gained a secondary "Just curious? See the
+  demo" link. `/page.tsx` itself gets its full rewrite in Phase 3; this is the minimum
+  to make the demo reachable today.
+- **Verified:**
+  - `tests/demo/build.test.ts` (14 tests, both languages): valid non-trivial analysis
+    (8–20 items) · every citation an exact, offset-verified substring of the scenario
+    text · every `inferred`/`assumed` item carries a rationale · every item `draft` ·
+    deterministic across repeated calls · every item's history honestly empty · every
+    `changeRequests` list honestly empty · `workflowState` matches the CHECK constraint
+    exactly · `SourceDetail.rawText` matches the scenario byte for byte.
+  - `npm run build`/`lint`/`typecheck`/`test` all clean (745/745) · `/demo` compiles `○`
+    static.
+  - Browser-checked on `localhost:3000`: all three panels render with real generated
+    content (12 requirements, 3 open questions, 1 quality finding, 1 risk) · selecting a
+    requirement correctly highlights its exact source excerpt · the inspector's
+    read-only notice renders exactly as the `canReview={false}` code path predicts ·
+    toggling EN⇄TH swaps the chrome, the banner, *and* the analysis content together,
+    with zero console errors and zero hydration warnings after the remount · light and
+    dark themes both correct · `read_network_requests` after full interaction showed
+    **zero requests to any Supabase host** — only the dev server's own static assets —
+    which is the one check that actually proves the architecture held · mobile width
+    checked via the same same-origin-iframe technique HANDOFF has used before (the
+    browser window itself is not resizable in this environment): 390px wide,
+    `scrollWidth === clientWidth` on `<html>`, the responsive segmented control
+    (Source · Requirements · Inspector) rendered correctly with no horizontal overflow.
+
+### Up next: Phase 3 — the landing page
+
+Rewrite `app/page.tsx` into a real introduction (problem statement, real screenshots
+captured from `/demo`, "See the demo" as the primary CTA) per the full plan.
 
 ### Why
 

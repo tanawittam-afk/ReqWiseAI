@@ -18,12 +18,26 @@ export default async function Home() {
         </p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
+        {/*
+         * "See the demo" is the primary action regardless of session state — it is
+         * the fastest way for anyone (a returning user or a first-time visitor) to
+         * see the product actually work, no sign-up required. This page gets a full
+         * introduction of its own in Phase 3 of the 2026-08-03 UX/UI plan; this is
+         * the minimum needed to make the Phase 2 demo reachable the day it ships.
+         */}
+        <Link
+          href="/demo"
+          className="min-h-11 rounded-[var(--radius-card)] bg-accent px-4 py-2 text-sm font-medium text-on-accent
+                     transition-colors hover:bg-accent-hover"
+        >
+          See the demo
+        </Link>
         {user ? (
           <Link
             href="/workspace"
-            className="min-h-11 rounded-[var(--radius-card)] bg-accent px-4 py-2 text-sm font-medium text-on-accent
-                       transition-colors hover:bg-accent-hover"
+            className="min-h-11 rounded-[var(--radius-card)] border border-border-soft px-4 py-2 text-sm font-medium
+                       text-text transition-colors hover:bg-surface-hover"
           >
             Open workspace
           </Link>
@@ -31,8 +45,8 @@ export default async function Home() {
           <>
             <Link
               href="/sign-in"
-              className="min-h-11 rounded-[var(--radius-card)] bg-accent px-4 py-2 text-sm font-medium text-on-accent
-                         transition-colors hover:bg-accent-hover"
+              className="min-h-11 rounded-[var(--radius-card)] border border-border-soft px-4 py-2 text-sm font-medium
+                         text-text transition-colors hover:bg-surface-hover"
             >
               Sign in
             </Link>

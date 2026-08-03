@@ -71,8 +71,12 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except Next internals and static assets — the session cookie must be
-    // refreshed on real navigations, not on image requests.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Everything except Next internals, static assets, and /demo — the session cookie
+    // must be refreshed on real navigations, not on image requests, and /demo is a
+    // public, no-auth page (Phase 2 of the 2026-08-03 UX/UI plan): it needs no session
+    // refresh and PROTECTED_PREFIXES never covered it anyway, so excluding it here
+    // keeps it a genuinely static request instead of one that calls Supabase auth on
+    // every load for no reason.
+    "/((?!_next/static|_next/image|favicon.ico|demo|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

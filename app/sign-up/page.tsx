@@ -22,6 +22,14 @@ export default function SignUpPage() {
           Sign in
         </Link>
       </p>
+
+      <p className="text-sm text-text-muted">
+        Just curious?{" "}
+        <Link href="/demo" className="text-accent underline underline-offset-2">
+          See the demo
+        </Link>{" "}
+        — no account needed.
+      </p>
     </main>
   );
 }
