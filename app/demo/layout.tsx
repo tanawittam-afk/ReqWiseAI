@@ -10,12 +10,12 @@
  * the page itself never does).
  */
 
-import { DemoHeader } from "./_components/demo-header";
+import { SiteHeader } from "../_components/site-header";
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-dvh flex-col bg-app">
-      <DemoHeader />
+      <SiteHeader />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
   );

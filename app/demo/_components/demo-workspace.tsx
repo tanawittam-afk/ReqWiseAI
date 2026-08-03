@@ -37,9 +37,25 @@ function toOutputLang(locale: "en" | "th"): OutputLang {
   return locale;
 }
 
-export function DemoWorkspace({ th, en }: { th: DemoDataset; en: DemoDataset }) {
+export function DemoWorkspace({
+  th,
+  en,
+  initialDisplayId,
+}: {
+  th: DemoDataset;
+  en: DemoDataset;
+  /** `?item=` from the URL — a display id (`Q-001`), resolved below. */
+  initialDisplayId: string | null;
+}) {
   const locale = useLocale();
   const dataset = toOutputLang(locale) === "th" ? th : en;
+
+  // Resolved per-dataset rather than passed straight through: the two languages'
+  // items do not share ids, only the same display-id allocation order, so this must
+  // be recomputed against whichever dataset is actually active.
+  const initialItemId = initialDisplayId
+    ? (dataset.run.items.find((item) => item.displayId === initialDisplayId)?.id ?? null)
+    : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -65,6 +81,7 @@ export function DemoWorkspace({ th, en }: { th: DemoDataset; en: DemoDataset }) 
         history={dataset.history}
         canReview={false}
         currentUserId={null}
+        initialItemId={initialItemId}
       />
 
       <Tour />

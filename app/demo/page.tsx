@@ -32,7 +32,19 @@ async function dataset(lang: "th" | "en"): Promise<DemoDataset> {
   };
 }
 
-export default async function DemoPage() {
-  const [th, en] = await Promise.all([dataset("th"), dataset("en")]);
-  return <DemoWorkspace th={th} en={en} />;
+export default async function DemoPage({
+  searchParams,
+}: {
+  /**
+   * `?item=` — a **display id** (`Q-001`, not a database uuid), so a link from the
+   * landing page can read `/demo?item=Q-001` and mean something to a human. Resolved
+   * against whichever language dataset is active client-side, in `DemoWorkspace`,
+   * because display-id allocation order is identical between the two language runs
+   * (the mock strategy pushes items in a fixed order regardless of language) but the
+   * underlying item ids are not shared between them.
+   */
+  searchParams: Promise<{ item?: string }>;
+}) {
+  const [{ item }, th, en] = await Promise.all([searchParams, dataset("th"), dataset("en")]);
+  return <DemoWorkspace th={th} en={en} initialDisplayId={item ?? null} />;
 }

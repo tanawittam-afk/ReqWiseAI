@@ -1,17 +1,20 @@
 /**
- * The demo's own chrome — deliberately not `app/workspace/_components/toolbar.tsx` or
- * `sidebar.tsx`, both of which assume a signed-in `/workspace` route (a workspace name,
- * an account menu, `usePathname()`-driven nav to pages a visitor cannot reach). A
- * public page gets a minimal header of its own rather than a reused shell with parts
- * disabled.
+ * The shared chrome for pages outside the signed-in `/workspace` shell — the landing
+ * page and the public demo. Deliberately not `app/workspace/_components/toolbar.tsx`
+ * or `sidebar.tsx`, both of which assume a signed-in route (a workspace name, an
+ * account menu, `usePathname()`-driven nav to pages a visitor cannot reach).
+ *
+ * Promoted here in Phase 3 of the 2026-08-03 UX/UI plan from `app/demo/_components/`,
+ * where it first shipped in Phase 2 — the landing page needed the identical header,
+ * not a second copy of it.
  */
 
 import Link from "next/link";
-import { T } from "@/app/_components/t";
-import { LangToggle } from "@/app/_components/lang-toggle";
-import { ThemeToggle } from "@/app/workspace/_components/theme-toggle";
+import { T } from "./t";
+import { LangToggle } from "./lang-toggle";
+import { ThemeToggle } from "../workspace/_components/theme-toggle";
 
-export function DemoHeader() {
+export function SiteHeader() {
   return (
     <header className="flex shrink-0 items-center gap-3 border-b border-border-soft bg-chrome px-4 py-2.5 sm:px-6">
       <Link href="/" className="flex items-center gap-2.5">

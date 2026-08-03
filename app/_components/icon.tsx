@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleCheck,
+  ClipboardList,
   ExternalLink,
   FolderOpen,
   Home,
@@ -12,9 +13,12 @@ import {
   ListChecks,
   Network,
   Plus,
+  Quote,
   Search,
   Settings,
+  Sparkles,
   TriangleAlert,
+  UserCheck,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +50,10 @@ const ICONS = {
   language: Languages,
   plus: Plus,
   "arrow-right": ArrowRight,
+  paste: ClipboardList,
+  analyze: Sparkles,
+  review: UserCheck,
+  quote: Quote,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

@@ -3,12 +3,13 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-03 (**UX/UI Master Plan Phase 2 (public demo) shipped** — `/demo`
-renders the real engine's live output, no login, no database access. See "UX/UI Master
-Plan" immediately below for what's done and what's next. Same day, earlier: Phase 1
-(Foundation kit) shipped, the plan itself was agreed, and before that `buildGeminiPrompt()`
-was tuned to fix the offset and relation validation failures the 2026-08-02 live
-verification found — see "Gemini prompt tuning" below.)
+Last updated: 2026-08-03 (**UX/UI Master Plan Phase 3 (landing page) shipped** — `/`
+rewritten into a real introduction with two real screenshots from `/demo` and
+deep-linked claims. See "UX/UI Master Plan" immediately below for what's done and
+what's next. Same day, earlier: Phase 2 (public demo) shipped, Phase 1 (Foundation kit)
+shipped, the plan itself was agreed, and before that `buildGeminiPrompt()` was tuned to
+fix the offset and relation validation failures the 2026-08-02 live verification found
+— see "Gemini prompt tuning" below.)
 
 ---
 
@@ -17,7 +18,7 @@ verification found — see "Gemini prompt tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phases 1–2 done. Phases 3–8 not started.**
+**Status: Phases 1–3 done. Phases 4–8 not started.**
 
 ### Phase 1 — shipped 2026-08-03
 
@@ -139,10 +140,70 @@ per-request cost, because nothing on the page reads a database or a session.
     `scrollWidth === clientWidth` on `<html>`, the responsive segmented control
     (Source · Requirements · Inspector) rendered correctly with no horizontal overflow.
 
-### Up next: Phase 3 — the landing page
+### Phase 3 — shipped 2026-08-03: the landing page
 
-Rewrite `app/page.tsx` into a real introduction (problem statement, real screenshots
-captured from `/demo`, "See the demo" as the primary CTA) per the full plan.
+**`/` is a real introduction now** — was a heading, three lines and one button.
+Deliberately **static** (`○` in the build output): the previous version called
+`getUser()` purely to choose one button's label; dropped, since a signed-in visitor
+who clicks "Sign in" anyway lands on `/workspace` via `proxy.ts`'s existing redirect.
+This is a deliberate behaviour change, not an oversight.
+
+- **`app/_components/site-header.tsx`** — promoted out of `app/demo/_components/
+  demo-header.tsx` (Phase 2) rather than duplicated: the landing page needed the
+  identical header (brand, theme/lang toggles, sign in/create account), so Phase 2's
+  component became the shared one. `app/demo/layout.tsx` updated to import from the
+  new location; the old file deleted, not left behind as dead code.
+- **Sections, all TH/EN via `<T>`:** hero (one-sentence problem statement, primary "See
+  the demo" / secondary "Sign in") → two real screenshots from `/demo` (see below) →
+  three-step "How it works" (paste/analyse/review, icon + text, no screenshot needed)
+  → four "not a chatbot" claims, each a card linking to `/demo?item=<display id>` →
+  a short, honest stack note (no invented capability) → footer CTA repeating the
+  primary action.
+- **`?item=` deep-linking added to `/demo`** (`app/demo/page.tsx`,
+  `demo-workspace.tsx`) so the landing page's claims can link to the exact item that
+  proves them. Takes a **display id** (`Q-001`), not a database uuid — resolved
+  client-side against whichever language dataset is active, because display-id
+  allocation order is identical between the TH and EN runs (the mock strategy pushes
+  items in a fixed order regardless of language) but the underlying item ids are not
+  shared between them. Confirmed the exact ids by a throwaway test run before writing
+  any landing-page copy, rather than guessing: `BR-001` (cited business requirement),
+  `Q-001` (stated, cited open question — the cancellation line), `Q-002` (assumed,
+  no-citation open question), `QF-001` (the one quality finding).
+  **Side effect, confirmed in the build output:** `/demo` changed from `○` static to
+  `ƒ` dynamic, because reading `searchParams` in an App Router page forces per-request
+  rendering. Still zero database and zero auth calls — `buildDemoRun()` is memoized at
+  module scope, so the per-request cost is the same pure computation, just no longer
+  prerendered at build time. A deliberate, small trade for the deep-link feature.
+- **Two real screenshots**, captured from `/demo` itself (guaranteed no real user's
+  data by construction) via `claude-in-chrome`, saved to `public/screenshots/`:
+  `demo-requirement.jpg` (`?item=BR-001`, showing a cited requirement) and
+  `demo-open-question.jpg` (`?item=Q-001`, showing the cancellation question with its
+  source highlight). **Both dark theme, not a light/dark pair** — the plan named that
+  as an acceptable fallback ("ship dark only and drop the swap") if the pair added
+  cost without matching value, and it did: this environment's screen-capture pipeline
+  renders dark regardless of the page's actual theme (confirmed via
+  `getComputedStyle`/`data-theme` — the DOM was genuinely `light`, background
+  genuinely `rgb(255,255,255)` — the capture itself is the artifact, an OS/browser
+  display-filter quirk unrelated to the app's code). Chasing a correct light-mode
+  capture further wasn't worth it for a feature the plan already said could be
+  dropped.
+- **Two new icon names** added to `app/_components/icon.tsx`'s map: `paste`
+  (`ClipboardList`), `analyze` (`Sparkles`), `review` (`UserCheck`), `quote` (`Quote`)
+  — for the three-step section and the evidence claim card. Same one mapping module,
+  no new import site anywhere else.
+- **Verified:** `npm run build`/`lint`/`typecheck`/`test` all clean (745/745) · `/`
+  compiles `○` static, `/demo` now `ƒ` dynamic (expected, see above). Browser-checked:
+  hero, screenshots, three-step section and all four claim cards render correctly ·
+  clicking a claim card lands on `/demo?item=…` with the right item selected and its
+  evidence highlighted (confirmed for `Q-001`) · EN⇄TH toggle swaps the entire page,
+  including every section below the fold, with no console errors · mobile width
+  (390px, same-origin-iframe technique) has zero horizontal overflow, single-column
+  stacking reads correctly in both languages.
+
+### Up next: Phase 4 — remove the friction
+
+Merge project creation and the first source's text into one screen, delete `/analyze`
+as a required step, and add the one-click "try an example" flow, per the full plan.
 
 ### Why
 
