@@ -624,8 +624,17 @@ reference under `app/`, `lib/` and `proxy.ts` (excluding scripts and tests) plus
    **done 2026-08-03.** `origin` now points at
    `https://github.com/tanawittam-afk/ReqWiseAI.git` (owner created the empty repo,
    gave the URL; `git remote add origin` + `git push -u origin main`), `main` tracks
-   `origin/main`. Nothing else about this repo's remote state has been decided — no CI,
-   no branch protection, no Vercel Git integration switched on.
+   `origin/main`. GitHub CLI (`gh`) installed via `winget` and authenticated as
+   `tanawittam-afk` (`gho_…`, scopes `gist`/`read:org`/`repo`) — full path
+   `C:\Program Files\GitHub CLI\gh.exe`, not yet on this shell's `PATH`.
+   **Branch protection on `main` set up the same day** — minimal ruleset, owner-chosen:
+   `allow_force_pushes: false`, `allow_deletions: false` via `PUT
+   /repos/tanawittam-afk/ReqWiseAI/branches/main/protection`
+   (`enforce_admins: false`, no required PR reviews, no required status checks — the
+   owner still pushes directly to `main`, only history-destroying pushes and branch
+   deletion are blocked). Verified by re-reading the protection endpoint after applying.
+   Nothing else about the remote is set up — no CI, no Vercel Git integration switched
+   on.
 
 ### Phase B current state (2026-07-27)
 
