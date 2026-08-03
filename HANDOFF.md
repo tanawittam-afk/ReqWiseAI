@@ -3,9 +3,10 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-03 (**UX/UI Master Plan agreed — 8 phases, none started yet.** See
-"UX/UI Master Plan" immediately below; it is the next body of work and supersedes nothing
-that has already shipped. Same day, earlier: `buildGeminiPrompt()` tuned to fix the offset
+Last updated: 2026-08-03 (**UX/UI Master Plan Phase 1 (Foundation kit) shipped** — TH/EN
+i18n mechanism, `lucide-react` icon mapping, and extracted UI primitives. See "UX/UI
+Master Plan" immediately below for what's done and what's next. Same day, earlier: the
+plan itself was agreed, and before that `buildGeminiPrompt()` was tuned to fix the offset
 and relation validation failures the 2026-08-02 live verification found — see "Gemini
 prompt tuning" below.)
 
@@ -16,7 +17,47 @@ prompt tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: agreed, nothing implemented.** No phase has begun.
+**Status: Phase 1 (Foundation kit) done. Phases 2–8 not started.**
+
+### Phase 1 — shipped 2026-08-03
+
+- **i18n mechanism** — `lib/i18n.ts` (`useLocale()`, `pick()`), `app/_components/t.tsx`
+  (`<T en="…" th="…">`), `app/_components/lang-toggle.tsx`, all ported from
+  `../Portfolio/site` and adapted to this repo's naming (`reqwise-locale` storage key,
+  matching `reqwise-theme`). CSS swap rules and the toggle's pressed-state rule added to
+  `app/globals.css`, duplicated inside `@media print` so a printed export can never show
+  both languages. Pre-paint script in `app/layout.tsx` extended to stamp `data-locale`
+  before first paint alongside the existing `data-theme` stamp — no flash of either.
+  **Chrome only** — never wraps requirement content, source text, or export output,
+  which follow `analysis_runs.output_lang`, a separate axis by design (CLAUDE.md).
+- **Icons** — `lucide-react` added (the one approved dependency), behind
+  `app/_components/icon.tsx`'s single `<Icon name="…">` mapping so a future swap stays a
+  one-file change. Not yet rolled out past the mapping module itself — replacing the
+  sidebar/toolbar unicode glyphs is Phase 7's job, per the plan's trap #11 (no
+  mass-migration).
+- **UI primitives** — `app/_components/ui/{tabs,select,chip,notice,button,empty-state}.tsx`,
+  each extracted from an existing local definition (`requirements-panel.tsx`,
+  `inspector.tsx`, `review-actions.tsx`, and the empty-state pattern repeated in
+  `sources/page.tsx` / `projects/page.tsx`) rather than invented. Call sites are **not**
+  migrated to them yet — same rule as icons, converted opportunistically as later phases
+  touch those files.
+- **Smoke-tested, not a translation pass:** the sidebar's nine labels and the toolbar
+  breadcrumb wrapped in `<T>` as the mechanism's first live instance, with `LangToggle`
+  placed next to the existing `ThemeToggle` in both the sidebar (desktop) and toolbar
+  (the `md:hidden` mobile strip) — mirroring `ThemeToggle`'s exact placement and
+  `compact` prop pattern. The real copy sweep is Phase 6.
+- **Verified:** `npm run build`/`lint`/`typecheck`/`test` all clean (731/731) ·
+  `grep -rn "dark:" app/` empty · browser-checked on `localhost:3000` signed in as the
+  `slice3.demo@reqwise.dev` session already in the dev profile — toggling EN⇄TH is
+  instant in both directions, persists across a reload with no flash, produces **zero**
+  console errors/warnings and **zero** network requests (confirmed via
+  `read_console_messages` and `read_network_requests` after the click, not just by eye).
+
+### Up next: Phase 2 — the public demo (top priority)
+
+Read the "The one architectural decision worth knowing" section above and the full plan
+(`abundant-herding-ember.md`) before starting: the demo renders `lib/demo/build.ts`'s
+live `runAnalysis()` output, zero database access, not a public RLS policy.
 
 ### Why
 

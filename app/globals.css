@@ -178,6 +178,26 @@ body {
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
+/* Bilingual chrome swap (app/_components/t.tsx): both languages render into the DOM,
+   CSS hides the inactive one based on <html data-locale>. Chrome only — requirement
+   content, source text and exports follow analysis_runs.output_lang, never this
+   attribute. Duplicated inside @media print below for the same reason. */
+html[data-locale="th"] [data-lang="en"] {
+  display: none;
+}
+html:not([data-locale="th"]) [data-lang="th"] {
+  display: none;
+}
+
+/* Lang toggle (app/_components/lang-toggle.tsx): mirrors the theme-toggle rule above —
+   pressed state is a pure attribute match against <html data-locale>, no React state. */
+[data-locale="th"] .lang-toggle-option[data-locale-option="th"],
+html:not([data-locale="th"]) .lang-toggle-option[data-locale-option="en"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -242,6 +262,16 @@ body {
 
   .print-only {
     display: block !important;
+  }
+
+  /* <T> renders both languages into the DOM; the screen-only swap rule above still
+     applies here (it isn't scoped to a media query), but restated explicitly so a
+     printed export can never show both languages even if that scoping ever changes. */
+  html[data-locale="th"] [data-lang="en"] {
+    display: none !important;
+  }
+  html:not([data-locale="th"]) [data-lang="th"] {
+    display: none !important;
   }
 
   /* A print-safe palette, applied by overriding the tokens rather than every rule. */

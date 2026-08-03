@@ -24,11 +24,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * Sets `data-theme` before first paint so there is no light-then-dark flash. Reads a
- * stored preference first; falls back to the OS preference on a first visit. Inline
- * and tiny on purpose — anything heavier here is the flash it exists to prevent.
+ * Sets `data-theme` and `data-locale` before first paint so there is no light-then-dark
+ * flash and no English-then-Thai flash. Theme reads a stored preference first, falling
+ * back to the OS preference on a first visit; locale has no OS signal to fall back to,
+ * so an unset preference simply stays English (the default the server already rendered).
+ * Inline and tiny on purpose — anything heavier here is the flash it exists to prevent.
  */
-const themeInitScript = `(function(){try{var s=localStorage.getItem("reqwise-theme");var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`;
+const themeInitScript = `(function(){try{var s=localStorage.getItem("reqwise-theme");var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",t);var l=localStorage.getItem("reqwise-locale");if(l==="th"){document.documentElement.setAttribute("data-locale","th");document.documentElement.setAttribute("lang","th");}}catch(e){}})();`;
 
 export default function RootLayout({
   children,

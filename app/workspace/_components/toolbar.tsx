@@ -11,6 +11,7 @@
  */
 
 import { usePathname } from "next/navigation";
+import { LangToggle } from "../../_components/lang-toggle";
 import { ThemeToggle } from "./theme-toggle";
 
 function contextLabel(pathname: string): string {
@@ -51,10 +52,11 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
             ⌘K
           </kbd>
         </button>
-        {/* Sidebar carries the toggle on desktop (md+); the sidebar collapses to a
-            horizontal strip below md with no room for it, so it lives here instead. */}
-        <div className="md:hidden">
+        {/* Sidebar carries the toggles on desktop (md+); the sidebar collapses to a
+            horizontal strip below md with no room for them, so they live here instead. */}
+        <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle compact />
+          <LangToggle compact />
         </div>
         {children}
       </div>

@@ -19,11 +19,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { T } from "../../_components/t";
+import { LangToggle } from "../../_components/lang-toggle";
 import { ThemeToggle } from "./theme-toggle";
 
 type Item = {
   href: string;
-  label: string;
+  label: React.ReactNode;
   icon: string;
   ready: boolean;
 };
@@ -31,21 +33,25 @@ type Item = {
 /**
  * The nine destinations of docs/design/INTERFACE.md §7, in that order. Icons are plain
  * geometry — never a copy of a macOS or Apple application icon (§7).
+ *
+ * Labels wrapped in <T> as this repo's first live TH/EN chrome copy (Phase 1 of the
+ * 2026-08-03 UX/UI plan) — a smoke test for the i18n mechanism, not a translation pass;
+ * the plan's Phase 6 does that sweep.
  */
 const ITEMS: Item[] = [
-  { href: "/workspace", label: "Workspace", icon: "⌂", ready: true },
-  { href: "/workspace/dashboard", label: "Dashboard", icon: "▤", ready: false },
-  { href: "/workspace/projects", label: "Projects", icon: "▣", ready: true },
-  { href: "/workspace/runs", label: "Analysis Runs", icon: "◫", ready: false },
-  { href: "/workspace/requirements", label: "Requirements", icon: "≡", ready: false },
-  { href: "/workspace/reviews", label: "Reviews", icon: "✓", ready: false },
+  { href: "/workspace", label: <T en="Workspace" th="พื้นที่ทำงาน" />, icon: "⌂", ready: true },
+  { href: "/workspace/dashboard", label: <T en="Dashboard" th="แดชบอร์ด" />, icon: "▤", ready: false },
+  { href: "/workspace/projects", label: <T en="Projects" th="โปรเจกต์" />, icon: "▣", ready: true },
+  { href: "/workspace/runs", label: <T en="Analysis Runs" th="รอบการวิเคราะห์" />, icon: "◫", ready: false },
+  { href: "/workspace/requirements", label: <T en="Requirements" th="ความต้องการ" />, icon: "≡", ready: false },
+  { href: "/workspace/reviews", label: <T en="Reviews" th="การรีวิว" />, icon: "✓", ready: false },
   // Traceability is per-project — it lives at
   // /workspace/projects/:id/traceability, reached from a project. A workspace-wide
   // matrix across every project would be a different feature and is not built, so the
   // entry stays listed and disabled rather than linking somewhere that does not exist.
-  { href: "/workspace/traceability", label: "Traceability", icon: "⟋", ready: false },
-  { href: "/workspace/profiles", label: "Domain Profiles", icon: "◇", ready: false },
-  { href: "/workspace/settings", label: "Settings", icon: "⚙", ready: false },
+  { href: "/workspace/traceability", label: <T en="Traceability" th="การสืบย้อนกลับ" />, icon: "⟋", ready: false },
+  { href: "/workspace/profiles", label: <T en="Domain Profiles" th="โปรไฟล์โดเมน" />, icon: "◇", ready: false },
+  { href: "/workspace/settings", label: <T en="Settings" th="ตั้งค่า" />, icon: "⚙", ready: false },
 ];
 
 export function Sidebar({ workspaceName }: { workspaceName: string }) {
@@ -134,8 +140,13 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
         })}
       </ul>
 
-      <div className="hidden shrink-0 border-t border-border-soft p-2 md:flex md:justify-center">
+      <div
+        className={`hidden shrink-0 gap-2 border-t border-border-soft p-2 md:flex md:justify-center ${
+          collapsed ? "md:flex-col" : ""
+        }`}
+      >
         <ThemeToggle compact={collapsed} />
+        <LangToggle compact={collapsed} />
       </div>
     </nav>
   );
