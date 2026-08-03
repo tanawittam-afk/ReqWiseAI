@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GEMINI_PROMPT_VERSION } from "../../lib/providers/gemini/prompt";
 import { createGeminiProvider } from "../../lib/providers/gemini/provider";
 import { bookingValidOutput } from "../../lib/providers/mock/fixtures/booking-smart-space.valid";
 import { bookingInput } from "../helpers";
@@ -25,7 +26,7 @@ describe("Gemini provider", () => {
     expect(generation.metadata).toEqual({
       provider: "gemini",
       model: "configured-model-a",
-      promptVersion: "reqwise-gemini/1.0",
+      promptVersion: GEMINI_PROMPT_VERSION,
     });
   });
 

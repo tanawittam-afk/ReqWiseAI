@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ServerEnvironment } from "../../lib/config/env";
 import { ProviderExecutionError } from "../../lib/providers/errors";
 import { createProvider, providerSelectionSchema } from "../../lib/providers/factory";
+import { GEMINI_PROMPT_VERSION } from "../../lib/providers/gemini/prompt";
 import { bookingValidOutput } from "../../lib/providers/mock/fixtures/booking-smart-space.valid";
 import { bookingInput } from "../helpers";
 
@@ -71,7 +72,7 @@ describe("provider factory", () => {
     expect(generation.metadata).toEqual({
       provider: "gemini",
       model: "configured-model-a",
-      promptVersion: "reqwise-gemini/1.0",
+      promptVersion: GEMINI_PROMPT_VERSION,
     });
   });
 

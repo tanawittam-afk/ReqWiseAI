@@ -7,14 +7,25 @@ describe("buildGeminiPrompt", () => {
     const input = bookingInput();
     const prompt = buildGeminiPrompt(input);
 
-    expect(GEMINI_PROMPT_VERSION).toBe("reqwise-gemini/1.0");
+    expect(GEMINI_PROMPT_VERSION).toBe("reqwise-gemini/1.1");
     expect(prompt).toContain(input.sourceDocuments[0].text);
     expect(prompt).toContain(input.domainProfile.name);
     expect(prompt).toContain('"schema_version"');
     expect(prompt).toContain("Never approve a requirement");
-    expect(prompt).toContain("rawText.slice(start_offset, end_offset) === excerpt");
+    expect(prompt).toContain("must omit start_offset and end_offset");
     expect(prompt).toContain("Do not return markdown fences");
     expect(prompt).not.toMatch(/chain of thought/i);
+  });
+
+  it("tells the provider where relations belong and gives the allowed-pair matrix", () => {
+    const prompt = buildGeminiPrompt(bookingInput());
+
+    expect(prompt).toContain("Leave every item's");
+    expect(prompt).toContain("`related_item_keys` as an empty array");
+    expect(prompt).toContain("Allowed relation types: supports, implemented_by");
+    expect(prompt).toContain('"supports":{"from":["business_objective"],"to":["business_requirement"]}');
+    expect(prompt).toContain('"related_to":{"from":"any","to":"any"}');
+    expect(prompt).not.toContain('"derives_from"');
   });
 
   it("keeps domain guidance distinct from direct evidence", () => {

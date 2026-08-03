@@ -3,7 +3,11 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-02 (Tech design system — **all 7 phases done, redesign complete.**
+Last updated: 2026-08-03 (`buildGeminiPrompt()` tuned to fix the offset and relation
+validation failures the 2026-08-02 live verification found — see "Gemini prompt tuning"
+below.)
+
+Earlier entry, still true: 2026-08-02 (Tech design system — **all 7 phases done, redesign complete.**
 Phase 7 closed out in two commits: `90463fc` finished the token migration Phase 6 missed
 (project detail page, the whole sources subtree, every not-found/error boundary, the
 top-level analysis-workspace shell, the account-menu dropdown, and the landing page —
@@ -27,6 +31,77 @@ HEAD, smoke-test, update this file. All four done, nothing else touched — no d
 cleanup, no auth-user deletion, no demo-project change, no Gemini credential, no git
 push, no `SUPABASE_SERVICE_ROLE_KEY` on Vercel. Same date, separately approved: the
 mislabeled demo project (`bb65eaa1-…`) is now **archived** — see below.)
+
+---
+
+## Gemini prompt tuning — offset & relation issues fixed (2026-08-03)
+
+The known limitation the 2026-08-02 live-verification entry flagged (`buildGeminiPrompt()`
+did not get a schema-valid result from `gemini-flash-latest` on a real source — 5×
+`excerpt_offset_mismatch`, 6× `untyped_relation`, 2× `invalid_relation_pair`) is fixed.
+`GEMINI_PROMPT_VERSION` bumped `reqwise-gemini/1.0` → `reqwise-gemini/1.1`.
+
+**Root causes, found by reading the two failing checks against what the old prompt
+actually said:**
+
+- **Offsets:** the old prompt only said `rawText.slice(start_offset, end_offset) ===
+  excerpt` and left the model to compute `start_offset`/`end_offset` by counting
+  characters itself. `start_offset`/`end_offset` are optional in
+  `sourceReferenceSchema` (`lib/contracts/provider-output.ts`) and
+  `checkSourceReferences()` (`lib/validation/source-references.ts`) already falls back
+  to an unverified-but-checked `text.includes(excerpt)` when they're absent — that
+  fallback was never used. The model's offset arithmetic doesn't reliably account for
+  invisible `\r` bytes in the app's CRLF source text, or for Thai text where a visible
+  character isn't always one string index.
+- **Relations:** the old prompt told the model the list of allowed relation *types*
+  (`Allowed relation types: ...`) but never said where to put them, never mentioned that
+  `related_item_keys` is deprecated and refused for new output (`checkRelations()` in
+  `lib/validation/structure.ts`, per `relations.ts`'s doc comment), and never gave the
+  `(type, from_type, to_type)` pair matrix a new run must satisfy
+  (`ALLOWED_RELATION_PAIRS`, mirrored by the database's `is_allowed_relation_pair()`).
+  The model reasonably filled both gaps by guessing.
+
+**Fix, in `lib/providers/gemini/prompt.ts` only:**
+
+- Explicit instruction to omit `start_offset`/`end_offset` on every citation entirely
+  (both are optional, and the pipeline already locates a citation by exact substring
+  search when they're absent) — with the CRLF/Thai reasoning spelled out so the
+  instruction reads as a reason, not just a rule. `excerpt` itself must still be an
+  exact, verbatim substring.
+- Explicit instruction that all typed traceability goes in the top-level `relations`
+  array only, that `related_item_keys` must stay `[]` on every item, and — new — the
+  full `(from_type, to_type)` matrix for every `AUTHORED_RELATION_TYPES` entry, built
+  from `ALLOWED_RELATION_PAIRS` itself (`relationPairMatrix()` in `prompt.ts`) and
+  embedded as JSON, so the model checks against the same data structure the app and the
+  database do rather than a paraphrase of it.
+
+**Verified two ways:**
+
+1. **Offline:** `npm run verify:gemini` 10/10, full suite `npm test` 731/731 (two
+   version-string assertions in `tests/providers/{factory,gemini-provider}.test.ts` now
+   import `GEMINI_PROMPT_VERSION` instead of hardcoding the old literal, so they can't
+   silently drift again), `npm run typecheck` clean, `npm run lint` clean (the one
+   pre-existing `legacy-verifier.ts` warning, unrelated), `npm run build` clean, all 18
+   routes. `tests/providers/gemini-prompt.test.ts` gained a second test asserting the
+   `relations`/`related_item_keys` instructions and the embedded pair matrix are present.
+2. **Live:** one real `generateContent` call (owner-approved, using the existing rotated
+   `GEMINI_API_KEY`), via a temporary read-only script (not committed — built on the same
+   `createProvider("gemini", …)` + `validateAnalysis()` the app itself uses, no Supabase
+   call, nothing persisted, deleted after the run) against a fresh CRLF Thai+English
+   source shaped like the one that failed on 2026-08-02. Model actually used:
+   `gemini-flash-latest` (via the same fallback chain as before —
+   `gemini-3-flash-preview` still doesn't complete this class of prompt in practice).
+   Result: **zero** `excerpt_offset_mismatch`, `untyped_relation`, or
+   `invalid_relation_pair` issues. One unrelated issue surfaced —
+   `inferred_without_rationale` on one item — which is a pre-existing evidence-class
+   rule (an `inferred` item needs a `rationale`) with no connection to offsets or
+   relations; **out of scope for this fix, flagged here rather than touched.**
+
+**Not done, on purpose:** this session did not re-run the two original 2026-08-02
+analysis runs, did not touch production (still `AI_PROVIDER=mock` on Vercel, unchanged),
+and did not address the newly-surfaced `inferred_without_rationale` finding — that's a
+prompt or validation question for whoever picks up evidence-class quality next, separate
+from this offset/relation fix.
 
 ---
 
@@ -411,11 +486,10 @@ actually made, and correctly refusing to store any of it. Re-running with the sa
 prompt (temperature 0) produced the identical 13 issues both times — reproducible, not
 flaky.
 
-**Known limitation, not fixed this session:** `buildGeminiPrompt()` does not currently
-get a schema-valid result from `gemini-flash-latest` on this real source — the offset
-and typed-relation instructions in the prompt need tuning for this model. That is a
-prompt-engineering change, out of scope for a verification session; flagged for whoever
-next touches `lib/providers/gemini/prompt.ts`.
+**Known limitation, not fixed this session — fixed 2026-08-03, see "Gemini prompt
+tuning" near the top of this file:** `buildGeminiPrompt()` did not get a schema-valid
+result from `gemini-flash-latest` on this real source — the offset and typed-relation
+instructions in the prompt needed tuning for this model.
 
 **Local only — production untouched.** All of this ran against `localhost:3000` with
 `.env.local`. No Gemini env var was added to Vercel; production still runs
@@ -539,9 +613,11 @@ reference under `app/`, `lib/` and `proxy.ts` (excluding scripts and tests) plus
 2. The real, destructive `verify-db-cleanup.sql` (dry-run numbers earlier in this file;
    the file now refuses to run without a deliberate `false`→`true` edit, and refuses to
    touch a protected account even then).
-3. Tuning `buildGeminiPrompt()` so a live run can actually produce a schema-valid
-   result on `gemini-flash-latest` — live verification itself is done (see the Gemini
-   section above); this is a follow-on prompt-engineering task, not a gate.
+3. ~~Tuning `buildGeminiPrompt()` so a live run can actually produce a schema-valid
+   result on `gemini-flash-latest`~~ — **done 2026-08-03**, see "Gemini prompt tuning"
+   near the top of this file. One unrelated issue (`inferred_without_rationale`)
+   surfaced during that verification and is still open — a prompt/validation gap in the
+   evidence-class rationale rule, unconnected to offsets or relations.
 4. Adding Gemini env vars to Vercel Production, if the owner wants Gemini live there
    too — local-only so far, deliberately.
 5. `git push` — there is still no remote configured on this repository at all.
