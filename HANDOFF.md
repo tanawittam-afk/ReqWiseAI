@@ -3,13 +3,20 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-03 (**UX/UI Master Plan Phase 3 (landing page) shipped** — `/`
-rewritten into a real introduction with two real screenshots from `/demo` and
-deep-linked claims. See "UX/UI Master Plan" immediately below for what's done and
-what's next. Same day, earlier: Phase 2 (public demo) shipped, Phase 1 (Foundation kit)
-shipped, the plan itself was agreed, and before that `buildGeminiPrompt()` was tuned to
-fix the offset and relation validation failures the 2026-08-02 live verification found
-— see "Gemini prompt tuning" below.)
+Last updated: 2026-08-04 (**UX/UI Master Plan Phase 4 (remove the friction) shipped** —
+`/workspace/projects/new` is now one screen that creates the project, stores the source
+and runs the first analysis in one submission, plus a one-click "try an example" path.
+Measured: example flow **7.1s**, real flow **8.9s**. See "UX/UI Master Plan" immediately
+below. One pre-existing, unrelated failure was found while verifying — see
+"`verify:analysis` manifest drift" below; it is **not** caused by Phase 4 and was left
+for the owner to decide on.)
+
+Earlier: 2026-08-03 (Phase 3 landing page shipped — `/` rewritten into a real
+introduction with two real screenshots from `/demo` and deep-linked claims. Same day,
+earlier: Phase 2 (public demo) shipped, Phase 1 (Foundation kit) shipped, the plan
+itself was agreed, and before that `buildGeminiPrompt()` was tuned to fix the offset and
+relation validation failures the 2026-08-02 live verification found — see "Gemini prompt
+tuning" below.)
 
 ---
 
@@ -18,7 +25,7 @@ fix the offset and relation validation failures the 2026-08-02 live verification
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phases 1–3 done. Phases 4–8 not started.**
+**Status: Phases 1–4 done. Phases 5–8 not started.**
 
 ### Phase 1 — shipped 2026-08-03
 
@@ -200,10 +207,138 @@ This is a deliberate behaviour change, not an oversight.
   (390px, same-origin-iframe technique) has zero horizontal overflow, single-column
   stacking reads correctly in both languages.
 
-### Up next: Phase 4 — remove the friction
+### Phase 4 — shipped 2026-08-04: remove the friction
 
-Merge project creation and the first source's text into one screen, delete `/analyze`
-as a required step, and add the one-click "try an example" flow, per the full plan.
+**The path from nothing to analysed requirements is now one screen and one click.** It
+was 3 typed values and zero decisions spread across 3 full-page forms, 3 redirects and
+12 visible controls. Plan for this phase:
+`C:\Users\User\.claude\plans\reqwiseai-resume-phase-robust-flurry.md`.
+
+Two owner decisions were taken before any code was written, and both narrow what the
+master plan's Phase 4 text said:
+
+1. **Provider selection stays on `/analyze`.** The master plan said it "disappears from
+   the UI entirely" and moves to Settings — but Settings is Phase 5 work, so removing it
+   now would make Gemini unreachable except by editing `env` for a whole phase.
+   `provider-controls.tsx` and `tests/providers/selection.test.ts` are untouched.
+2. **The combined screen requires pasted text.** "Create an empty project, add a source
+   later" is gone as a path. Adding a *second* source to an existing project still works
+   through `/sources/new`, unchanged.
+
+- **`/workspace/projects/new` rewritten in place** (`start-form.tsx`;
+  `project-form.tsx` deleted, not left as dead code). Reusing the route meant zero link
+  edits anywhere. Above the fold: project name and a large paste area — the only two
+  things genuinely required. Everything that used to be spread across three screens and
+  was *already pre-answered* — domain, output language, source title/type/date/
+  stakeholder/notes, project description/objective/stakeholders — sits in **one**
+  collapsed `<details>`, reusing the exact pattern the old form already had (stays
+  mounted so a typed value survives an accidental collapse; opens itself when the server
+  returned an error against anything inside).
+- **`startProjectAction`** (`app/workspace/projects/actions.ts`) runs
+  `createProject` → `createSource` → `buildAnalysisInput` → `runAnalysis` →
+  `persistAnalysisResult` → redirect to the run. Not one new schema, service or query
+  was written for it: it composes the same three existing paths, on the same
+  user-scoped client, so the combined screen cannot accept anything the three separate
+  screens would have refused.
+- **The one rule this action adds: once the project row exists, never return to the
+  form.** A returned error invites a resubmit and a resubmit creates a *second* project.
+  Every failure past that point redirects to the furthest thing that does exist, with an
+  `?error=` the destination explains in words — `?error=source` on the project page,
+  `?error=analysis` on the source page (which already carries the "Analyze requirements"
+  link to retry), following the `?error=archive` convention `archiveProjectAction`
+  already used. An `invalid`/`provider_error` run is **not** one of these paths: it is
+  persisted with a run id and shown honestly, which is existing designed behaviour.
+- **`deriveSourceTitle()`** (`lib/contracts/source.ts`) — first non-blank line, internal
+  whitespace collapsed, sliced to `SOURCE_TITLE_MAX` so a derived title can never be the
+  thing that fails validation. `sourceContentSchema.title` stays `min(1)`; derivation
+  happens *before* parsing. **It reads `rawText` and returns a separate string — it
+  never replaces it**, which is the whole point, and there is a test asserting exactly
+  that. The same pure function drives the field's live placeholder in the browser.
+- **`lib/contracts/start.ts`** — `readStartForm()` composes the two existing readers and
+  schemas and reports both halves' field errors at once (fixing one field only to be
+  shown the next is the friction this screen exists to remove). Extracted so the logic is
+  testable rather than buried in a `"use server"` file. The two field sets are disjoint,
+  and a test now enforces that they cannot bleed into each other.
+- **`startExampleAction`** — the zero-typing path, on the projects-list empty state and
+  the intake screen. Creates a project named `ตัวอย่าง: …` with a description saying it
+  was generated and can be deleted (**the marking, with no migration** — `projects` has
+  no column for this and one would not be worth a schema change), attaches the booking
+  fixture, and **forces `createProvider("mock", …)` rather than
+  `availableDefaultProvider()`** — the master plan's explicit trap: a repeatable button
+  on a metered model is an unmetered spend endpoint.
+- **`/analyze` kept, reframed.** No file deleted. Its copy now reads as what it actually
+  is — a re-run of an existing source — and it is the one place the provider choice
+  still lives.
+- **Verified:**
+  - `npm run lint` clean (the one pre-existing `legacy-verifier.ts` warning) ·
+    `typecheck` clean · `npm test` **762/762** (was 745; +17, none removed) ·
+    `npm run build` clean, **no new route** — `/workspace/projects/new` was reused.
+  - New tests: 8 on `deriveSourceTitle` (first line, leading blank lines, CRLF, Thai,
+    whitespace-collapse, length ceiling, fallback, and that the raw text it was handed is
+    byte-for-byte unchanged) and 9 on `readStartForm` (both halves valid, derivation,
+    typed title wins, both halves' errors at once, blames the text not the title,
+    server-owned fields ignored, project/source fields do not bleed).
+  - `verify:projects` 10/10 · `verify:sources` 18/18. `verify:analysis` **failed for a
+    pre-existing reason unrelated to this work** — see the next section.
+  - **In the browser** (`localhost:3000`, signed in as `slice3.demo@reqwise.dev`):
+    - **Example flow: 7.1s** click → rendered analysis (target <10s), *including* dev-mode
+      first compile of the route. Run header reads `Deterministic Mock`, confirming the
+      forced provider. 12 requirements, 5 open questions, 1 risk, 1 quality finding.
+    - **Real flow: 8.9s** (target <60s) — a fresh Thai source pasted, name typed, source
+      title left blank, submit, landing on the finished analysis without ever seeing
+      `/analyze`.
+    - The derived title updated **live** in both the placeholder and the hint as text was
+      pasted, and the run used it.
+    - **Raw text stored byte-identically**: all 5 newlines the browser submitted as CRLF
+      came back as CRLF, nothing trimmed or normalised — checked by string equality
+      against the submitted value, not by eye.
+    - Every produced item `Draft`; no `Approved`/`Implemented` anywhere.
+    - Zero console errors and zero hydration warnings (the one `scroll-behavior: smooth`
+      advisory is pre-existing and unrelated).
+    - 390px via the same-origin-iframe technique: `scrollWidth === clientWidth`, no
+      horizontal overflow.
+    - `/analyze` still reachable and still renders both provider options.
+  - **Residue left behind, by design:** two real projects in the linked database from
+    this verification — `Phase 4 friction check` and `ตัวอย่าง: ระบบจองพื้นที่ Smart Space`.
+    They are owned by the protected demo account, so `verify-db-cleanup.sql` will treat
+    them as `preserved`, not `would_delete`. Delete or archive them by hand if unwanted.
+
+### ⚠️ `verify:analysis` manifest drift — pre-existing, NOT from Phase 4
+
+`npm run verify:analysis` fails with
+`Safe fingerprint mismatch or downstream drift for legacy row 08edaef7-…`.
+
+**This is not caused by Phase 4 and was deliberately not "fixed" in passing.** Evidence:
+
+- The script reads `scripts/verify-analysis.mts`, `lib/analysis/legacy-verifier.ts`,
+  `scripts/forensics/legacy-analysis-runs-readonly.sql` and
+  `scripts/analysis-verification/legacy-analysis-runs.json`. **None of the four appears
+  in Phase 4's diff.**
+- Reading the forensics SQL directly (read-only) shows exactly **one** drifting number:
+  `projectDependencies.runs` is **11**, the manifest expects **7**. Every other field
+  matches byte for byte — `items: 99`, `sourceReferences: 71`, `relations: 40`,
+  `versions: 4`, `reviews: 15`, `sources: 4`, and the whole `downstreamCounts` block.
+- `projectDependencies` counts activity in the *project that owns* the legacy row
+  (`Smart Space intake — slice 3`), not the row itself. Four analysis runs were added to
+  that project after the manifest was last refreshed on 2026-08-02 — this file already
+  records live Gemini runs on 2026-08-02 and prompt-tuning verification on 2026-08-03.
+
+**The decision is the owner's, not a mechanical fix.** The manifest is a deliberate
+fail-closed structural gate; refreshing `runs: 7 → 11` would make it pass, but that is
+choosing to trust that those four runs are the expected ones, and the whole point of the
+gate is that nobody edits it casually. Note also that this number will drift again on
+every future analysis run in that project — worth considering whether
+`projectDependencies.runs` belongs in a fingerprint at all, or whether that project
+should stop being used for ad-hoc runs.
+
+### Up next: Phase 5 — Navigation and Dashboard
+
+Every visible menu item works: rebuild `ITEMS` in `app/workspace/_components/sidebar.tsx`
+(drop `ready: false`), add Dashboard · Requirements · Reviews · Settings, fix the
+`pathname.startsWith` active-state bug, add project-scoped sub-nav, and build the
+Dashboard from real queries only. **`INTERFACE.md` §7 documents the disabled-sidebar
+convention and must be rewritten in the same commit.** Settings is also where the
+provider choice finally lands, closing out Phase 4's decision #1.
 
 ### Why
 

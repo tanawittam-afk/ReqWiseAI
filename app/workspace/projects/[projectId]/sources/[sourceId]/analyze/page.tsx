@@ -1,5 +1,12 @@
 /**
- * Analyze confirmation — the gate before a source revision is locked.
+ * Analyze an existing source — the re-run screen.
+ *
+ * Since the combined intake screen (`/workspace/projects/new`) creates a project, its
+ * source and its first analysis in one submission, this page is no longer on the path
+ * to a first result. It is where an *existing* source is analysed again — a later
+ * revision, a retry after a failure, or a deliberate run on a different provider.
+ * That is also why the provider choice still lives here and nowhere else: an
+ * intentional re-run is exactly the moment the choice is worth making.
  *
  * Guards mirror the server action's own checks (archived project, missing source) so
  * a user is told the real reason before submitting, not after. The action re-checks
@@ -65,6 +72,10 @@ export default async function AnalyzeSourcePage({
         <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
           Analyze &ldquo;{source.title}&rdquo;
         </h1>
+        <p className="text-sm text-text-muted">
+          Runs the analysis again on this source. Every run is kept — a new one never
+          replaces an earlier one.
+        </p>
       </div>
 
       <AnalyzeConfirmForm

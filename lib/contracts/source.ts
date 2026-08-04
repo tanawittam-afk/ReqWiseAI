@@ -144,6 +144,30 @@ export function readSourceForm(formData: FormData): unknown {
   };
 }
 
+/** Shown when the pasted text has no line that could serve as a title. */
+export const DERIVED_SOURCE_TITLE_FALLBACK = "Pasted source";
+
+/**
+ * A title for text the user did not bother to name.
+ *
+ * Reads the first line that has any content — a pasted document often starts with a
+ * blank line or two — and cleans *the copy*, never the input. `rawText` is not passed
+ * on, not returned, and not mutated here: every excerpt offset in this project is
+ * measured against the original bytes, so this function exists only to produce a
+ * separate short string for the `title` column.
+ *
+ * Internal whitespace is collapsed because a heading pasted out of a document often
+ * carries tab alignment; the result is sliced to the same ceiling the schema enforces
+ * so a derived title can never be the thing that fails validation.
+ */
+export function deriveSourceTitle(rawText: string): string {
+  for (const line of rawText.split(/\r?\n/)) {
+    const cleaned = line.replace(/\s+/g, " ").trim();
+    if (cleaned !== "") return cleaned.slice(0, SOURCE_TITLE_MAX);
+  }
+  return DERIVED_SOURCE_TITLE_FALLBACK;
+}
+
 /** Field-keyed messages, so the form can render each one next to its input. */
 export function sourceFieldErrors(error: z.ZodError): Record<string, string> {
   const errors: Record<string, string> = {};

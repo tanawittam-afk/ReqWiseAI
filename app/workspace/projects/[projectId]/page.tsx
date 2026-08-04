@@ -76,7 +76,12 @@ export default async function ProjectOverviewPage({
         >
           {error === "archive"
             ? "The project could not be archived."
-            : "The project could not be restored. Only a workspace owner can restore."}
+            : error === "source"
+              ? // The intake screen created this project but could not attach the text.
+                // Nothing was lost and nothing was duplicated — the project is here, and
+                // the source can be added below.
+                "The project was created, but the source text could not be saved. Add it below and analyse from there."
+              : "The project could not be restored. Only a workspace owner can restore."}
         </p>
       ) : null}
 

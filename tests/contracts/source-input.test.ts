@@ -13,10 +13,13 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  DERIVED_SOURCE_TITLE_FALLBACK,
+  deriveSourceTitle,
   fromMetadata,
   readSourceForm,
   SOURCE_KINDS,
   SOURCE_TEXT_MAX,
+  SOURCE_TITLE_MAX,
   sourceContentSchema,
   toMetadata,
 } from "../../lib/contracts/source";
@@ -190,5 +193,58 @@ describe("readSourceForm", () => {
     const text = "  keep   my    spacing\n\n\n";
     const read = readSourceForm(form({ ...VALID, rawText: text })) as { rawText: string };
     expect(read.rawText).toBe(text);
+  });
+});
+
+describe("deriveSourceTitle", () => {
+  it("uses the first line of pasted text", () => {
+    expect(deriveSourceTitle("Kick-off meeting\nFront desk needs same-day booking.")).toBe(
+      "Kick-off meeting",
+    );
+  });
+
+  it("skips leading blank lines rather than returning an empty title", () => {
+    expect(deriveSourceTitle("\n\n   \n  Sprint review \nrest of the notes")).toBe(
+      "Sprint review",
+    );
+  });
+
+  it("reads a CRLF document the same way as an LF one", () => {
+    const body = "Meeting notes\r\nsecond line\r\n";
+    expect(deriveSourceTitle(body)).toBe("Meeting notes");
+    expect(deriveSourceTitle(body.replace(/\r\n/g, "\n"))).toBe("Meeting notes");
+  });
+
+  it("collapses the internal whitespace a pasted heading carries", () => {
+    expect(deriveSourceTitle("Room\tbooking \u2014  discovery   call\nbody")).toBe(
+      "Room booking \u2014 discovery call",
+    );
+  });
+
+  it("handles Thai text", () => {
+    expect(deriveSourceTitle("บันทึกการประชุม — โครงการระบบจองพื้นที่\nรายละเอียด")).toBe(
+      "บันทึกการประชุม — โครงการระบบจองพื้นที่",
+    );
+  });
+
+  it("never returns a title the schema would reject for length", () => {
+    const derived = deriveSourceTitle(`${"ก".repeat(SOURCE_TITLE_MAX + 50)}\nbody`);
+    expect(derived).toHaveLength(SOURCE_TITLE_MAX);
+    expect(sourceContentSchema.safeParse({ ...VALID, title: derived }).success).toBe(true);
+  });
+
+  it("falls back when the text is only whitespace", () => {
+    expect(deriveSourceTitle("   \n\t\n  ")).toBe(DERIVED_SOURCE_TITLE_FALLBACK);
+    expect(deriveSourceTitle("")).toBe(DERIVED_SOURCE_TITLE_FALLBACK);
+  });
+
+  it("leaves the raw text it was handed byte-for-byte identical", () => {
+    const text = "  Kick-off \r\n\r\n   keep   my    spacing\n\n\n";
+    const before = text;
+    deriveSourceTitle(text);
+    expect(text).toBe(before);
+    // and the value that reaches the schema is still the original, not the cleaned title
+    const parsed = sourceContentSchema.parse({ ...VALID, rawText: text, title: "x" });
+    expect(parsed.rawText).toBe(before);
   });
 });

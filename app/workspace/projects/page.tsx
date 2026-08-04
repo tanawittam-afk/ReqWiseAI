@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PROJECT_FILTERS, type ProjectFilter } from "@/lib/contracts/project";
 import { countProjects, listProjects } from "@/lib/projects/queries";
 import { DomainBadge, LangBadge, StatusBadge, formatDate } from "../_components/badges";
+import { TryExampleButton } from "./example-button";
 
 export const metadata = { title: "Projects — ReqWise AI" };
 
@@ -23,9 +24,10 @@ function parseFilter(value: string | undefined): ProjectFilter {
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; error?: string }>;
 }) {
-  const filter = parseFilter((await searchParams).filter);
+  const { filter: filterParam, error } = await searchParams;
+  const filter = parseFilter(filterParam);
   const supabase = await createClient();
 
   const [projects, counts] = await Promise.all([
@@ -54,6 +56,16 @@ export default async function ProjectsPage({
           New project
         </Link>
       </header>
+
+      {error === "example" ? (
+        <p
+          role="alert"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
+        >
+          The example project could not be created. Nothing was saved — try again, or
+          start a project of your own.
+        </p>
+      ) : null}
 
       {/* Segmented control rather than tabs — a filter is a view of one list. */}
       <div
@@ -152,12 +164,16 @@ function EmptyState({ filter }: { filter: ProjectFilter }) {
         message — and turns it into requirements you can trace back to the sentence they came
         from.
       </p>
-      <Link
-        href="/workspace/projects/new"
-        className="mt-5 inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
-      >
-        Create your first project
-      </Link>
+      <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
+        <Link
+          href="/workspace/projects/new"
+          className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+        >
+          Create your first project
+        </Link>
+        {/* The zero-typing way in. Runs on the deterministic mock provider, always. */}
+        <TryExampleButton />
+      </div>
     </section>
   );
 }

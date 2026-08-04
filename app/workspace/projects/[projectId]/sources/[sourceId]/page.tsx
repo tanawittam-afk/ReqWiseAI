@@ -36,10 +36,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function SourceDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string; sourceId: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { projectId, sourceId } = await params;
+  const { error } = await searchParams;
 
   const supabase = await createClient();
   const [project, source] = await Promise.all([
@@ -79,6 +82,18 @@ export default async function SourceDetailPage({
           </span>
         </div>
       </header>
+
+      {/* The intake screen saved the project and this text, but the analysis did not
+          complete. The text is safe; "Analyze requirements" below re-runs it. */}
+      {error === "analysis" ? (
+        <p
+          role="alert"
+          className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
+        >
+          The source was saved, but the analysis did not complete. Nothing was lost — run
+          it again below.
+        </p>
+      ) : null}
 
       {archived ? (
         <p
