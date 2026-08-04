@@ -14,9 +14,9 @@
  * Pure and DB-free, so every rule is testable without a browser or a database.
  */
 
-import { ITEM_TYPES, PRIORITIES, type ItemType, type Priority } from "../contracts/item-types";
-import { ITEM_STATUSES } from "../contracts/review";
-import type { WorkspaceItemRow } from "./types";
+import { ITEM_TYPES, PRIORITIES, type ItemType, type Priority } from "../contracts/item-types.ts";
+import { ITEM_STATUSES } from "../contracts/review.ts";
+import type { WorkspaceItemRow } from "./types.ts";
 
 export type WorkspaceFilters = {
   query: string;

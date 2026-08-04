@@ -8,8 +8,11 @@ Last updated: 2026-08-05 (**UX/UI Master Plan Phase 5 (Navigation and Dashboard)
 `/workspace/settings`), the sidebar rebuilt so every entry works, the `startsWith`
 active-state bug fixed, a project sub-nav added, and `INTERFACE.md` §7 + `ARCHITECTURE.md`
 §A.4 rewritten in the same commit. 800/800 tests (was 762). See "Phase 5" below.
-**One item is owed and was not faked: the second-user RLS re-proof** — see
-"⚠️ Owed: RLS re-proof for the workspace-wide queries".)
+The plan's stated risk for this phase — *"RLS must be re-proven, not assumed"* — is
+closed: a new `npm run verify:workspace` passes **12/12** against the live project,
+proving a second user sees **zero** of the first's rows on all four new queries. One
+**new** finding while doing it: the cleanup dry-run's `unknown` bucket is no longer
+empty — nothing is at risk, but see the section of that name.)
 
 Earlier: 2026-08-04 (**UX/UI Master Plan Phase 4 (remove the friction) shipped** —
 `/workspace/projects/new` is now one screen that creates the project, stores the source
@@ -445,28 +448,71 @@ the master plan's Phase 5 text said, and each is recorded in the code it affects
       `/workspace/dashboard`, `/requirements`, `/reviews`, `/settings` and a project
       overview — no horizontal overflow on any of the five.
 
-### ⚠️ Owed: RLS re-proof for the workspace-wide queries
+### ✅ RLS re-proof for the workspace-wide queries — done, 12/12
 
-The plan's own risk note for this phase reads *"cross-project queries are new query
-shapes. RLS must be re-proven, not assumed."* **That proof has not been run**, and this
-entry says so rather than implying otherwise.
+The plan's risk note for this phase read *"cross-project queries are new query shapes.
+RLS must be re-proven, not assumed."* It has been. **`npm run verify:workspace`**
+(`scripts/verify-workspace.mts`) — 12/12 against the live project.
 
-What *is* true and was checked by reading: every new query runs on the same user-scoped
-`createClient()` the rest of the app uses, adds **no** policy, **no** RPC and **no**
-`SECURITY DEFINER` helper, and `projects!inner(...)` is an extra inner join that can only
-ever *narrow* a result. `SUPABASE_SERVICE_ROLE_KEY` is untouched and still absent from
-Vercel. That is a strong argument; it is not the evidence CLAUDE.md's definition-of-done
-§4 asks for.
+Every per-project query in this app is scoped by an id in the URL *as well as* by
+policy; these four are scoped by policy alone, which is exactly why they needed their
+own script. It builds a full fixture for user **A** (an active project, an archived one,
+items in every state the four buckets care about, a pending change request, ten review
+activities), then runs the **real, shipped** functions from `lib/workspace/queries.ts`
+twice — once on A's client and once on **B**'s.
 
-**What to run next:** a `scripts/verify-workspace.mts` in the shape of the existing eight
-`verify-*.mts` scripts — sign in as two throwaway users, give A a project with items, a
-pending change request and a review activity, then assert that B's `listWorkspaceItems`,
-`listPendingChangeRequests`, `listRecentActivity` and `getWorkspaceTotals` all return
-**zero** of A's rows. It will leave fixture rows behind like every other verify script
-(the immutability triggers make self-cleanup impossible); add its project-name prefixes to
-both `scripts/verify-db-cleanup*.sql` files in the same commit, or the `unknown` bucket
-stops being empty and that bucket's emptiness is the thing that proves nothing is
-unaccounted for.
+- **A's side:** the four bucket counts are exactly 2 / 1 / 2 / 1; the soft-deleted item
+  appears in no list and in no count; the archived project's draft is *visible* in the
+  item list but counted as work by nothing; `listPendingChangeRequests` resolves its
+  target's display id and project through RLS; the activity feed carries no actor field
+  at all; `getWorkspaceTotals` reports 1 active / 1 archived / 2 sources / 2 runs / 11
+  items.
+- **B's side — the check the script exists for:** `listWorkspaceItems`,
+  `listPendingChangeRequests`, `listRecentActivity` and `getWorkspaceTotals` all return
+  **zero** of A's rows, while B still sees their own — so "sees nothing" cannot pass
+  trivially.
+
+**Two things the first run caught, both worth keeping:**
+
+1. The fixture could not be inserted with a non-`draft` status — *the database refused
+   the service role*. "AI-generated requirements always start as Draft" is a rule, not a
+   convention. The script now reaches every state through `review_item`,
+   `resolve_open_question` and `update_quality_finding`, which is both more honest and
+   the reason the activity feed has real rows to be tested against.
+2. `UPDATE projects SET status='archived'` was a **silent no-op** — archiving is a
+   lifecycle transition with its own audit and goes through `archive_project`. The first
+   run therefore reported the archived project as active and three checks failed
+   *correctly*: the archived-exclusion logic was right and the fixture was wrong. The
+   script now calls the RPC, checks its error, **and** re-reads the row.
+
+**Cleanup patterns registered** in both `scripts/verify-db-cleanup.sql` and its dry-run:
+`reqwise-ws-%@example.com` plus `Workspace verification %`, `Archived workspace
+project %`, `Outsider workspace project %` — literal prefixes read from the script's own
+`emailA`/`emailB` and its three `newProject()` call sites. Dry-run re-run afterwards and
+they classify as `would_delete`, not `preserved`.
+
+### ⚠️ The cleanup dry-run's `unknown` bucket is no longer empty
+
+This file recorded on 2026-08-02 that the bucket was **0 accounts, 0 projects** — every
+row accounted for. Today's dry-run reports:
+
+| Section | Rows |
+|---|---|
+| `unknown` / `auth.users` | 1 — `tanawittam@gmail.com` |
+| `unknown` / `projects` | 1 — `Smart Booking Web` |
+
+**Nothing is at risk.** Both already appear under `preserved`, so neither is in
+`would_delete`; `unknown` means only "not a recognised fixture pattern *and* not one of
+the two named demo accounts". This is the bucket doing its job: a real account signed up
+and created a real project since the manifest was last reviewed.
+
+**Not fixed in passing, on purpose.** The cleanup file's own comment says not to make the
+bucket empty by widening a pattern before finding out what the row is — and the right fix
+here is the opposite of widening: `tanawittam@gmail.com` is the owner's own account, so
+if it is meant to be permanent it should join `slice1-demo@example.com` and
+`slice3.demo@reqwise.dev` in the **protected** list that the destructive file's pre-flight
+`DO` block checks by name. That is an owner decision about their own account, not a
+mechanical edit.
 
 ### Up next: Phase 6 — Mobile
 

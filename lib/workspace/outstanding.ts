@@ -11,8 +11,8 @@
  * — so listing its draft items as work would be listing work nobody is allowed to do.
  */
 
-import { isReviewableItemType } from "../contracts/review";
-import type { WorkspaceChangeRequestRow, WorkspaceItemRow } from "./types";
+import { isReviewableItemType } from "../contracts/review.ts";
+import type { WorkspaceChangeRequestRow, WorkspaceItemRow } from "./types.ts";
 
 export const OUTSTANDING_BUCKETS = [
   "awaiting_review",

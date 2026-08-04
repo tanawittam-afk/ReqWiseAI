@@ -44,7 +44,13 @@ with known_groups(verification_script, account_pattern, project_pattern) as (
     ('verify-change-requests.mts', 'reqwise-cr-%@example.com',      'Change request verification %'),
     ('verify-change-requests.mts', 'reqwise-cr-%@example.com',      'Archived CR project %'),
     ('verify-change-requests.mts', 'reqwise-cr-%@example.com',      'Outsider CR project %'),
-    ('verify-change-requests.mts', 'reqwise-cr-%@example.com',      'Second CR project %')
+    ('verify-change-requests.mts', 'reqwise-cr-%@example.com',      'Second CR project %'),
+    -- verify-workspace.mts — added with Phase 5. Exact literal prefixes read from the
+    -- script's own emailA/emailB and its three newProject() call sites (ACTIVE_NAME,
+    -- ARCHIVED_NAME, OUTSIDER_NAME), not guessed.
+    ('verify-workspace.mts',      'reqwise-ws-%@example.com',      'Workspace verification %'),
+    ('verify-workspace.mts',      'reqwise-ws-%@example.com',      'Archived workspace project %'),
+    ('verify-workspace.mts',      'reqwise-ws-%@example.com',      'Outsider workspace project %')
     -- verify-analysis.mts and verify-gemini.mts create no fixture rows: verify-analysis
     -- only reads (forensics + the legacy verifier), and verify-gemini's offline mode
     -- never touches Supabase at all (no client is constructed — grep-checked). Neither

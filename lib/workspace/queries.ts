@@ -21,14 +21,14 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ItemType } from "../contracts/item-types";
+import type { ItemType } from "../contracts/item-types.ts";
 import type {
   WorkspaceActivityRow,
   WorkspaceChangeRequestRow,
   WorkspaceItemRow,
   WorkspaceProjectRef,
   WorkspaceTotals,
-} from "./types";
+} from "./types.ts";
 
 /**
  * How many items a workspace-wide list will load at once.

@@ -13,7 +13,7 @@
  * "cited where".
  */
 
-import type { ItemType } from "../contracts/item-types";
+import type { ItemType } from "../contracts/item-types.ts";
 
 export type WorkspaceProjectRef = {
   id: string;

@@ -57,7 +57,8 @@ select u.id, u.email
     or u.email like 'reqwise-wf-%@example.com'
     or u.email like 'reqwise-tr-%@example.com'
     or u.email like 'reqwise-export-%@example.com'
-    or u.email like 'reqwise-cr-%@example.com';
+    or u.email like 'reqwise-cr-%@example.com'
+    or u.email like 'reqwise-ws-%@example.com';
 
 create temporary table _cleanup_doomed_projects on commit drop as
 select pr.id, pr.name, pr.organization_id
@@ -81,7 +82,10 @@ select pr.id, pr.name, pr.organization_id
     or pr.name like 'Change request verification %'
     or pr.name like 'Archived CR project %'
     or pr.name like 'Outsider CR project %'
-    or pr.name like 'Second CR project %';
+    or pr.name like 'Second CR project %'
+    or pr.name like 'Workspace verification %'
+    or pr.name like 'Archived workspace project %'
+    or pr.name like 'Outsider workspace project %';
 
 -- Refuse to delete a protected account or a demo-owned project. This is the exact failure
 -- mode that caused the 2026-07-30 data loss (a pattern above matched more than intended) —
