@@ -24,7 +24,7 @@ import { PRIORITIES } from "@/lib/contracts/item-types";
 import { ITEM_DESCRIPTION_MAX, ITEM_TITLE_MAX, CHANGE_REASON_MAX } from "@/lib/contracts/review";
 import { editItemAction } from "../actions";
 import { EMPTY_REVIEW_STATE } from "../form-state";
-import { PRIORITY_LABEL, labelFor } from "./labels";
+import { PRIORITY_LABEL, labelFor } from "@/app/workspace/_components/item-labels";
 
 export function ItemEditForm({
   item,

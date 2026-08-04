@@ -18,7 +18,7 @@
 import type { ItemHistory } from "@/lib/review/history";
 import { activityLabel } from "@/lib/review/history";
 import { FieldLabel } from "./panel";
-import { PRIORITY_LABEL, STATUS_LABEL, labelFor } from "./labels";
+import { PRIORITY_LABEL, STATUS_LABEL, labelFor } from "@/app/workspace/_components/item-labels";
 
 const FIELD_LABEL: Record<string, string> = {
   title: "Statement",

@@ -38,7 +38,7 @@ import { CoverageRow } from "./_components/coverage-row";
 import { TraceInspector } from "./_components/inspector";
 import { MapView } from "./_components/map-view";
 import { MatrixView } from "./_components/matrix-view";
-import { TYPE_LABEL } from "../analyses/[runId]/_components/labels";
+import { TYPE_LABEL } from "@/app/workspace/_components/item-labels";
 
 type View = "matrix" | "map";
 

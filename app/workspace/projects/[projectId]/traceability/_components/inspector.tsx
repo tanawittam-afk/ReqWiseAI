@@ -19,7 +19,7 @@ import type { CoverageReport } from "@/lib/traceability/coverage";
 import type { RelationEnd } from "@/lib/traceability/graph";
 import type { TraceItem } from "@/lib/traceability/types";
 import { LEGACY_BADGE, LEGACY_EXPLANATION, relationPhrase } from "./labels";
-import { TYPE_LABEL } from "../../analyses/[runId]/_components/labels";
+import { TYPE_LABEL } from "@/app/workspace/_components/item-labels";
 
 export function TraceInspector({
   item,

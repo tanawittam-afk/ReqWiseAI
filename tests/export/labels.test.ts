@@ -17,7 +17,7 @@ import {
   PRIORITY_LABEL as SCREEN_PRIORITY,
   STATUS_LABEL as SCREEN_STATUS,
   TYPE_LABEL as SCREEN_TYPE,
-} from "../../app/workspace/projects/[projectId]/analyses/[runId]/_components/labels";
+} from "../../app/workspace/_components/item-labels";
 import {
   EVIDENCE_LABEL,
   FINDING_KIND_LABEL,

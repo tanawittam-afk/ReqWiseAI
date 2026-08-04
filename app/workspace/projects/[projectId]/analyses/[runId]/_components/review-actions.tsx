@@ -31,7 +31,7 @@ import {
 import type { ItemType } from "@/lib/contracts/item-types";
 import { reviewItemAction } from "../actions";
 import { EMPTY_REVIEW_STATE } from "../form-state";
-import { STATUS_LABEL, labelFor } from "./labels";
+import { STATUS_LABEL, labelFor } from "@/app/workspace/_components/item-labels";
 import { ChangeRequestForm } from "./change-request-form";
 
 /** The verb on the button, which is not the same word as the state it produces. */

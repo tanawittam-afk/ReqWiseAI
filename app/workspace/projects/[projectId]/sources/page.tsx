@@ -21,6 +21,7 @@ import {
   SourceKindBadge,
   formatDate,
 } from "../../../_components/badges";
+import { ProjectNav } from "../_components/project-nav";
 
 export const metadata = { title: "Sources — ReqWise AI" };
 
@@ -68,6 +69,7 @@ export default async function SourcesPage({
             </Link>
           )}
         </div>
+        <ProjectNav projectId={projectId} hasItems={project.analysisItemCount > 0} />
       </header>
 
       {archived ? (

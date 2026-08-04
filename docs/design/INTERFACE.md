@@ -254,26 +254,52 @@ Do not place large KPI cards above the workspace if they reduce the vertical rea
 
 Use a compact desktop-style sidebar.
 
-Include:
+**Every entry links to a route that exists.** This section previously listed nine
+destinations and said that unbuilt ones should be *rendered disabled rather than
+hidden*, so the shape of the finished product would be legible early. That convention
+was retired in Phase 5 of the 2026-08-03 UX/UI plan, after an audit found seven of the
+nine did nothing: a menu of dead entries stops describing a plan and starts describing a
+broken application. If a destination is not built, it is not in the sidebar.
 
-* Workspace
-* Dashboard
-* Projects
-* Analysis Runs
-* Requirements
-* Reviews
-* Traceability
-* Domain Profiles
-* Settings
+The five entries, in order:
+
+* **Dashboard** — `/workspace/dashboard`. The post-sign-in destination. `/workspace`
+  redirects here.
+* **Projects** — `/workspace/projects`.
+* **Requirements** — `/workspace/requirements`. Every item across every visible project.
+* **Reviews** — `/workspace/reviews`. The outstanding-work queue.
+* **Settings** — `/workspace/settings`. Read-only: account, provider configuration, and
+  what each domain profile contributes.
+
+Three entries from the old list are deliberately **absent**, not deferred:
+
+* **Workspace** — it was a redirect wearing a menu entry. Dashboard is the destination.
+* **Analysis Runs** — a run is reached through its project and its source, the only
+  context in which "run 3 of 4" means anything. Requirements answers the cross-project
+  question a global run list was standing in for.
+* **Traceability** — per-project by design, at
+  `/workspace/projects/:id/traceability`. A matrix spanning unrelated projects would
+  draw lines between requirements that have nothing to do with each other.
+* **Domain Profiles** — absorbed into Settings. A profile is data to read about, not a
+  place to work.
 
 The sidebar should:
 
 * Support collapse
-* Show clear current location
+* Show clear current location — **exact-match by default.** An entry lights up on its
+  own path only, unless it genuinely owns a subtree and says so
+  (`lib/workspace/nav.ts` → `isActiveNav`). Projects is the one such entry: an analysis
+  run, a source and an export are all reached through a project and have no entry of
+  their own. A bare `startsWith` is the bug this rule replaced — it lit Projects up on
+  every page in the application.
 * Use icons with text labels
 * Keep touch targets at least 44px
 * Avoid deeply nested navigation
-* Preserve the current project context
+* Preserve the current project context — via the **project sub-nav**
+  (`projects/[projectId]/_components/project-nav.tsx`): Overview · Sources ·
+  Requirements · Traceability · Export, on the same active-state rule. Rendered by the
+  project browsing pages rather than by a `layout.tsx`, so it never appears above the
+  full-height analysis workspace or inside a printable export document.
 
 Icons are plain geometry — never a copy of a macOS or Apple application icon.
 
@@ -506,6 +532,7 @@ Where the direction leaves room, these are the choices this codebase has already
 | §4 group headers | Item count, average confidence, cited share. **No coverage percentage** — no such metric is defined |
 | §5 tabs | Details · Evidence · Relations. History and Notes arrive with slice 5, when `item_versions` and `review_activities` first hold rows |
 | §6 summary | Run status, items, open questions, risks, quality findings, source count. **No quality score** |
-| §7 sidebar | All nine entries present; unbuilt ones rendered disabled rather than hidden, the convention already in `app/workspace/_components/sidebar.tsx` |
+| §7 sidebar | Five entries, all of them working routes — Dashboard · Projects · Requirements · Reviews · Settings (`app/workspace/_components/sidebar.tsx`). The disabled-entry convention was retired in Phase 5; see §7 for what was cut and why. Active state is `isActiveNav` (`lib/workspace/nav.ts`), exact-match unless an entry declares `ownsSubtree` |
+| §7 project sub-nav | `projects/[projectId]/_components/project-nav.tsx` — Overview · Sources · Requirements · Traceability · Export, rendered by the four project browsing pages rather than by a layout, so it never sits above the full-height analysis workspace or inside a printable export |
 | §9 tokens | `--accent` (electric blue, interactive/selection), `--signal` (green, citation/liveness only), `--radius-card: 4px`, `--radius-panel: 6px`, `--border`/`--border-strong`, `--text`/`--text-muted`/`--text-faint` — all in `app/globals.css` under `:root` and `[data-theme="dark"]`; do not introduce a new colour literal or a Tailwind `dark:` class in a component |
 | §10 motion | 120–220ms; `prefers-reduced-motion` is neutralised globally in `app/globals.css` |

@@ -14,7 +14,7 @@ import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { ChangeRequestView } from "@/lib/review/change-requests";
 import { CHANGE_REQUEST_STATUS_LABEL, CR_RESOLUTION_NOTE_MAX } from "@/lib/contracts/change-requests";
-import { PRIORITY_LABEL, labelFor } from "./labels";
+import { PRIORITY_LABEL, labelFor } from "@/app/workspace/_components/item-labels";
 import { FieldLabel } from "./panel";
 import { resolveChangeRequestAction, withdrawChangeRequestAction } from "../actions";
 import { EMPTY_REVIEW_STATE } from "../form-state";

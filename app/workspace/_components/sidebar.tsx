@@ -5,8 +5,14 @@
  *
  * Behaves like a desktop productivity app rather than a website nav: persistent on
  * desktop, collapsible to icons, and reduced to a horizontal scroll strip on tablet
- * portrait and phones. Sections that later slices will fill are listed and disabled —
- * visible structure is honest about where the product is going, a hidden one is not.
+ * portrait and phones.
+ *
+ * **Every entry here works.** The convention this file used to follow — all nine
+ * destinations listed, unbuilt ones rendered as a disabled `<span>` — was honest about
+ * the plan and useless to a person: seven of nine did nothing. As of Phase 5 an entry
+ * exists only if its route does. `docs/design/INTERFACE.md` §7 was rewritten in the
+ * same commit; if the two ever disagree again, the code is not the thing to change
+ * back.
  *
  * Active state is derived from the pathname, never passed down, so no page has to
  * remember to tell the sidebar where it is.
@@ -19,49 +25,65 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { isActiveNav, type NavTarget } from "@/lib/workspace/nav";
 import { T } from "../../_components/t";
 import { LangToggle } from "../../_components/lang-toggle";
 import { ThemeToggle } from "./theme-toggle";
 
-type Item = {
-  href: string;
+type Item = NavTarget & {
   label: React.ReactNode;
   icon: string;
-  ready: boolean;
 };
 
 /**
- * The nine destinations of docs/design/INTERFACE.md §7, in that order. Icons are plain
+ * The five destinations of docs/design/INTERFACE.md §7, in that order. Icons are plain
  * geometry — never a copy of a macOS or Apple application icon (§7).
  *
- * Labels wrapped in <T> as this repo's first live TH/EN chrome copy (Phase 1 of the
- * 2026-08-03 UX/UI plan) — a smoke test for the i18n mechanism, not a translation pass;
- * the plan's Phase 6 does that sweep.
+ * Two entries the old nine had are gone rather than disabled, and both for the same
+ * reason — the feature is real but does not live at workspace scope:
+ *
+ * - **Analysis Runs** — a run is reached through its project and its source, which is
+ *   the only context in which "run 3 of 4" means anything. The Requirements view
+ *   answers the cross-project question a global run list was standing in for.
+ * - **Traceability** — per-project by design, at
+ *   `/workspace/projects/:id/traceability`. A matrix spanning unrelated projects would
+ *   draw lines between requirements that have nothing to do with each other.
+ *
+ * **Domain Profiles** is also gone as its own entry: Settings absorbed it, since a
+ * profile is data to read about, not a place to work.
+ *
+ * Labels are wrapped in `<T>` — chrome only, never requirement content
+ * (CLAUDE.md → the UI language and an analysis's output language are separate axes).
  */
 const ITEMS: Item[] = [
-  { href: "/workspace", label: <T en="Workspace" th="พื้นที่ทำงาน" />, icon: "⌂", ready: true },
-  { href: "/workspace/dashboard", label: <T en="Dashboard" th="แดชบอร์ด" />, icon: "▤", ready: false },
-  { href: "/workspace/projects", label: <T en="Projects" th="โปรเจกต์" />, icon: "▣", ready: true },
-  { href: "/workspace/runs", label: <T en="Analysis Runs" th="รอบการวิเคราะห์" />, icon: "◫", ready: false },
-  { href: "/workspace/requirements", label: <T en="Requirements" th="ความต้องการ" />, icon: "≡", ready: false },
-  { href: "/workspace/reviews", label: <T en="Reviews" th="การรีวิว" />, icon: "✓", ready: false },
-  // Traceability is per-project — it lives at
-  // /workspace/projects/:id/traceability, reached from a project. A workspace-wide
-  // matrix across every project would be a different feature and is not built, so the
-  // entry stays listed and disabled rather than linking somewhere that does not exist.
-  { href: "/workspace/traceability", label: <T en="Traceability" th="การสืบย้อนกลับ" />, icon: "⟋", ready: false },
-  { href: "/workspace/profiles", label: <T en="Domain Profiles" th="โปรไฟล์โดเมน" />, icon: "◇", ready: false },
-  { href: "/workspace/settings", label: <T en="Settings" th="ตั้งค่า" />, icon: "⚙", ready: false },
+  {
+    href: "/workspace/dashboard",
+    label: <T en="Dashboard" th="แดชบอร์ด" />,
+    icon: "▤",
+    // `/workspace` redirects here, so that path counts as Dashboard. An **alias**, not
+    // a prefix: `/workspace` as a prefix would own the entire application.
+    aliases: ["/workspace"],
+  },
+  {
+    href: "/workspace/projects",
+    label: <T en="Projects" th="โปรเจกต์" />,
+    icon: "▣",
+    // An analysis run, a source and an export are all reached through a project and
+    // have no sidebar entry of their own, so the project entry stays lit under them.
+    ownsSubtree: true,
+  },
+  {
+    href: "/workspace/requirements",
+    label: <T en="Requirements" th="ความต้องการ" />,
+    icon: "≡",
+  },
+  { href: "/workspace/reviews", label: <T en="Reviews" th="การรีวิว" />, icon: "✓" },
+  { href: "/workspace/settings", label: <T en="Settings" th="ตั้งค่า" />, icon: "⚙" },
 ];
 
 export function Sidebar({ workspaceName }: { workspaceName: string }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-
-  // "/workspace" is the root, so it is active only on itself — a prefix match would
-  // light it up on every page in the application.
-  const isActive = (item: Item) =>
-    item.href === "/workspace" ? pathname === "/workspace" : pathname.startsWith(item.href);
 
   return (
     <nav
@@ -98,33 +120,14 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
         className="flex gap-1 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:px-2 md:pb-2"
       >
         {ITEMS.map((item) => {
-          const active = isActive(item);
-          const shared =
-            "flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-sm whitespace-nowrap transition-colors min-h-11 md:min-h-0 md:py-2";
-
-          if (!item.ready) {
-            return (
-              <li key={item.href}>
-                <span
-                  aria-disabled="true"
-                  title="Coming in a later slice"
-                  className={`${shared} cursor-not-allowed text-text-faint`}
-                >
-                  <span aria-hidden="true" className="w-4 text-center">
-                    {item.icon}
-                  </span>
-                  <span className={collapsed ? "md:hidden" : ""}>{item.label}</span>
-                </span>
-              </li>
-            );
-          }
+          const active = isActiveNav(pathname, item);
 
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`${shared} ${
+                className={`flex min-h-11 items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-sm whitespace-nowrap transition-colors md:min-h-0 md:py-2 ${
                   active
                     ? "bg-accent-soft font-medium text-accent"
                     : "text-text-muted hover:bg-chrome-hover hover:text-text"

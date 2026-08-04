@@ -16,6 +16,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getTraceability } from "@/lib/traceability/queries";
+import { ProjectNav } from "../_components/project-nav";
 import { TraceabilityView } from "./traceability-view";
 
 export const metadata = { title: "Traceability — ReqWise AI" };
@@ -55,6 +56,9 @@ export default async function TraceabilityPage({
             Archived — read-only
           </span>
         ) : null}
+        <div className="ml-auto">
+          <ProjectNav projectId={projectId} hasItems={project.analysisItemCount > 0} />
+        </div>
       </div>
 
       {data.graph.items.length === 0 ? (

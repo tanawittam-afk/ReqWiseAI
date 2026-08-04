@@ -5,6 +5,12 @@
  * them is "Functional requirements", which `workspace-view.ts` owns because grouping
  * is where plurals are needed. Every status and priority appears as a word, never as a
  * colour alone (CLAUDE.md → Accessibility).
+ *
+ * Lives at workspace scope rather than inside the analysis run's `_components`, where
+ * it started: the traceability views already reached across route trees to import it,
+ * and Phase 5's workspace-wide Requirements, Reviews and Dashboard views are a third
+ * consumer. Promoted rather than copied — a second definition of "Functional
+ * requirement" is exactly the drift these tables exist to prevent.
  */
 
 import type { ItemType } from "@/lib/contracts/item-types";

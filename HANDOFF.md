@@ -3,7 +3,15 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-04 (**UX/UI Master Plan Phase 4 (remove the friction) shipped** —
+Last updated: 2026-08-05 (**UX/UI Master Plan Phase 5 (Navigation and Dashboard) shipped**
+— four new routes (`/workspace/dashboard`, `/workspace/requirements`, `/workspace/reviews`,
+`/workspace/settings`), the sidebar rebuilt so every entry works, the `startsWith`
+active-state bug fixed, a project sub-nav added, and `INTERFACE.md` §7 + `ARCHITECTURE.md`
+§A.4 rewritten in the same commit. 800/800 tests (was 762). See "Phase 5" below.
+**One item is owed and was not faked: the second-user RLS re-proof** — see
+"⚠️ Owed: RLS re-proof for the workspace-wide queries".)
+
+Earlier: 2026-08-04 (**UX/UI Master Plan Phase 4 (remove the friction) shipped** —
 `/workspace/projects/new` is now one screen that creates the project, stores the source
 and runs the first analysis in one submission, plus a one-click "try an example" path.
 Measured: example flow **7.1s**, real flow **8.9s**. See "UX/UI Master Plan" immediately
@@ -25,7 +33,7 @@ tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phases 1–4 done. Phases 5–8 not started.**
+**Status: Phases 1–5 done. Phases 6–8 not started.**
 
 ### Phase 1 — shipped 2026-08-03
 
@@ -331,14 +339,145 @@ every future analysis run in that project — worth considering whether
 `projectDependencies.runs` belongs in a fingerprint at all, or whether that project
 should stop being used for ad-hoc runs.
 
-### Up next: Phase 5 — Navigation and Dashboard
+### Phase 5 — shipped 2026-08-05: Navigation and Dashboard
 
-Every visible menu item works: rebuild `ITEMS` in `app/workspace/_components/sidebar.tsx`
-(drop `ready: false`), add Dashboard · Requirements · Reviews · Settings, fix the
-`pathname.startsWith` active-state bug, add project-scoped sub-nav, and build the
-Dashboard from real queries only. **`INTERFACE.md` §7 documents the disabled-sidebar
-convention and must be rewritten in the same commit.** Settings is also where the
-provider choice finally lands, closing out Phase 4's decision #1.
+**Every sidebar entry works.** It was nine entries of which seven did nothing. It is now
+five, all real: **Dashboard · Projects · Requirements · Reviews · Settings**.
+
+Three owner-level decisions were taken during the build; each narrows or redirects what
+the master plan's Phase 5 text said, and each is recorded in the code it affects:
+
+1. **Settings discloses the provider; it does not choose one.** The plan said Settings
+   "holds the provider choice removed in Phase 4" — but Phase 4 deliberately never
+   removed it, and storing a preference needs a table this schema does not have. Adding
+   a migration to a live database to persist a dropdown is a schema change bought for a
+   convenience. So Settings reports what the server is configured with
+   (`AI_PROVIDER`, plus whether a Gemini key and model chain exist) and the per-run
+   choice stays on `/analyze`. The trap "hide the *choice*, keep the *disclosure*" is
+   honoured from the other direction: the disclosure is now a page of its own, and the
+   run header still names the provider that actually ran.
+2. **The project sub-nav is rendered by pages, not by a `layout.tsx`.** The plan said
+   "in the project layout". A layout under `[projectId]` would also wrap the full-height
+   three-panel analysis workspace and the export print/preview routes — one is an
+   application view, the other is a document. Four pages opt in with one line each
+   (Overview, Sources, Traceability, Export) and neither of those two can be broken by
+   it. **Verified in the browser: the analysis workspace has no sub-nav above it.**
+3. **`app/.../analyses/[runId]/_components/labels.ts` was promoted** to
+   `app/workspace/_components/item-labels.ts` and its 11 importers rewritten to
+   `@/app/workspace/_components/item-labels`. Not a drive-by refactor: the traceability
+   tree already reached across route trees to import it, and three new workspace-scope
+   views were about to be a fourth consumer. Promoted rather than copied — a second
+   definition of "Functional requirement" is exactly the drift the table prevents.
+
+- **`lib/workspace/` — the new layer, four files, no new table or policy:**
+  - `types.ts` — `WorkspaceItemRow` etc., deliberately **lighter** than
+    `AnalysisItemView`: no excerpts, no relations, no change requests per row. A
+    cross-project list says *which* item and *where it lives*; the run says the rest.
+    `hasSourceEvidence` is a boolean, like `lib/traceability/types.ts`.
+  - `queries.ts` — `listWorkspaceItems` / `listPendingChangeRequests` /
+    `listRecentActivity` / `getWorkspaceTotals`. **New query shape, same authorization
+    story:** user-scoped client, RLS is the filter, nothing checks ownership itself.
+    Two facts read out of the migrations rather than assumed: only `analysis_items` has
+    a direct FK to `projects` (`change_requests` and `review_activities` carry a
+    `project_id` only as half of a composite key into `analysis_items`), so those two
+    reach the project *through* the item; and `change_requests` has **two** FKs into
+    `analysis_items`, so a PostgREST embed would need a constraint-name hint that rots
+    on rename — a second explicit RLS-scoped query is used instead.
+  - `outstanding.ts` — the four predicates, pure and tested. **Archived projects are
+    excluded from every bucket**: an archived project is read-only, so listing its
+    drafts would be listing work nobody may do.
+  - `filters.ts` / `nav.ts` — client-side narrowing, and the active-state rule.
+- **The dashboard invents nothing.** Every figure is a real `count` or the length of a
+  real list. No quality score, no coverage percentage, no trend — none exists in the
+  schema (`ARCHITECTURE.md` §A.4, rewritten this commit to say so explicitly). The four
+  "outstanding work" tiles and the four Reviews sections read the **same** predicates,
+  so a count and the list it links to cannot drift apart.
+- **The activity feed never names a person.** `profiles` is RLS-scoped so one member
+  cannot read another's row; widening that policy to decorate a caption would trade a
+  real privacy boundary for a nicety (the plan recorded this as a trap). `actor_id` is
+  still in the audit trail — this is a display decision, not a gap in the record.
+- **Active-state bug fixed** (`lib/workspace/nav.ts` → `isActiveNav`). The old rule,
+  `pathname.startsWith(item.href)`, lit **Projects** up on every page below
+  `/workspace/projects` — every analysis workspace, source and export screen — while the
+  entry the reader was under looked inactive. Exact match is the default now; an entry
+  that owns a subtree declares `ownsSubtree`, and the prefix test appends `/` so
+  `/workspace/projects` cannot claim `/workspace/projects-archive`. `/workspace` is a
+  Dashboard **alias** (exact), never a prefix — as a prefix it would own the whole app.
+- **Cut, not deferred:** *Workspace* (a redirect wearing a menu entry — `/workspace` now
+  redirects to `/workspace/dashboard`, which is also the post-sign-in destination),
+  *Analysis Runs* (a run is reached through its project and source; Requirements answers
+  the cross-project question it stood in for) and global *Traceability* (per-project by
+  design). *Domain Profiles* was absorbed into Settings.
+- **`?project=` on `/workspace/requirements`** — where the project sub-nav's
+  Requirements tab lands, pre-filtered. A **starting** value, not a bound one, and it
+  turns `includeArchived` on so an archived project's own tab is not silently empty.
+- **`WORKSPACE_ITEM_LIMIT = 500`, with a visible notice when hit.** A ceiling rather
+  than pagination, because filtering is client-side: a filter that silently searched only
+  page one would report an honest-looking zero. The page says it stopped counting.
+- **Verified:**
+  - `npm run lint` clean (the one pre-existing `legacy-verifier.ts` warning) ·
+    `typecheck` clean · `npm test` **800/800** (was 762; +38, none removed) ·
+    `npm run build` clean, **4 new routes**, all `ƒ`.
+  - New tests: 22 on `outstanding.ts` (each predicate, archived exclusion on all four
+    buckets, `needs_clarification` still counts, `acknowledged` findings still count, a
+    deferred question does not, anchors distinct), 9 on `filters.ts`, 7 on `nav.ts`
+    (including the exact regression the old `startsWith` produced).
+  - **In the browser** (`localhost:3000`, signed in as `slice3.demo@reqwise.dev`):
+    - Dashboard renders real data — **94 awaiting review · 27 unanswered questions ·
+      7 open findings · 0 pending change requests = 128**, and the Reviews page's four
+      section counts match exactly.
+    - **Independent count cross-check, two different query paths:** Requirements reads
+      "134 of 151 shown" — 151 is `getWorkspaceTotals`' head count of `analysis_items`;
+      134 is the non-archived subset, and the projects list's *embedded* per-project
+      counts are 17 + 18 + 99 = **134**, with the archived slice-6B project holding the
+      remaining 17. The two paths agree without either being derived from the other.
+    - Sub-nav renders on Overview/Sources/Traceability/Export with the right tab lit,
+      and **not** above the analysis workspace.
+    - Clicking a Requirements row lands on the analysis workspace with the item selected
+      and its source excerpt highlighted (`FR-006`, confirmed live).
+    - `#pending-change-requests` anchor navigation from the dashboard tile lands on the
+      right section, past the sticky toolbar.
+    - Sidebar active state correct on every page walked: Projects stays lit inside a
+      run, Requirements lights up when `?project=` leaves the project subtree.
+    - **Zero console errors and zero hydration warnings** (only the pre-existing
+      `scroll-behavior: smooth` advisory and dev-mode HMR/DevTools notices).
+    - 390px via the same-origin-iframe technique: `scrollWidth === clientWidth` on
+      `/workspace/dashboard`, `/requirements`, `/reviews`, `/settings` and a project
+      overview — no horizontal overflow on any of the five.
+
+### ⚠️ Owed: RLS re-proof for the workspace-wide queries
+
+The plan's own risk note for this phase reads *"cross-project queries are new query
+shapes. RLS must be re-proven, not assumed."* **That proof has not been run**, and this
+entry says so rather than implying otherwise.
+
+What *is* true and was checked by reading: every new query runs on the same user-scoped
+`createClient()` the rest of the app uses, adds **no** policy, **no** RPC and **no**
+`SECURITY DEFINER` helper, and `projects!inner(...)` is an extra inner join that can only
+ever *narrow* a result. `SUPABASE_SERVICE_ROLE_KEY` is untouched and still absent from
+Vercel. That is a strong argument; it is not the evidence CLAUDE.md's definition-of-done
+§4 asks for.
+
+**What to run next:** a `scripts/verify-workspace.mts` in the shape of the existing eight
+`verify-*.mts` scripts — sign in as two throwaway users, give A a project with items, a
+pending change request and a review activity, then assert that B's `listWorkspaceItems`,
+`listPendingChangeRequests`, `listRecentActivity` and `getWorkspaceTotals` all return
+**zero** of A's rows. It will leave fixture rows behind like every other verify script
+(the immutability triggers make self-cleanup impossible); add its project-name prefixes to
+both `scripts/verify-db-cleanup*.sql` files in the same commit, or the `unknown` bucket
+stops being empty and that bucket's emptiness is the thing that proves nothing is
+unaccounted for.
+
+### Up next: Phase 6 — Mobile
+
+The whole app usable on a phone, not just the demo. The analysis workspace already
+degrades correctly (`<lg` segmented control, panes hidden not unmounted so edits survive
+switching) — audit and keep it. Everything else needs the pass: the projects list, the
+combined create screen, the four new Phase 5 views, traceability (a wide `<table>`),
+exports. **Verify on real device emulation, not the iframe technique** — the iframe
+proves CSS breakpoints fire but not touch, UA or DPR (a caveat this file has recorded
+before, and one that applies to Phase 5's own 390px checks above). Check 390px, 414px,
+768px, 1024px.
 
 ### Why
 
@@ -368,7 +507,7 @@ without signing up — that it works and is easy to use.
 | 2 | **Public demo** (top priority) | `/demo` — the real three-panel workspace, no login, rendered from a **live `runAnalysis()` call, zero database access** · guided annotation layer · TH/EN |
 | 3 | Landing page | Rewrite `app/page.tsx` into a real introduction with screenshots captured from `/demo` |
 | 4 | Remove friction | Merge create-project + paste-text into one screen · derive the source title · delete `/analyze` as a required step · one-click "try an example" |
-| 5 | Navigation + Dashboard | Every menu item real (Dashboard · Projects · Reviews · Domain Profiles · Settings) · fix the `startsWith` active-state bug · project sub-nav · Dashboard from real queries only |
+| 5 | Navigation + Dashboard | ✅ shipped 2026-08-05 — five real menu items (Dashboard · Projects · Requirements · Reviews · Settings) · `startsWith` active-state bug fixed · project sub-nav · Dashboard from real queries only. Domain Profiles absorbed into Settings; Analysis Runs and global Traceability cut |
 | 6 | Mobile | Whole-app responsive pass, not just the demo |
 | 7 | Visual polish + i18n sweep | Icon rollout · motion 120–220ms · spacing/type rhythm · `EmptyState` for the ~12 ad-hoc empties · skip link + `<main id>` |
 | 8 | General Software domain | Enrich the profile to booking's depth, **verify a real analysis yields properly**, then enable |

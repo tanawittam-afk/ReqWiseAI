@@ -23,6 +23,7 @@ import { EXPORT_SCHEMA_VERSION } from "@/lib/contracts/export";
 import { ExportDocument } from "./_components/document";
 import { DownloadActions } from "./_components/download-actions";
 import { ScopePanel } from "./_components/scope-panel";
+import { ProjectNav } from "../_components/project-nav";
 
 export const metadata = { title: "Export — ReqWise AI" };
 
@@ -80,7 +81,10 @@ export default async function ExportPage({
             Archived — read-only
           </span>
         ) : null}
-        <span className="ml-auto text-xs text-text-faint">Export schema {EXPORT_SCHEMA_VERSION}</span>
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          <ProjectNav projectId={projectId} hasItems={hasItems} />
+          <span className="text-xs text-text-faint">Export schema {EXPORT_SCHEMA_VERSION}</span>
+        </div>
       </div>
 
       {!hasItems ? (

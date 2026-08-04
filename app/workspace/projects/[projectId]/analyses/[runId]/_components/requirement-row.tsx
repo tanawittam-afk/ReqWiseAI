@@ -23,7 +23,7 @@ import {
   TYPE_SHORT_LABEL,
   confidencePercent,
   labelFor,
-} from "./labels";
+} from "@/app/workspace/_components/item-labels";
 
 /**
  * Review status carries a tone as well as its word — the word is what conveys the

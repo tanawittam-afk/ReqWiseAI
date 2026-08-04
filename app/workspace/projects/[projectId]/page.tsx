@@ -26,6 +26,7 @@ import {
   formatDate,
 } from "../../_components/badges";
 import { ArchiveControls } from "./archive-controls";
+import { ProjectNav } from "./_components/project-nav";
 
 export const metadata = { title: "Project — ReqWise AI" };
 
@@ -68,6 +69,8 @@ export default async function ProjectOverviewPage({
           <LangBadge lang={project.outputLang} />
         </div>
       </header>
+
+      <ProjectNav projectId={projectId} hasItems={project.analysisItemCount > 0} />
 
       {error ? (
         <p

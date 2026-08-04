@@ -69,6 +69,22 @@ Sequenced in §E.
 | TH/EN model-output switching | `analysis_runs.output_lang` stored from slice 4; UI control deferred |
 | Product-wide user rate limiting | provider transport retries are bounded; broader per-user quotas remain deferred |
 
+**Shipped since this table was written** (kept here rather than silently deleted, so the
+original deferral and its outcome stay readable): Export, the traceability map, version
+comparison, the question/quality workflows, change requests, TH/EN chrome, a public
+`/demo`, and — in Phase 5 of the 2026-08-03 UX/UI plan — a **workspace-scope layer**
+that did not exist in the MVP shape above: `/workspace/dashboard`,
+`/workspace/requirements` and `/workspace/reviews` read across every project the caller
+can see, on the same user-scoped client and the same RLS policies as the per-project
+queries (`lib/workspace/queries.ts`). No new table, no new policy, no new RPC.
+
+**Still deferred, and load-bearing for Phase 5:** the **quality score panel**. No quality
+score, coverage percentage or trend exists in the schema, so no workspace-scope view may
+render one. Every figure on the dashboard is a real `count` or the length of a real list;
+the four "outstanding work" numbers are derived by one tested predicate each
+(`lib/workspace/outstanding.ts`) and the queue they link to is filtered by the *same*
+predicates, so a count and its list cannot drift apart.
+
 ### A.5 Out of scope (not designed for)
 
 Team invitations · team-management UI · billing · organization switching · custom role

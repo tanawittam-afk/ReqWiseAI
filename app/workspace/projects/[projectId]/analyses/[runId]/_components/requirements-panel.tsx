@@ -27,7 +27,7 @@ import {
   type WorkspaceTab,
 } from "@/lib/analysis/workspace-view";
 import { WORKFLOW_STATE_LABEL, type WorkflowState } from "@/lib/contracts/workflow";
-import { EVIDENCE_LABEL, PRIORITY_LABEL, STATUS_LABEL, TYPE_LABEL, confidencePercent, labelFor } from "./labels";
+import { EVIDENCE_LABEL, PRIORITY_LABEL, STATUS_LABEL, TYPE_LABEL, confidencePercent, labelFor } from "@/app/workspace/_components/item-labels";
 import { RequirementRow } from "./requirement-row";
 
 const GROUP_MODE_LABEL: Record<GroupMode, string> = {

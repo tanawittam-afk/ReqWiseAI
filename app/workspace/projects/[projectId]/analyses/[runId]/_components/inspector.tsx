@@ -34,7 +34,7 @@ import {
   TYPE_LABEL,
   confidencePercent,
   labelFor,
-} from "./labels";
+} from "@/app/workspace/_components/item-labels";
 
 type InspectorTab =
   | "details"

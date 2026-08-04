@@ -15,7 +15,7 @@
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { PRIORITIES, type Priority } from "@/lib/contracts/item-types";
-import { PRIORITY_LABEL, labelFor } from "./labels";
+import { PRIORITY_LABEL, labelFor } from "@/app/workspace/_components/item-labels";
 import { CR_DESCRIPTION_MAX, CR_REASON_MAX, CR_TITLE_MAX } from "@/lib/contracts/change-requests";
 import { openChangeRequestAction } from "../actions";
 import { EMPTY_REVIEW_STATE } from "../form-state";
