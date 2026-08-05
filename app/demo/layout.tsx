@@ -16,7 +16,11 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex h-dvh flex-col bg-app">
       <SiteHeader />
-      <main id="main-content" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+      >
         {children}
       </main>
     </div>

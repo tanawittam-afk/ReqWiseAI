@@ -88,7 +88,11 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
          * public site header's `<main>` uses so one skip-link component works both
          * places (docs/design/INTERFACE.md, Implementation notes).
          */}
-        <div id="main-content" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+        >
           {children}
         </div>
       </div>

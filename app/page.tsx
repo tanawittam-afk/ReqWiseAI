@@ -106,7 +106,7 @@ export default function Home() {
     <div className="flex min-h-dvh flex-col bg-app">
       <SiteHeader />
 
-      <main id="main-content" className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2">
         {/* ---------------------------------------------------------------- hero */}
         <section className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-14 sm:px-6 sm:py-20">
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-text-faint">
