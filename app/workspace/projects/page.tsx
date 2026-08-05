@@ -7,6 +7,7 @@
  */
 
 import Link from "next/link";
+import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { PROJECT_FILTERS, type ProjectFilter } from "@/lib/contracts/project";
 import { countProjects, listProjects } from "@/lib/projects/queries";
@@ -93,7 +94,7 @@ export default async function ProjectsPage({
       </div>
 
       {projects.length === 0 ? (
-        <EmptyState filter={filter} />
+        <ProjectsEmptyState filter={filter} />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {projects.map((project) => (
@@ -140,40 +141,42 @@ export default async function ProjectsPage({
   );
 }
 
-function EmptyState({ filter }: { filter: ProjectFilter }) {
+function ProjectsEmptyState({ filter }: { filter: ProjectFilter }) {
   if (filter === "archived") {
     return (
-      <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-6 py-12 text-center">
-        <h2 className="text-sm font-semibold text-text">Nothing archived</h2>
-        <p className="mx-auto mt-1.5 max-w-sm text-sm text-text-muted">
-          Archived projects stay here in full — sources, runs and review history included.
-          Nothing is ever deleted.
-        </p>
-      </section>
+      <EmptyState
+        title="Nothing archived"
+        body="Archived projects stay here in full — sources, runs and review history included.
+          Nothing is ever deleted."
+        action={
+          <Link
+            href="/workspace/projects?filter=active"
+            className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 text-sm font-medium text-text transition-colors hover:bg-surface-hover"
+          >
+            Back to active projects
+          </Link>
+        }
+      />
     );
   }
 
   return (
-    <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-6 py-12 text-center">
-      <p aria-hidden="true" className="font-mono text-[13px] text-accent">
-        notes → requirements → review
-      </p>
-      <h2 className="mt-3 text-base font-semibold text-text">Start with the messy version</h2>
-      <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-text-muted">
-        A project holds one piece of business reality — meeting notes, an interview, a client
+    <EmptyState
+      icon="projects"
+      title="Start with the messy version"
+      body="A project holds one piece of business reality — meeting notes, an interview, a client
         message — and turns it into requirements you can trace back to the sentence they came
-        from.
-      </p>
-      <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
+        from."
+      action={
         <Link
           href="/workspace/projects/new"
           className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
         >
           Create your first project
         </Link>
-        {/* The zero-typing way in. Runs on the deterministic mock provider, always. */}
-        <TryExampleButton />
-      </div>
-    </section>
+      }
+      // The zero-typing way in. Runs on the deterministic mock provider, always.
+      secondary={<TryExampleButton />}
+    />
   );
 }

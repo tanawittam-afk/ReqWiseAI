@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { listSources } from "@/lib/sources/queries";
@@ -84,23 +85,24 @@ export default async function SourcesPage({
       ) : null}
 
       {sources.length === 0 ? (
-        <section className="flex flex-col items-start gap-3 rounded-[var(--radius-panel)] border border-dashed border-border-strong bg-surface-muted px-6 py-10">
-          <h2 className="text-sm font-semibold text-text">Nothing to analyse yet</h2>
-          <p className="max-w-md text-sm leading-relaxed text-text-muted">
-            Requirements are only ever generated from text you supply. Paste the meeting
+        <EmptyState
+          icon="paste"
+          title="Nothing to analyse yet"
+          body="Requirements are only ever generated from text you supply. Paste the meeting
             notes, interview or client message this project is about, and it becomes the
-            evidence every requirement is traced back to.
-          </p>
-          {archived ? null : (
-            <Link
-              href={`/workspace/projects/${projectId}/sources/new`}
-              className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
-                         font-semibold text-on-accent transition-colors hover:bg-accent-hover"
-            >
-              Add the first source
-            </Link>
-          )}
-        </section>
+            evidence every requirement is traced back to."
+          action={
+            archived ? undefined : (
+              <Link
+                href={`/workspace/projects/${projectId}/sources/new`}
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
+                           font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+              >
+                Add the first source
+              </Link>
+            )
+          }
+        />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {sources.map((source) => (

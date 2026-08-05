@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
 import { loadExportInput } from "@/lib/export/load";
@@ -91,16 +92,20 @@ export default async function ExportPage({
       {!hasItems ? (
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 px-[var(--space-shell-x)] py-[var(--space-shell-y-tight)] sm:px-[var(--space-shell-x-lg)]">
           <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Export</h1>
-          <p className="text-sm leading-relaxed text-text-muted">
-            This project has no analysed requirements yet, so there is nothing to export.
-            Add a source document and run an analysis first.
-          </p>
-          <Link
-            href={`/workspace/projects/${projectId}/sources`}
-            className="w-fit text-sm font-medium text-accent underline underline-offset-2"
-          >
-            Go to source documents
-          </Link>
+          <EmptyState
+            icon="paste"
+            title="Nothing to export yet"
+            body="This project has no analysed requirements yet. Add a source document and run
+              an analysis first — an export reads from the run, not from raw text."
+            action={
+              <Link
+                href={`/workspace/projects/${projectId}/sources`}
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+              >
+                Go to source documents
+              </Link>
+            }
+          />
         </main>
       ) : (
         <main className="mx-auto grid w-full max-w-[1400px] flex-1 gap-5 px-4 py-5 sm:px-6

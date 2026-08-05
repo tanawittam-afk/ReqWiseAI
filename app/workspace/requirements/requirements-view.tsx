@@ -11,7 +11,9 @@
  */
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { FacetSelect } from "@/app/_components/ui/select";
+import { EmptyState } from "@/app/_components/ui/empty-state";
 import {
   EMPTY_WORKSPACE_FILTERS,
   PRIORITY_OPTIONS,
@@ -163,11 +165,37 @@ export function RequirementsView({
       </p>
 
       {visible.length === 0 ? (
-        <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-10 text-center text-sm text-text-muted">
-          {active
-            ? "No requirement matches these filters. Clear one and try again."
-            : "No requirements yet. Analyse a source and they appear here."}
-        </p>
+        active ? (
+          <EmptyState
+            icon="search"
+            title="No requirement matches these filters"
+            body="Clear a filter or the search term and try again."
+            action={
+              <button
+                type="button"
+                onClick={() => setFilters(EMPTY_WORKSPACE_FILTERS)}
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 text-sm font-medium text-text transition-colors hover:bg-surface-hover"
+              >
+                Clear filters
+              </button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon="paste"
+            title="No requirements yet"
+            body="Nothing has been analysed in this workspace yet. Start a project and paste
+              its source text — requirements appear here as soon as a run finishes."
+            action={
+              <Link
+                href="/workspace/projects/new"
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+              >
+                Start a project
+              </Link>
+            }
+          />
+        )
       ) : (
         <ItemRowList>
           {visible.map((item) => (
