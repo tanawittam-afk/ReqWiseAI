@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale, pick } from "@/lib/i18n";
+
 /**
  * Extracted from `analyses/[runId]/_components/requirements-panel.tsx`, the only place
  * a facet/group selector existed before this pass. `FacetSelect` adds the "All" option
@@ -40,11 +42,12 @@ export function FacetSelect({
   onChange: (value: string) => void;
   children: React.ReactNode;
 }) {
+  const locale = useLocale();
   return (
     <label className="flex items-center gap-1.5 text-xs text-text-faint">
       <span>{label}</span>
       <Select value={value} onChange={onChange}>
-        <option value="all">All</option>
+        <option value="all">{pick(locale, "All", "ทั้งหมด")}</option>
         {children}
       </Select>
     </label>
