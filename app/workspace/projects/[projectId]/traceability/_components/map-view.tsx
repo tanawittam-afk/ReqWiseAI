@@ -19,6 +19,8 @@
  */
 
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import {
   COLUMN_WIDTH,
   NODE_HEIGHT,
@@ -40,13 +42,14 @@ export function MapView({
   selectedId: string | null;
   onSelect: (item: TraceItem) => void;
 }) {
+  const locale = useLocale();
   const size = layoutSize(layout);
 
   // `layoutMap` drops empty columns, so an empty `columns` means an empty graph.
   if (layout.columns.length === 0) {
     return (
       <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-4 py-6 text-sm text-text-muted">
-        No items match the current filters.
+        <T en="No items match the current filters." th="ไม่มีรายการที่ตรงกับตัวกรองปัจจุบัน" />
       </p>
     );
   }
@@ -62,7 +65,11 @@ export function MapView({
         className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4"
         tabIndex={0}
         role="group"
-        aria-label="Relationship map. Scrollable. Every node is also listed below."
+        aria-label={pick(
+          locale,
+          "Relationship map. Scrollable. Every node is also listed below.",
+          "แผนที่ความสัมพันธ์ เลื่อนดูได้ ทุกโหนดยังแสดงเป็นรายการด้านล่างด้วย",
+        )}
       >
         <div className="relative" style={{ width: size.width, height: size.height + 28 }}>
           {/* Column headings, above the nodes they label. */}
@@ -107,8 +114,8 @@ export function MapView({
 
       <details className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2">
         <summary className="min-h-11 cursor-pointer text-xs font-medium text-text-muted">
-          Map as a list ({layout.edges.length} relation
-          {layout.edges.length === 1 ? "" : "s"})
+          <T en="Map as a list" th="แผนที่ในรูปแบบรายการ" /> ({layout.edges.length}{" "}
+          {pick(locale, layout.edges.length === 1 ? "relation" : "relations", "ความสัมพันธ์")})
         </summary>
         <ul className="mt-2 flex flex-col gap-1.5 text-xs leading-relaxed text-text-muted">
           {layout.edges.map((edge) => (
@@ -121,7 +128,9 @@ export function MapView({
             </li>
           ))}
           {layout.edges.length === 0 ? (
-            <li>No relations between the items currently shown.</li>
+            <li>
+              <T en="No relations between the items currently shown." th="ไม่มีความสัมพันธ์ระหว่างรายการที่แสดงอยู่" />
+            </li>
           ) : null}
         </ul>
       </details>
@@ -160,6 +169,7 @@ function Node({
   selected: boolean;
   onSelect: (item: TraceItem) => void;
 }) {
+  const locale = useLocale();
   const { item } = node;
   return (
     <button
@@ -191,7 +201,9 @@ function Node({
       </span>
       <span className="line-clamp-2 text-[11px] leading-snug text-text">{item.title}</span>
       <span className="sr-only">
-        {item.hasSourceEvidence ? "Cited in the source." : "No source citation."}
+        {item.hasSourceEvidence
+          ? pick(locale, "Cited in the source.", "อ้างอิงในต้นฉบับ")
+          : pick(locale, "No source citation.", "ไม่มีการอ้างอิงต้นฉบับ")}
       </span>
       {item.hasSourceEvidence ? (
         <span className="absolute right-2 top-1.5 text-signal">

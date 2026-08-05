@@ -14,6 +14,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
@@ -55,7 +56,7 @@ export default async function TraceabilityPage({
         </Link>
         {project.status === "archived" ? (
           <span className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-1.5 py-px text-[10px] font-medium text-warn">
-            Archived — read-only
+            <T en="Archived — read-only" th="เก็บเข้าคลัง — อ่านอย่างเดียว" />
           </span>
         ) : null}
         <div className="ml-auto">
@@ -65,18 +66,24 @@ export default async function TraceabilityPage({
 
       {data.graph.items.length === 0 ? (
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 px-[var(--space-shell-x)] py-[var(--space-shell-y-tight)] sm:px-[var(--space-shell-x-lg)]">
-          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Traceability</h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
+            <T en="Traceability" th="การเชื่อมโยง" />
+          </h1>
           <EmptyState
             icon="traceability"
-            title="Nothing to trace yet"
-            body="This project has no analysed requirements yet. Add a source document and run
-              an analysis first — traceability reads the chain a run produces."
+            title={<T en="Nothing to trace yet" th="ยังไม่มีอะไรให้เชื่อมโยง" />}
+            body={
+              <T
+                en="This project has no analysed requirements yet. Add a source document and run an analysis first — traceability reads the chain a run produces."
+                th="โปรเจกต์นี้ยังไม่มีข้อกำหนดที่วิเคราะห์แล้ว เพิ่มเอกสารต้นฉบับและรันการวิเคราะห์ก่อน — การเชื่อมโยงจะอ่านสายโซ่ที่การวิเคราะห์สร้างขึ้น"
+              />
+            }
             action={
               <Link
                 href={`/workspace/projects/${projectId}/sources`}
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
               >
-                Go to source documents
+                <T en="Go to source documents" th="ไปที่เอกสารต้นฉบับ" />
               </Link>
             }
           />

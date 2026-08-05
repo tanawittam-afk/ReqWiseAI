@@ -15,6 +15,8 @@
  */
 
 import Link from "next/link";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import type { CoverageReport } from "@/lib/traceability/coverage";
 import type { RelationEnd } from "@/lib/traceability/graph";
 import type { TraceItem } from "@/lib/traceability/types";
@@ -38,11 +40,15 @@ export function TraceInspector({
   archived: boolean;
   onSelect: (itemId: string) => void;
 }) {
+  const locale = useLocale();
   if (item === null) {
     return (
       <div className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
         <p className="text-sm text-text-muted">
-          Select an item in the matrix or the map to see what it traces to.
+          <T
+            en="Select an item in the matrix or the map to see what it traces to."
+            th="เลือกรายการในตารางหรือแผนที่เพื่อดูสิ่งที่รายการนั้นเชื่อมโยงถึง"
+          />
         </p>
       </div>
     );
@@ -65,14 +71,21 @@ export function TraceInspector({
         </span>
         <h2 className="text-sm font-semibold leading-snug text-text">{item.title}</h2>
         <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          <Meta label="Status" value={item.status.replace(/_/g, " ")} />
-          <Meta label="Priority" value={item.priority} />
+          <Meta label={pick(locale, "Status", "สถานะ")} value={item.status.replace(/_/g, " ")} />
+          <Meta label={pick(locale, "Priority", "ลำดับความสำคัญ")} value={item.priority} />
           {item.workflowState ? (
-            <Meta label="Workflow" value={item.workflowState.replace(/_/g, " ")} />
+            <Meta
+              label={pick(locale, "Workflow", "ขั้นตอนการทำงาน")}
+              value={item.workflowState.replace(/_/g, " ")}
+            />
           ) : null}
           <Meta
-            label="Evidence"
-            value={item.hasSourceEvidence ? "Cited in the source" : "No citation"}
+            label={pick(locale, "Evidence", "หลักฐาน")}
+            value={
+              item.hasSourceEvidence
+                ? pick(locale, "Cited in the source", "อ้างอิงในต้นฉบับ")
+                : pick(locale, "No citation", "ไม่มีการอ้างอิง")
+            }
           />
         </dl>
       </header>
@@ -80,7 +93,7 @@ export function TraceInspector({
       {flags.length > 0 ? (
         <section aria-labelledby="insp-gaps" className="flex flex-col gap-1">
           <h3 id="insp-gaps" className="text-xs font-semibold uppercase tracking-wide text-warn">
-            Missing links
+            <T en="Missing links" th="การเชื่อมโยงที่ขาดหาย" />
           </h3>
           <ul className="flex flex-col gap-1 text-xs leading-relaxed text-text-muted">
             {flags.map((flag) => (
@@ -91,15 +104,15 @@ export function TraceInspector({
       ) : null}
 
       <RelationList
-        heading="Relations out"
-        empty="Nothing leads from this item."
+        heading={{ en: "Relations out", th: "ความสัมพันธ์ขาออก" }}
+        empty={{ en: "Nothing leads from this item.", th: "ไม่มีสิ่งใดเชื่อมโยงออกจากรายการนี้" }}
         ends={outgoing}
         direction="out"
         onSelect={onSelect}
       />
       <RelationList
-        heading="Relations in"
-        empty="Nothing leads to this item."
+        heading={{ en: "Relations in", th: "ความสัมพันธ์ขาเข้า" }}
+        empty={{ en: "Nothing leads to this item.", th: "ไม่มีสิ่งใดเชื่อมโยงเข้าสู่รายการนี้" }}
         ends={incoming}
         direction="in"
         onSelect={onSelect}
@@ -111,14 +124,16 @@ export function TraceInspector({
           className="mt-1 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-border-soft
                      px-3 text-sm font-medium text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
-          Open in Analysis Workspace
+          <T en="Open in Analysis Workspace" th="เปิดในพื้นที่วิเคราะห์" />
         </Link>
       ) : null}
 
       {archived ? (
         <p className="text-xs leading-relaxed text-text-faint">
-          This project is archived. Traceability, review history and evidence are all
-          readable; nothing can be changed.
+          <T
+            en="This project is archived. Traceability, review history and evidence are all readable; nothing can be changed."
+            th="โปรเจกต์นี้ถูกเก็บเข้าคลัง การเชื่อมโยง ประวัติการตรวจสอบ และหลักฐานทั้งหมดยังคงอ่านได้ แต่ไม่สามารถเปลี่ยนแปลงได้"
+          />
         </p>
       ) : null}
     </div>
@@ -132,8 +147,8 @@ function RelationList({
   direction,
   onSelect,
 }: {
-  heading: string;
-  empty: string;
+  heading: { en: string; th: string };
+  empty: { en: string; th: string };
   ends: RelationEnd[];
   direction: "out" | "in";
   onSelect: (itemId: string) => void;
@@ -141,10 +156,12 @@ function RelationList({
   return (
     <section className="flex flex-col gap-1">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-        {heading} ({ends.length})
+        <T en={heading.en} th={heading.th} /> ({ends.length})
       </h3>
       {ends.length === 0 ? (
-        <p className="text-xs text-text-faint">{empty}</p>
+        <p className="text-xs text-text-faint">
+          <T en={empty.en} th={empty.th} />
+        </p>
       ) : (
         <ul className="flex flex-col gap-1">
           {ends.map(({ relation, other }) => {
@@ -153,8 +170,8 @@ function RelationList({
               <li key={key}>
                 {other === null ? (
                   <span className="block px-2 py-1.5 text-xs text-text-faint">
-                    {relationPhrase(relation.type, direction)} an item outside the current
-                    filter
+                    {relationPhrase(relation.type, direction)}{" "}
+                    <T en="an item outside the current filter" th="รายการที่อยู่นอกตัวกรองปัจจุบัน" />
                   </span>
                 ) : (
                   <button

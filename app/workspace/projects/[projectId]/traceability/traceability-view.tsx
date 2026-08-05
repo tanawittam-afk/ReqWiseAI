@@ -23,6 +23,8 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import type { CoverageKey } from "@/lib/traceability/coverage";
 import { computeCoverage } from "@/lib/traceability/coverage";
 import { incoming, outgoing } from "@/lib/traceability/graph";
@@ -70,6 +72,7 @@ export function TraceabilityView({
   /** From `?run=`, so a link out of one analysis lands on that analysis's items. */
   initialRunId: string | null;
 }) {
+  const locale = useLocale();
   const [filters, setFilters] = useState<TraceFilters>({
     ...EMPTY_TRACE_FILTERS,
     runId: initialRunId ?? "all",
@@ -190,7 +193,7 @@ export function TraceabilityView({
           <div className="flex min-h-0 flex-col">{board}</div>
           {inspectorOpen ? (
             <aside
-              aria-label="Item inspector"
+              aria-label={pick(locale, "Item inspector", "แผงตรวจสอบรายการ")}
               className="min-h-0 overflow-auto max-lg:hidden xl:block"
             >
               {inspector}
@@ -203,7 +206,10 @@ export function TraceabilityView({
          * matrix too narrow to read.
          */}
         {inspectorOpen ? (
-          <aside aria-label="Item inspector" className="max-h-[38vh] overflow-auto xl:hidden">
+          <aside
+            aria-label={pick(locale, "Item inspector", "แผงตรวจสอบรายการ")}
+            className="max-h-[38vh] overflow-auto xl:hidden"
+          >
             {inspector}
           </aside>
         ) : null}
@@ -221,7 +227,10 @@ export function TraceabilityView({
 
       {hasActiveTraceFilter(filters) && filtered.items.length === 0 ? (
         <p role="status" className="text-xs text-text-muted">
-          No items match. Clear the filters to see the whole project.
+          <T
+            en="No items match. Clear the filters to see the whole project."
+            th="ไม่มีรายการที่ตรงกัน ล้างตัวกรองเพื่อดูทั้งโปรเจกต์"
+          />
         </p>
       ) : null}
     </div>
@@ -257,39 +266,44 @@ function Toolbar({
   shown: number;
   total: number;
 }) {
+  const locale = useLocale();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">Traceability</h1>
+      <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">
+        <T en="Traceability" th="การเชื่อมโยง" />
+      </h1>
       <span className="text-xs text-text-faint">{projectName}</span>
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs text-text-faint">
-          <span className="sr-only">Search items</span>
+          <span className="sr-only">
+            <T en="Search items" th="ค้นหารายการ" />
+          </span>
           <input
             type="search"
             value={filters.query}
             onChange={(event) => setFilter("query", event.target.value)}
-            placeholder="Search id or title"
+            placeholder={pick(locale, "Search id or title", "ค้นหาด้วยรหัสหรือชื่อ")}
             className="min-h-11 w-44 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2.5 text-sm text-text
                        placeholder:text-text-faint focus:border-accent-border focus:outline-none"
           />
         </label>
 
         <Select
-          label="Type"
+          label={pick(locale, "Type", "ประเภท")}
           value={filters.type}
           onChange={(value) => setFilter("type", value as TraceFilters["type"])}
           options={[
-            { value: "all", label: "All types" },
+            { value: "all", label: pick(locale, "All types", "ทุกประเภท") },
             ...ITEM_TYPES.map((type) => ({ value: type, label: TYPE_LABEL[type] })),
           ]}
         />
         <Select
-          label="Status"
+          label={pick(locale, "Status", "สถานะ")}
           value={filters.status}
           onChange={(value) => setFilter("status", value)}
           options={[
-            { value: "all", label: "All statuses" },
+            { value: "all", label: pick(locale, "All statuses", "ทุกสถานะ") },
             ...STATUSES.map((status) => ({
               value: status,
               label: status.replace(/_/g, " "),
@@ -297,24 +311,24 @@ function Toolbar({
           ]}
         />
         <Select
-          label="Priority"
+          label={pick(locale, "Priority", "ลำดับความสำคัญ")}
           value={filters.priority}
           onChange={(value) => setFilter("priority", value)}
           options={[
-            { value: "all", label: "All priorities" },
+            { value: "all", label: pick(locale, "All priorities", "ทุกลำดับความสำคัญ") },
             ...PRIORITIES.map((priority) => ({ value: priority, label: priority })),
           ]}
         />
         {runs.length > 1 ? (
           <Select
-            label="Analysis run"
+            label={pick(locale, "Analysis run", "รอบการวิเคราะห์")}
             value={filters.runId}
             onChange={(value) => setFilter("runId", value)}
             options={[
-              { value: "all", label: `All runs (${runs.length})` },
+              { value: "all", label: pick(locale, `All runs (${runs.length})`, `ทุกรอบ (${runs.length})`) },
               ...runs.map((run) => ({
                 value: run.id,
-                label: `${formatDate(run.createdAt)} · ${run.itemCount} items`,
+                label: `${formatDate(run.createdAt)} · ${run.itemCount} ${pick(locale, "items", "รายการ")}`,
               })),
             ]}
           />
@@ -330,11 +344,15 @@ function Toolbar({
           className="min-h-11 rounded-[var(--radius-card)] border border-border-soft px-2.5 text-xs font-medium text-text-muted
                      transition-colors hover:bg-surface-hover hover:text-text"
         >
-          Clear filters
+          <T en="Clear filters" th="ล้างตัวกรอง" />
         </button>
 
         {/* View switch. Two buttons rather than a select: it is the primary control. */}
-        <div role="group" aria-label="View" className="flex rounded-[var(--radius-panel)] border border-border-soft">
+        <div
+          role="group"
+          aria-label={pick(locale, "View", "มุมมอง")}
+          className="flex rounded-[var(--radius-panel)] border border-border-soft"
+        >
           {(["matrix", "map"] as const).map((option) => (
             <button
               key={option}
@@ -345,7 +363,7 @@ function Toolbar({
                 view === option ? "bg-accent-soft text-accent" : "text-text-muted hover:bg-surface-hover"
               }`}
             >
-              {option}
+              <T en={option} th={option === "matrix" ? "ตาราง" : "แผนที่"} />
             </button>
           ))}
         </div>
@@ -358,7 +376,7 @@ function Toolbar({
               onChange={(event) => setOnlyGaps(event.target.checked)}
               className="size-4"
             />
-            Only rows with a gap
+            <T en="Only rows with a gap" th="เฉพาะแถวที่มีช่องว่าง" />
           </label>
         ) : null}
 
@@ -369,7 +387,11 @@ function Toolbar({
           className="hidden min-h-11 rounded-[var(--radius-card)] border border-border-soft px-2.5 text-xs font-medium
                      text-text-muted transition-colors hover:bg-surface-hover hover:text-text lg:block"
         >
-          {inspectorOpen ? "Hide inspector" : "Show inspector"}
+          {inspectorOpen ? (
+            <T en="Hide inspector" th="ซ่อนแผงตรวจสอบ" />
+          ) : (
+            <T en="Show inspector" th="แสดงแผงตรวจสอบ" />
+          )}
         </button>
       </div>
     </div>
@@ -393,14 +415,15 @@ function PaneSwitcher({
   view: View;
   setView: (view: View) => void;
 }) {
-  const tabs: Array<{ label: string; active: boolean; select: () => void }> = [
+  const locale = useLocale();
+  const tabs: Array<{ label: { en: string; th: string }; active: boolean; select: () => void }> = [
     {
-      label: "Coverage",
+      label: { en: "Coverage", th: "ความครอบคลุม" },
       active: pane === "coverage",
       select: () => setPane("coverage"),
     },
     {
-      label: "Matrix",
+      label: { en: "Matrix", th: "ตาราง" },
       active: pane === "board" && view === "matrix",
       select: () => {
         setView("matrix");
@@ -408,7 +431,7 @@ function PaneSwitcher({
       },
     },
     {
-      label: "Map",
+      label: { en: "Map", th: "แผนที่" },
       active: pane === "board" && view === "map",
       select: () => {
         setView("map");
@@ -416,7 +439,7 @@ function PaneSwitcher({
       },
     },
     {
-      label: "Inspector",
+      label: { en: "Inspector", th: "แผงตรวจสอบ" },
       active: pane === "inspector",
       select: () => setPane("inspector"),
     },
@@ -425,12 +448,12 @@ function PaneSwitcher({
   return (
     <div
       role="group"
-      aria-label="Traceability panes"
+      aria-label={pick(locale, "Traceability panes", "แผงการเชื่อมโยง")}
       className="flex overflow-x-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface"
     >
       {tabs.map((tab) => (
         <button
-          key={tab.label}
+          key={tab.label.en}
           type="button"
           aria-pressed={tab.active}
           onClick={tab.select}
@@ -438,7 +461,7 @@ function PaneSwitcher({
             tab.active ? "bg-accent-soft text-accent" : "text-text-muted"
           }`}
         >
-          {tab.label}
+          <T en={tab.label.en} th={tab.label.th} />
         </button>
       ))}
     </div>

@@ -17,6 +17,8 @@
  *     lose no information (CLAUDE.md → Accessibility).
  */
 
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import {
   COLUMN_LABEL,
   describeMatrixRow,
@@ -44,18 +46,34 @@ export function MatrixView({
   selectedId: string | null;
   onSelect: (item: TraceItem) => void;
 }) {
+  const locale = useLocale();
   if (rows.length === 0) {
     return (
       <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-4 py-6 text-sm leading-relaxed text-text-muted">
         {matchedCount > 0 ? (
-          <>
-            {matchedCount} item{matchedCount === 1 ? "" : "s"} match, but none of them sit on the
-            objective → requirement → story → criterion chain the matrix shows. Switch to the{" "}
-            <strong className="font-semibold text-text">Map</strong> to see them, or clear the
-            filter.
-          </>
+          <T
+            en={
+              <>
+                {matchedCount} item{matchedCount === 1 ? "" : "s"} match, but none of them sit on
+                the objective → requirement → story → criterion chain the matrix shows. Switch to
+                the <strong className="font-semibold text-text">Map</strong> to see them, or
+                clear the filter.
+              </>
+            }
+            th={
+              <>
+                มี {matchedCount} รายการที่ตรงกัน แต่ไม่มีรายการใดอยู่ในสายโซ่ วัตถุประสงค์ →
+                ข้อกำหนด → เรื่องราว → เกณฑ์การยอมรับ ที่ตารางนี้แสดง สลับไปที่{" "}
+                <strong className="font-semibold text-text">แผนที่</strong> เพื่อดูรายการเหล่านั้น
+                หรือล้างตัวกรอง
+              </>
+            }
+          />
         ) : (
-          "No items match the current filters. Clear a filter to see the matrix."
+          <T
+            en="No items match the current filters. Clear a filter to see the matrix."
+            th="ไม่มีรายการที่ตรงกับตัวกรองปัจจุบัน ล้างตัวกรองเพื่อดูตาราง"
+          />
         )}
       </p>
     );
@@ -65,8 +83,10 @@ export function MatrixView({
     <div className="flex min-h-0 flex-col gap-2">
       {truncated ? (
         <p role="status" className="text-xs text-warn">
-          Showing the first {rows.length} paths. Narrow the filters to see the rest — nothing
-          has been dropped from the data, only from this table.
+          <T
+            en={`Showing the first ${rows.length} paths. Narrow the filters to see the rest — nothing has been dropped from the data, only from this table.`}
+            th={`กำลังแสดง ${rows.length} เส้นทางแรก ปรับตัวกรองให้แคบลงเพื่อดูส่วนที่เหลือ — ไม่มีข้อมูลใดถูกตัดออกไป มีเพียงตารางนี้ที่แสดงบางส่วน`}
+          />
         </p>
       ) : null}
 
@@ -74,8 +94,21 @@ export function MatrixView({
       <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface">
         <table className="w-full min-w-[900px] border-collapse text-left">
           <caption className="sr-only">
-            Traceability matrix. Each row is one path from a business objective down to an
-            acceptance criterion. Cells marked “Missing” have no item at that level.
+            <T
+              en={
+                <>
+                  Traceability matrix. Each row is one path from a business objective down to an
+                  acceptance criterion. Cells marked &ldquo;Missing&rdquo; have no item at that
+                  level.
+                </>
+              }
+              th={
+                <>
+                  ตารางการเชื่อมโยง แต่ละแถวคือหนึ่งเส้นทางจากวัตถุประสงค์ทางธุรกิจลงไปจนถึง
+                  เกณฑ์การยอมรับ ช่องที่ระบุ &ldquo;ขาดหาย&rdquo; หมายถึงไม่มีรายการในระดับนั้น
+                </>
+              }
+            />
           </caption>
           <thead className="sticky top-0 z-10 bg-surface-muted">
             <tr>
@@ -111,7 +144,8 @@ export function MatrixView({
        */}
       <details className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2">
         <summary className="min-h-11 cursor-pointer text-xs font-medium text-text-muted">
-          Matrix as a list ({rows.length} path{rows.length === 1 ? "" : "s"})
+          <T en="Matrix as a list" th="ตารางในรูปแบบรายการ" /> ({rows.length}{" "}
+          {pick(locale, rows.length === 1 ? "path" : "paths", "เส้นทาง")})
         </summary>
         <ol className="mt-2 flex flex-col gap-1.5 text-xs leading-relaxed text-text-muted">
           {rows.map((row) => (
@@ -132,11 +166,14 @@ function Cell({
   selectedId: string | null;
   onSelect: (item: TraceItem) => void;
 }) {
+  const locale = useLocale();
   if (cell.kind === "not_applicable") {
     return (
       <div className="px-3 py-2.5 text-xs text-text-faint">
         <span aria-hidden="true">—</span>
-        <span className="sr-only">Not applicable at this level</span>
+        <span className="sr-only">
+          <T en="Not applicable at this level" th="ไม่เกี่ยวข้องในระดับนี้" />
+        </span>
       </div>
     );
   }
@@ -144,7 +181,9 @@ function Cell({
   if (cell.kind === "missing") {
     return (
       <div className="m-1.5 flex min-h-11 flex-col justify-center rounded-[var(--radius-card)] border border-dashed border-warn-border bg-warn-soft px-2.5 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-warn">Missing</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-warn">
+          <T en="Missing" th="ขาดหาย" />
+        </span>
         <span className="text-[11px] leading-tight text-text-muted">{cell.reason}</span>
       </div>
     );
@@ -171,14 +210,14 @@ function Cell({
         <StatusWord status={item.status} />
         {item.hasSourceEvidence ? (
           <span
-            title="Cited in the source"
+            title={pick(locale, "Cited in the source", "อ้างอิงในต้นฉบับ")}
             className="rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-1 text-[10px] font-medium text-signal"
           >
-            Cited
+            <T en="Cited" th="อ้างอิงแล้ว" />
           </span>
         ) : (
           <span className="rounded-[var(--radius-card)] border border-border-soft px-1 text-[10px] text-text-faint">
-            No citation
+            <T en="No citation" th="ไม่มีการอ้างอิง" />
           </span>
         )}
       </span>
