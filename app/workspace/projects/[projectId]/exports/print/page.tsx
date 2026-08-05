@@ -95,7 +95,7 @@ export default async function ExportPrintPage({
         </ul>
         <Link
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
-          className="w-fit text-sm font-medium text-accent underline underline-offset-2 screen-only"
+          className="screen-only inline-flex min-h-11 w-fit items-center text-sm font-medium text-accent underline underline-offset-2 lg:min-h-0"
         >
           ← Back to export scope
         </Link>
@@ -109,7 +109,7 @@ export default async function ExportPrintPage({
       <div className="screen-only flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
         <Link
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
-          className="text-xs text-text-muted transition-colors hover:text-text"
+          className="inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
         >
           ← Export scope
         </Link>

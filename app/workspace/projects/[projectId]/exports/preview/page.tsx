@@ -62,7 +62,7 @@ export default async function ExportPreviewPage({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
         <Link
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
-          className="text-xs text-text-muted transition-colors hover:text-text"
+          className="inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
         >
           ← Export scope
         </Link>
@@ -71,7 +71,7 @@ export default async function ExportPreviewPage({
           href={`/workspace/projects/${projectId}/exports/print?${serialised}`}
           target="_blank"
           rel="noopener"
-          className="ml-auto text-xs font-medium text-accent underline underline-offset-2"
+          className="ml-auto inline-flex min-h-11 items-center text-xs font-medium text-accent underline underline-offset-2 lg:min-h-0"
         >
           Printable version ↗
         </Link>

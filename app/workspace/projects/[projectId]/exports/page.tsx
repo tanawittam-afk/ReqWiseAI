@@ -72,7 +72,7 @@ export default async function ExportPage({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
         <Link
           href={`/workspace/projects/${projectId}`}
-          className="text-xs text-text-muted transition-colors hover:text-text"
+          className="inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
         >
           ← {input.project.name}
         </Link>
