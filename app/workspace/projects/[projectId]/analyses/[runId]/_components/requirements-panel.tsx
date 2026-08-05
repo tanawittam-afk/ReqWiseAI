@@ -30,13 +30,15 @@ import {
 import { WORKFLOW_STATE_LABEL, type WorkflowState } from "@/lib/contracts/workflow";
 import { EVIDENCE_LABEL, PRIORITY_LABEL, STATUS_LABEL, TYPE_LABEL, confidencePercent, labelFor } from "@/app/workspace/_components/item-labels";
 import { RequirementRow } from "./requirement-row";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 
-const GROUP_MODE_LABEL: Record<GroupMode, string> = {
-  type: "Type",
-  source_order: "Source order",
-  review_status: "Review status",
-  priority: "Priority",
-  workflow_state: "Workflow state",
+const GROUP_MODE_LABEL: Record<GroupMode, { en: string; th: string }> = {
+  type: { en: "Type", th: "ประเภท" },
+  source_order: { en: "Source order", th: "ลำดับต้นทาง" },
+  review_status: { en: "Review status", th: "สถานะตรวจสอบ" },
+  priority: { en: "Priority", th: "ลำดับความสำคัญ" },
+  workflow_state: { en: "Workflow state", th: "สถานะเวิร์กโฟลว์" },
 };
 
 /**
@@ -78,6 +80,7 @@ export function RequirementsPanel({
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const locale = useLocale();
 
   const items = tab === "questions" ? questions : tab === "findings" ? findings : requirements;
   const workflowTab = tab !== "requirements";
@@ -102,18 +105,18 @@ export function RequirementsPanel({
 
   return (
     <section
-      aria-label="Requirements"
+      aria-label={pick(locale, "Requirements", "ข้อกำหนด")}
       className={`flex min-h-0 min-w-0 flex-col overflow-hidden border-border-soft bg-surface ${className}`}
     >
       <div className="flex items-center gap-1 border-b border-border-soft px-3 pt-2">
         <Tab active={tab === "requirements"} count={requirements.length} onClick={() => onTabChange("requirements")}>
-          Requirements
+          <T en="Requirements" th="ข้อกำหนด" />
         </Tab>
         <Tab active={tab === "questions"} count={questions.length} onClick={() => onTabChange("questions")}>
-          Open questions
+          <T en="Open questions" th="คำถามที่เปิดอยู่" />
         </Tab>
         <Tab active={tab === "findings"} count={findings.length} onClick={() => onTabChange("findings")}>
-          Quality findings
+          <T en="Quality findings" th="ข้อค้นพบด้านคุณภาพ" />
         </Tab>
       </div>
 
@@ -122,22 +125,26 @@ export function RequirementsPanel({
           <span className="text-text-faint">
             <Icon name="search" size={14} />
           </span>
-          <span className="sr-only">Search requirements</span>
+          <span className="sr-only">
+            <T en="Search requirements" th="ค้นหาข้อกำหนด" />
+          </span>
           <input
             type="search"
             value={filters.query}
             onChange={(event) => set({ query: event.target.value })}
-            placeholder="Search"
+            placeholder={pick(locale, "Search", "ค้นหา")}
             className="min-h-11 lg:min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
           />
         </label>
 
         <label className="flex items-center gap-1.5 text-xs text-text-faint">
-          <span>Group</span>
+          <span>
+            <T en="Group" th="จัดกลุ่ม" />
+          </span>
           <Select value={groupBy} onChange={(value) => onGroupByChange(value as GroupMode)}>
             {groupModesFor(tab).map((mode) => (
               <option key={mode} value={mode}>
-                {GROUP_MODE_LABEL[mode]}
+                {pick(locale, GROUP_MODE_LABEL[mode].en, GROUP_MODE_LABEL[mode].th)}
               </option>
             ))}
           </Select>
@@ -153,13 +160,25 @@ export function RequirementsPanel({
               : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"
           }`}
         >
-          Filter{hasActiveFilter(filters) ? " · on" : ""}
+          {hasActiveFilter(filters) ? (
+            <T en="Filter · on" th="ตัวกรอง · เปิดอยู่" />
+          ) : (
+            <T en="Filter" th="ตัวกรอง" />
+          )}
         </button>
 
         <span className="ml-auto shrink-0 text-xs tabular-nums text-text-faint">
-          {visible.length === items.length
-            ? `${items.length} item${items.length === 1 ? "" : "s"}`
-            : `${visible.length} of ${items.length}`}
+          {visible.length === items.length ? (
+            <T
+              en={`${items.length} item${items.length === 1 ? "" : "s"}`}
+              th={`${items.length} รายการ`}
+            />
+          ) : (
+            <T
+              en={`${visible.length} of ${items.length}`}
+              th={`${visible.length} จาก ${items.length}`}
+            />
+          )}
         </span>
       </div>
 
@@ -167,7 +186,7 @@ export function RequirementsPanel({
         <div className="flex flex-wrap items-center gap-2 border-b border-border-soft bg-surface-muted px-3 py-2">
           {workflowTab ? (
             <FacetSelect
-              label="State"
+              label={pick(locale, "State", "สถานะ")}
               value={filters.workflowState}
               onChange={(value) => set({ workflowState: value })}
             >
@@ -179,21 +198,33 @@ export function RequirementsPanel({
             </FacetSelect>
           ) : (
             <>
-              <FacetSelect label="Type" value={filters.type} onChange={(value) => set({ type: value as ItemFilters["type"] })}>
+              <FacetSelect
+                label={pick(locale, "Type", "ประเภท")}
+                value={filters.type}
+                onChange={(value) => set({ type: value as ItemFilters["type"] })}
+              >
                 {presentTypes.map((type) => (
                   <option key={type} value={type}>
                     {TYPE_LABEL[type]}
                   </option>
                 ))}
               </FacetSelect>
-              <FacetSelect label="Priority" value={filters.priority} onChange={(value) => set({ priority: value as ItemFilters["priority"] })}>
+              <FacetSelect
+                label={pick(locale, "Priority", "ลำดับความสำคัญ")}
+                value={filters.priority}
+                onChange={(value) => set({ priority: value as ItemFilters["priority"] })}
+              >
                 {PRIORITIES.map((priority) => (
                   <option key={priority} value={priority}>
                     {PRIORITY_LABEL[priority]}
                   </option>
                 ))}
               </FacetSelect>
-              <FacetSelect label="Status" value={filters.status} onChange={(value) => set({ status: value })}>
+              <FacetSelect
+                label={pick(locale, "Status", "สถานะ")}
+                value={filters.status}
+                onChange={(value) => set({ status: value })}
+              >
                 {presentStatuses.map((status) => (
                   <option key={status} value={status}>
                     {labelFor(STATUS_LABEL, status)}
@@ -202,7 +233,11 @@ export function RequirementsPanel({
               </FacetSelect>
             </>
           )}
-          <FacetSelect label="Evidence" value={filters.evidenceClass} onChange={(value) => set({ evidenceClass: value })}>
+          <FacetSelect
+            label={pick(locale, "Evidence", "หลักฐาน")}
+            value={filters.evidenceClass}
+            onChange={(value) => set({ evidenceClass: value })}
+          >
             {EVIDENCE_CLASSES.map((evidenceClass) => (
               <option key={evidenceClass} value={evidenceClass}>
                 {EVIDENCE_LABEL[evidenceClass]}
@@ -217,7 +252,7 @@ export function RequirementsPanel({
               }
               className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2"
             >
-              Clear filters
+              <T en="Clear filters" th="ล้างตัวกรอง" />
             </button>
           ) : null}
         </div>
@@ -228,13 +263,20 @@ export function RequirementsPanel({
       <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
         {groups.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-text-muted">
-            {items.length === 0
-              ? tab === "questions"
-                ? "This run raised no open questions."
-                : tab === "findings"
-                  ? "This run found no quality issues."
-                  : "This run produced no requirements."
-              : "No item matches the current search and filters."}
+            {items.length === 0 ? (
+              tab === "questions" ? (
+                <T en="This run raised no open questions." th="รอบนี้ไม่มีคำถามที่เปิดอยู่" />
+              ) : tab === "findings" ? (
+                <T en="This run found no quality issues." th="รอบนี้ไม่พบปัญหาด้านคุณภาพ" />
+              ) : (
+                <T en="This run produced no requirements." th="รอบนี้ไม่ได้สร้างข้อกำหนด" />
+              )
+            ) : (
+              <T
+                en="No item matches the current search and filters."
+                th="ไม่มีรายการที่ตรงกับคำค้นหาและตัวกรองปัจจุบัน"
+              />
+            )}
           </p>
         ) : (
           groups.map((group) => {
@@ -262,11 +304,17 @@ export function RequirementsPanel({
                       {stats.count}
                     </span>
                     <span className="ml-auto shrink-0 text-[11px] tabular-nums text-text-faint">
-                      {stats.averageConfidence === null
-                        ? null
-                        : `avg ${confidencePercent(stats.averageConfidence)}`}
+                      {stats.averageConfidence === null ? null : (
+                        <T
+                          en={`avg ${confidencePercent(stats.averageConfidence)}`}
+                          th={`เฉลี่ย ${confidencePercent(stats.averageConfidence)}`}
+                        />
+                      )}
                       <span aria-hidden="true"> · </span>
-                      {stats.citedCount}/{stats.count} cited
+                      <T
+                        en={`${stats.citedCount}/${stats.count} cited`}
+                        th={`มีการอ้างอิง ${stats.citedCount}/${stats.count}`}
+                      />
                     </span>
                   </button>
                 </h3>
@@ -354,11 +402,12 @@ function FacetSelect({
   onChange: (value: string) => void;
   children: React.ReactNode;
 }) {
+  const locale = useLocale();
   return (
     <label className="flex items-center gap-1.5 text-xs text-text-faint">
       <span>{label}</span>
       <Select value={value} onChange={onChange}>
-        <option value="all">All</option>
+        <option value="all">{pick(locale, "All", "ทั้งหมด")}</option>
         {children}
       </Select>
     </label>
