@@ -18,6 +18,8 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import {
   ALLOWED_TRANSITIONS,
@@ -35,12 +37,12 @@ import { STATUS_LABEL, labelFor } from "@/app/workspace/_components/item-labels"
 import { ChangeRequestForm } from "./change-request-form";
 
 /** The verb on the button, which is not the same word as the state it produces. */
-const ACTION_LABEL: Record<ItemStatus, string> = {
-  draft: "Return to draft",
-  reviewed: "Mark reviewed",
-  needs_clarification: "Needs clarification",
-  approved: "Approve",
-  rejected: "Reject",
+const ACTION_LABEL: Record<ItemStatus, { en: string; th: string }> = {
+  draft: { en: "Return to draft", th: "ย้อนกลับเป็นฉบับร่าง" },
+  reviewed: { en: "Mark reviewed", th: "ทำเครื่องหมายว่าตรวจแล้ว" },
+  needs_clarification: { en: "Needs clarification", th: "ต้องการคำชี้แจง" },
+  approved: { en: "Approve", th: "อนุมัติ" },
+  rejected: { en: "Reject", th: "ปฏิเสธ" },
 };
 
 /** Ordered so the constructive decision is first and the destructive one last. */
@@ -64,6 +66,7 @@ export function ReviewActions({
   onShowHistory: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const locale = useLocale();
   const [state, formAction] = useActionState(reviewItemAction, EMPTY_REVIEW_STATE);
   const [pendingAction, setPendingAction] = useState<ItemStatus | null>(null);
   const [note, setNote] = useState("");
@@ -92,9 +95,13 @@ export function ReviewActions({
   if (!isReviewableItemType(item.type)) {
     return (
       <Notice>
-        {DEFERRED_WORKFLOW_LABEL[item.type as ItemType] ?? "This item type uses a different workflow"}
-        . It is read-only here — approving or rejecting it would be answering a question that has
-        not been asked yet.
+        {DEFERRED_WORKFLOW_LABEL[item.type as ItemType] ?? (
+          <T en="This item type uses a different workflow" th="รายการประเภทนี้ใช้ขั้นตอนการทำงานอื่น" />
+        )}{" "}
+        <T
+          en="It is read-only here — approving or rejecting it would be answering a question that has not been asked yet."
+          th="ที่นี่เป็นแบบอ่านอย่างเดียว — การอนุมัติหรือปฏิเสธเท่ากับตอบคำถามที่ยังไม่ได้ถูกถาม"
+        />
       </Notice>
     );
   }
@@ -135,7 +142,7 @@ export function ReviewActions({
                 : "border-danger-border bg-danger-soft text-danger"
             }`}
           >
-            {labelFor(STATUS_LABEL, item.status)} · read-only
+            {labelFor(STATUS_LABEL, item.status)} · <T en="read-only" th="อ่านอย่างเดียว" />
           </span>
           <button
             type="button"
@@ -143,7 +150,7 @@ export function ReviewActions({
             className="min-h-11 rounded-[var(--radius-card)] border border-border-soft px-3 text-[13px] text-text-muted
                        transition-colors duration-150 hover:bg-surface-hover hover:text-text"
           >
-            View history
+            <T en="View history" th="ดูประวัติ" />
           </button>
           {canReview ? (
             <button
@@ -152,14 +159,22 @@ export function ReviewActions({
               className="min-h-11 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px] font-medium
                          text-text transition-colors duration-150 hover:bg-surface-hover"
             >
-              Raise a change request
+              <T en="Raise a change request" th="ยื่นคำขอเปลี่ยนแปลง" />
             </button>
           ) : null}
         </div>
         <p className="text-[11px] leading-relaxed text-text-faint">
-          {item.status === "approved"
-            ? "Approved requirements are frozen in this release. Raising a change request proposes a new statement without reopening this one for review."
-            : "Rejected requirements are kept, not deleted — the record of what was considered and turned down is part of the analysis."}
+          {item.status === "approved" ? (
+            <T
+              en="Approved requirements are frozen in this release. Raising a change request proposes a new statement without reopening this one for review."
+              th="ข้อกำหนดที่อนุมัติแล้วถูกล็อกไว้ในรุ่นนี้ การยื่นคำขอเปลี่ยนแปลงเป็นการเสนอข้อความใหม่โดยไม่เปิดรายการเดิมกลับมาตรวจสอบอีกครั้ง"
+            />
+          ) : (
+            <T
+              en="Rejected requirements are kept, not deleted — the record of what was considered and turned down is part of the analysis."
+              th="ข้อกำหนดที่ถูกปฏิเสธจะถูกเก็บไว้ ไม่ถูกลบ — บันทึกสิ่งที่พิจารณาและปฏิเสธไปเป็นส่วนหนึ่งของการวิเคราะห์"
+            />
+          )}
         </p>
       </div>
     );
@@ -168,8 +183,10 @@ export function ReviewActions({
   if (!canReview) {
     return (
       <Notice>
-        This project is archived and read-only. Restore it to edit or review requirements. Every
-        version and review activity stays readable.
+        <T
+          en="This project is archived and read-only. Restore it to edit or review requirements. Every version and review activity stays readable."
+          th="โปรเจกต์นี้ถูกเก็บเข้าคลังและอ่านได้อย่างเดียว กู้คืนเพื่อแก้ไขหรือตรวจสอบข้อกำหนด ประวัติเวอร์ชันและกิจกรรมการตรวจสอบยังคงอ่านได้ทั้งหมด"
+        />
       </Notice>
     );
   }
@@ -204,7 +221,7 @@ export function ReviewActions({
             className="min-h-11 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px] font-medium
                        text-text transition-colors duration-150 hover:bg-surface-hover"
           >
-            Edit
+            <T en="Edit" th="แก้ไข" />
           </button>
           {ordered.map((status) => (
             <button
@@ -219,14 +236,14 @@ export function ReviewActions({
                     : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover hover:text-text"
               }`}
             >
-              {ACTION_LABEL[status]}
+              <T en={ACTION_LABEL[status].en} th={ACTION_LABEL[status].th} />
             </button>
           ))}
         </div>
       ) : (
         <form
           action={formAction}
-          aria-label={`${ACTION_LABEL[pendingAction]} — confirm`}
+          aria-label={`${pick(locale, ACTION_LABEL[pendingAction].en, ACTION_LABEL[pendingAction].th)} — ${pick(locale, "confirm", "ยืนยัน")}`}
           className="flex flex-col gap-2.5 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted p-3"
         >
           <input type="hidden" name="projectId" value={projectId} />
@@ -237,16 +254,38 @@ export function ReviewActions({
           <input type="hidden" name="expectedStatus" value={item.status} />
 
           <p className="text-[12.5px] font-medium text-text">
-            {pendingAction === "approved"
-              ? `Approve ${item.displayId}?`
-              : `${ACTION_LABEL[pendingAction]} — ${item.displayId}`}
+            {pendingAction === "approved" ? (
+              <>
+                <T en="Approve" th="อนุมัติ" /> {item.displayId}?
+              </>
+            ) : (
+              <>
+                <T en={ACTION_LABEL[pendingAction].en} th={ACTION_LABEL[pendingAction].th} /> —{" "}
+                {item.displayId}
+              </>
+            )}
           </p>
 
           {pendingAction === "approved" ? (
             <ul className="flex flex-col gap-1 text-[11.5px] leading-relaxed text-text-muted">
-              <li>This is your decision as a reviewer, not the analysis engine&rsquo;s.</li>
-              <li>The requirement becomes read-only for the rest of this release.</li>
-              <li>Nothing about the analysis run or the source document changes.</li>
+              <li>
+                <T
+                  en="This is your decision as a reviewer, not the analysis engine's."
+                  th="นี่คือการตัดสินใจของคุณในฐานะผู้ตรวจสอบ ไม่ใช่ของเครื่องมือวิเคราะห์"
+                />
+              </li>
+              <li>
+                <T
+                  en="The requirement becomes read-only for the rest of this release."
+                  th="ข้อกำหนดนี้จะกลายเป็นแบบอ่านอย่างเดียวตลอดรุ่นนี้"
+                />
+              </li>
+              <li>
+                <T
+                  en="Nothing about the analysis run or the source document changes."
+                  th="ไม่มีสิ่งใดในรอบการวิเคราะห์หรือเอกสารต้นฉบับเปลี่ยนแปลง"
+                />
+              </li>
             </ul>
           ) : null}
 
@@ -257,7 +296,7 @@ export function ReviewActions({
                   htmlFor={noteId}
                   className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint"
                 >
-                  Note (required)
+                  <T en="Note (required)" th="หมายเหตุ (จำเป็น)" />
                 </label>
                 <span className="ml-auto text-[11px] tabular-nums text-text-faint">
                   {note.length}/{REVIEW_NOTE_MAX}
@@ -274,8 +313,8 @@ export function ReviewActions({
                 aria-invalid={state.fieldErrors.note ? true : undefined}
                 placeholder={
                   pendingAction === "rejected"
-                    ? "Why this requirement is not going forward"
-                    : "What needs to be clarified, and with whom"
+                    ? pick(locale, "Why this requirement is not going forward", "เหตุผลที่ข้อกำหนดนี้ไม่ผ่าน")
+                    : pick(locale, "What needs to be clarified, and with whom", "สิ่งที่ต้องชี้แจง และชี้แจงกับใคร")
                 }
                 className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
                            leading-relaxed text-text placeholder:text-text-faint focus:border-accent
@@ -292,13 +331,16 @@ export function ReviewActions({
           )}
 
           <div className="flex items-center gap-2">
-            <ConfirmButton label={ACTION_LABEL[pendingAction]} destructive={pendingAction === "rejected"} />
+            <ConfirmButton
+              label={ACTION_LABEL[pendingAction]}
+              destructive={pendingAction === "rejected"}
+            />
             <button
               type="button"
               onClick={() => setPendingAction(null)}
               className="min-h-11 rounded-[var(--radius-card)] px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
             >
-              Cancel
+              <T en="Cancel" th="ยกเลิก" />
             </button>
           </div>
         </form>
@@ -307,7 +349,13 @@ export function ReviewActions({
   );
 }
 
-function ConfirmButton({ label, destructive }: { label: string; destructive: boolean }) {
+function ConfirmButton({
+  label,
+  destructive,
+}: {
+  label: { en: string; th: string };
+  destructive: boolean;
+}) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -321,7 +369,7 @@ function ConfirmButton({ label, destructive }: { label: string; destructive: boo
                       : "bg-accent text-on-accent hover:bg-accent-hover"
                   }`}
     >
-      {pending ? "Working…" : label}
+      {pending ? <T en="Working…" th="กำลังดำเนินการ…" /> : <T en={label.en} th={label.th} />}
     </button>
   );
 }

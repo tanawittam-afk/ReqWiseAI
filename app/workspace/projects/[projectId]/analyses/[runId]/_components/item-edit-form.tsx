@@ -19,6 +19,8 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import { PRIORITIES } from "@/lib/contracts/item-types";
 import { ITEM_DESCRIPTION_MAX, ITEM_TITLE_MAX, CHANGE_REASON_MAX } from "@/lib/contracts/review";
@@ -39,6 +41,7 @@ export function ItemEditForm({
   onDone: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const locale = useLocale();
   const [state, formAction] = useActionState(editItemAction, EMPTY_REVIEW_STATE);
   const titleId = useId();
   const descriptionId = useId();
@@ -76,8 +79,11 @@ export function ItemEditForm({
       <input type="hidden" name="expectedVersion" value={item.versionNo} />
 
       <p className="text-[11px] leading-relaxed text-text-faint">
-        Editing version {item.versionNo}. Saving writes a new version and keeps the old one in
-        History. Type, evidence and confidence stay as the analysis produced them.
+        <T en="Editing version" th="กำลังแก้ไขเวอร์ชัน" /> {item.versionNo}.{" "}
+        <T
+          en="Saving writes a new version and keeps the old one in History. Type, evidence and confidence stay as the analysis produced them."
+          th="การบันทึกจะสร้างเวอร์ชันใหม่และเก็บเวอร์ชันเดิมไว้ในประวัติ ส่วนประเภท หลักฐาน และความมั่นใจจะคงเป็นไปตามที่การวิเคราะห์ผลิตออกมา"
+        />
       </p>
 
       {state.error ? (
@@ -91,7 +97,7 @@ export function ItemEditForm({
 
       <Field
         id={titleId}
-        label="Statement"
+        label={<T en="Statement" th="ข้อความ" />}
         error={state.fieldErrors.title}
         count={`${title.length}/${ITEM_TITLE_MAX}`}
       >
@@ -111,7 +117,7 @@ export function ItemEditForm({
 
       <Field
         id={descriptionId}
-        label="Description"
+        label={<T en="Description" th="คำอธิบาย" />}
         error={state.fieldErrors.description}
         count={`${description.length}/${ITEM_DESCRIPTION_MAX}`}
       >
@@ -129,7 +135,7 @@ export function ItemEditForm({
         />
       </Field>
 
-      <Field id={priorityId} label="Priority" error={state.fieldErrors.priority}>
+      <Field id={priorityId} label={<T en="Priority" th="ลำดับความสำคัญ" />} error={state.fieldErrors.priority}>
         <select
           id={priorityId}
           name="priority"
@@ -148,7 +154,7 @@ export function ItemEditForm({
 
       <Field
         id={reasonId}
-        label="Why (optional)"
+        label={<T en="Why (optional)" th="เหตุผล (ไม่บังคับ)" />}
         error={state.fieldErrors.changeReason}
         count={`${reason.length}/${CHANGE_REASON_MAX}`}
       >
@@ -159,7 +165,7 @@ export function ItemEditForm({
           maxLength={CHANGE_REASON_MAX}
           value={reason}
           onChange={(event) => setReason(event.target.value)}
-          placeholder="Clarified after the stakeholder call"
+          placeholder={pick(locale, "Clarified after the stakeholder call", "ชี้แจงหลังการประชุมกับผู้มีส่วนได้ส่วนเสีย")}
           className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-[13px]
                      text-text placeholder:text-text-faint focus:border-accent focus:outline-none
                      focus:ring-2 focus:ring-accent/25"
@@ -176,7 +182,7 @@ export function ItemEditForm({
           }}
           className="min-h-11 rounded-[var(--radius-card)] px-3 text-sm text-text-muted transition-colors duration-150 hover:text-text"
         >
-          Cancel
+          <T en="Cancel" th="ยกเลิก" />
         </button>
       </div>
     </form>
@@ -199,7 +205,7 @@ function SaveButton() {
                  transition-colors duration-150 hover:bg-accent-hover
                  disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Saving…" : "Save"}
+      {pending ? <T en="Saving…" th="กำลังบันทึก…" /> : <T en="Save" th="บันทึก" />}
     </button>
   );
 }
@@ -212,7 +218,7 @@ function Field({
   children,
 }: {
   id: string;
-  label: string;
+  label: React.ReactNode;
   error?: string;
   count?: string;
   children: React.ReactNode;

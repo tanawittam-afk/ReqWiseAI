@@ -12,6 +12,8 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import type { ChangeRequestView } from "@/lib/review/change-requests";
 import { CHANGE_REQUEST_STATUS_LABEL, CR_RESOLUTION_NOTE_MAX } from "@/lib/contracts/change-requests";
 import { PRIORITY_LABEL, labelFor } from "@/app/workspace/_components/item-labels";
@@ -50,7 +52,14 @@ export function ChangeRequestsTab({
   canReview: boolean;
 }) {
   if (changeRequests.length === 0) {
-    return <p className="text-sm text-text-muted">No change requests have been raised against this item.</p>;
+    return (
+      <p className="text-sm text-text-muted">
+        <T
+          en="No change requests have been raised against this item."
+          th="ยังไม่มีคำขอเปลี่ยนแปลงที่ยื่นสำหรับรายการนี้"
+        />
+      </p>
+    );
   }
 
   return (
@@ -72,18 +81,24 @@ export function ChangeRequestsTab({
           </div>
 
           <div className="flex flex-col gap-1">
-            <FieldLabel>Reason</FieldLabel>
+            <FieldLabel>
+              <T en="Reason" th="เหตุผล" />
+            </FieldLabel>
             <p className="text-[13px] leading-relaxed text-text">{changeRequest.reason}</p>
           </div>
 
           <div className="flex flex-col gap-1">
-            <FieldLabel>Proposed statement</FieldLabel>
+            <FieldLabel>
+              <T en="Proposed statement" th="ข้อความที่เสนอ" />
+            </FieldLabel>
             <p className="text-[13px] leading-relaxed text-text">{changeRequest.proposedTitle}</p>
           </div>
 
           {changeRequest.proposedDescription.trim() ? (
             <div className="flex flex-col gap-1">
-              <FieldLabel>Proposed description</FieldLabel>
+              <FieldLabel>
+                <T en="Proposed description" th="คำอธิบายที่เสนอ" />
+              </FieldLabel>
               <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text-muted">
                 {changeRequest.proposedDescription}
               </p>
@@ -91,12 +106,15 @@ export function ChangeRequestsTab({
           ) : null}
 
           <p className="text-[11.5px] text-text-faint">
-            Proposed priority: {labelFor(PRIORITY_LABEL, changeRequest.proposedPriority)}
+            <T en="Proposed priority:" th="ลำดับความสำคัญที่เสนอ:" />{" "}
+            {labelFor(PRIORITY_LABEL, changeRequest.proposedPriority)}
           </p>
 
           {changeRequest.status !== "pending" && changeRequest.resolutionNote ? (
             <div className="flex flex-col gap-1">
-              <FieldLabel>Resolution note</FieldLabel>
+              <FieldLabel>
+                <T en="Resolution note" th="หมายเหตุการแก้ไข" />
+              </FieldLabel>
               <p className="text-[13px] leading-relaxed text-text-muted">{changeRequest.resolutionNote}</p>
             </div>
           ) : null}
@@ -119,6 +137,7 @@ function ResolveForm({
   runId: string;
   changeRequestId: string;
 }) {
+  const locale = useLocale();
   const [resolveState, resolveAction] = useActionState(resolveChangeRequestAction, EMPTY_REVIEW_STATE);
   const [withdrawState, withdrawAction] = useActionState(withdrawChangeRequestAction, EMPTY_REVIEW_STATE);
   const [decision, setDecision] = useState<"approved" | "rejected" | null>(null);
@@ -162,7 +181,7 @@ function ResolveForm({
             className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-ok-border bg-ok-soft px-2.5 text-[12.5px] font-medium
                        text-ok transition-colors duration-150 hover:border-ok"
           >
-            Approve change
+            <T en="Approve change" th="อนุมัติการเปลี่ยนแปลง" />
           </button>
           <button
             type="button"
@@ -170,7 +189,7 @@ function ResolveForm({
             className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-2.5 text-[12.5px] font-medium
                        text-danger transition-colors duration-150 hover:border-danger"
           >
-            Reject change
+            <T en="Reject change" th="ปฏิเสธการเปลี่ยนแปลง" />
           </button>
           <form action={withdrawAction}>
             <input type="hidden" name="projectId" value={projectId} />
@@ -182,7 +201,11 @@ function ResolveForm({
       ) : (
         <form
           action={resolveAction}
-          aria-label={decision === "approved" ? "Approve change request" : "Reject change request"}
+          aria-label={
+            decision === "approved"
+              ? pick(locale, "Approve change request", "อนุมัติคำขอเปลี่ยนแปลง")
+              : pick(locale, "Reject change request", "ปฏิเสธคำขอเปลี่ยนแปลง")
+          }
           className="flex flex-col gap-2"
         >
           <input type="hidden" name="projectId" value={projectId} />
@@ -192,7 +215,12 @@ function ResolveForm({
 
           <div className="flex flex-col gap-1">
             <label htmlFor={noteId} className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint">
-              Resolution note{decision === "rejected" ? " (required)" : " (optional)"}
+              <T en="Resolution note" th="หมายเหตุการแก้ไข" />{" "}
+              {decision === "rejected" ? (
+                <T en="(required)" th="(จำเป็น)" />
+              ) : (
+                <T en="(optional)" th="(ไม่บังคับ)" />
+              )}
             </label>
             <textarea
               id={noteId}
@@ -214,7 +242,13 @@ function ResolveForm({
           </div>
 
           <div className="flex items-center gap-2">
-            <ConfirmButton label={decision === "approved" ? "Confirm approval" : "Confirm rejection"} />
+            <ConfirmButton
+              label={
+                decision === "approved"
+                  ? { en: "Confirm approval", th: "ยืนยันการอนุมัติ" }
+                  : { en: "Confirm rejection", th: "ยืนยันการปฏิเสธ" }
+              }
+            />
             <button
               type="button"
               onClick={() => {
@@ -223,7 +257,7 @@ function ResolveForm({
               }}
               className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] px-2.5 text-[12.5px] text-text-muted transition-colors duration-150 hover:text-text"
             >
-              Cancel
+              <T en="Cancel" th="ยกเลิก" />
             </button>
           </div>
         </form>
@@ -232,7 +266,7 @@ function ResolveForm({
   );
 }
 
-function ConfirmButton({ label }: { label: string }) {
+function ConfirmButton({ label }: { label: { en: string; th: string } }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -242,7 +276,7 @@ function ConfirmButton({ label }: { label: string }) {
       className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] bg-accent px-3 text-[12.5px] font-semibold text-on-accent
                  transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Working…" : label}
+      {pending ? <T en="Working…" th="กำลังดำเนินการ…" /> : <T en={label.en} th={label.th} />}
     </button>
   );
 }
@@ -258,7 +292,7 @@ function WithdrawButton() {
                  text-text-muted transition-colors duration-150 hover:bg-surface-hover hover:text-text
                  disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Withdrawing…" : "Withdraw"}
+      {pending ? <T en="Withdrawing…" th="กำลังถอน…" /> : <T en="Withdraw" th="ถอนคำขอ" />}
     </button>
   );
 }

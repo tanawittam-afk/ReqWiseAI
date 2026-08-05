@@ -16,6 +16,8 @@
 
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import {
   WORKFLOW_ACTION_LABEL,
@@ -80,6 +82,7 @@ export function WorkflowActions({
   canAct: boolean;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const locale = useLocale();
   const isQuestion = item.type === "open_question";
   const [state, formAction] = useActionState(
     isQuestion ? resolveQuestionAction : updateFindingAction,
@@ -151,7 +154,9 @@ export function WorkflowActions({
       <div className="flex flex-wrap items-center gap-2">
         <WorkflowStateChip state={current} />
         {isClosedWorkflowState(current) && !canAct ? (
-          <span className="text-[11px] text-text-faint">read-only</span>
+          <span className="text-[11px] text-text-faint">
+            <T en="read-only" th="อ่านอย่างเดียว" />
+          </span>
         ) : null}
       </div>
 
@@ -174,8 +179,10 @@ export function WorkflowActions({
 
       {!canAct ? (
         <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
-          This project is archived and read-only. Restore it to answer questions or resolve
-          findings. Every answer, resolution and activity stays readable.
+          <T
+            en="This project is archived and read-only. Restore it to answer questions or resolve findings. Every answer, resolution and activity stays readable."
+            th="โปรเจกต์นี้ถูกเก็บเข้าคลังและอ่านได้อย่างเดียว กู้คืนเพื่อตอบคำถามหรือแก้ไขข้อค้นพบ คำตอบ การแก้ไข และกิจกรรมทั้งหมดยังคงอ่านได้"
+          />
         </p>
       ) : pending === null ? (
         <div className="flex flex-wrap gap-2">
@@ -199,7 +206,7 @@ export function WorkflowActions({
       ) : (
         <form
           action={formAction}
-          aria-label={`${WORKFLOW_ACTION_LABEL[pending]} — confirm`}
+          aria-label={`${WORKFLOW_ACTION_LABEL[pending]} — ${pick(locale, "confirm", "ยืนยัน")}`}
           className="flex flex-col gap-2.5 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted p-3"
         >
           <input type="hidden" name="projectId" value={projectId} />
@@ -220,7 +227,14 @@ export function WorkflowActions({
                 className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint"
               >
                 {WORKFLOW_NOTE_LABEL[pending]}
-                {workflowNoteRequired(item.type, pending) ? " (required)" : ""}
+                {workflowNoteRequired(item.type, pending) ? (
+                  <>
+                    {" "}
+                    <T en="(required)" th="(จำเป็น)" />
+                  </>
+                ) : (
+                  ""
+                )}
               </label>
               <span className="ml-auto text-[11px] tabular-nums text-text-faint">
                 {note.length}/{WORKFLOW_NOTE_MAX}
@@ -237,9 +251,9 @@ export function WorkflowActions({
               aria-invalid={noteError ? true : undefined}
               placeholder={
                 pending === "answered"
-                  ? "What the stakeholder actually said"
+                  ? pick(locale, "What the stakeholder actually said", "สิ่งที่ผู้มีส่วนได้ส่วนเสียพูดจริง")
                   : pending === "resolved"
-                    ? "How this was resolved"
+                    ? pick(locale, "How this was resolved", "วิธีการแก้ไข")
                     : undefined
               }
               className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
@@ -259,7 +273,7 @@ export function WorkflowActions({
                 htmlFor={followUpId}
                 className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint"
               >
-                Follow up on (optional)
+                <T en="Follow up on (optional)" th="ติดตามผลที่ (ไม่บังคับ)" />
               </label>
               <input
                 id={followUpId}
@@ -282,9 +296,10 @@ export function WorkflowActions({
 
           {isQuestion && pending === "answered" ? (
             <p className="text-[11px] leading-relaxed text-text-faint">
-              Recording the answer changes nothing about any requirement — not its text, not its
-              status, not its evidence. Once saved, raise a change request from this tab if it
-              implies a requirement should change.
+              <T
+                en="Recording the answer changes nothing about any requirement — not its text, not its status, not its evidence. Once saved, raise a change request from this tab if it implies a requirement should change."
+                th="การบันทึกคำตอบไม่เปลี่ยนแปลงข้อกำหนดใด ๆ — ไม่ว่าจะข้อความ สถานะ หรือหลักฐาน หลังบันทึกแล้ว ให้ยื่นคำขอเปลี่ยนแปลงจากแท็บนี้หากคำตอบนี้บ่งชี้ว่าต้องเปลี่ยนข้อกำหนด"
+              />
             </p>
           ) : null}
 
@@ -303,7 +318,7 @@ export function WorkflowActions({
               }}
               className="min-h-11 rounded-[var(--radius-card)] px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
             >
-              Cancel
+              <T en="Cancel" th="ยกเลิก" />
             </button>
           </div>
         </form>
@@ -326,7 +341,7 @@ export function WorkflowActions({
         ) : (
           <div className="flex flex-col gap-1.5 rounded-[var(--radius-card)] border border-border-soft bg-surface p-2.5">
             <p className="text-[11.5px] leading-relaxed text-text-muted">
-              This answer may require a requirement change.
+              <T en="This answer may require a requirement change." th="คำตอบนี้อาจต้องมีการเปลี่ยนแปลงข้อกำหนด" />
             </p>
             <button
               type="button"
@@ -340,7 +355,10 @@ export function WorkflowActions({
             </button>
             {changeRequestCandidates.length === 0 ? (
               <p className="text-[11px] leading-relaxed text-text-faint">
-                No approved or rejected requirement exists yet to raise a change request against.
+                <T
+                  en="No approved or rejected requirement exists yet to raise a change request against."
+                  th="ยังไม่มีข้อกำหนดที่อนุมัติหรือปฏิเสธแล้วให้ยื่นคำขอเปลี่ยนแปลงได้"
+                />
               </p>
             ) : null}
           </div>
@@ -364,7 +382,7 @@ function ConfirmButton({ label, destructive }: { label: string; destructive: boo
                       : "bg-accent text-on-accent hover:bg-accent-hover"
                   }`}
     >
-      {pending ? "Working…" : label}
+      {pending ? <T en="Working…" th="กำลังดำเนินการ…" /> : label}
     </button>
   );
 }

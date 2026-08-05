@@ -14,6 +14,8 @@
 
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import { PRIORITIES, type Priority } from "@/lib/contracts/item-types";
 import { PRIORITY_LABEL, labelFor } from "@/app/workspace/_components/item-labels";
 import { CR_DESCRIPTION_MAX, CR_REASON_MAX, CR_TITLE_MAX } from "@/lib/contracts/change-requests";
@@ -46,6 +48,7 @@ export function ChangeRequestForm({
   onDone: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const locale = useLocale();
   const [state, formAction] = useActionState(openChangeRequestAction, EMPTY_REVIEW_STATE);
   const [targetItemId, setTargetItemId] = useState(candidates[0]?.id ?? "");
   const target = useMemo(
@@ -90,7 +93,7 @@ export function ChangeRequestForm({
   return (
     <form
       action={formAction}
-      aria-label="Raise a change request"
+      aria-label={pick(locale, "Raise a change request", "ยื่นคำขอเปลี่ยนแปลง")}
       className="flex flex-col gap-2.5 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted p-3"
     >
       <input type="hidden" name="projectId" value={projectId} />
@@ -110,7 +113,7 @@ export function ChangeRequestForm({
       {candidates.length > 1 ? (
         <div className="flex flex-col gap-1">
           <label htmlFor={targetId} className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint">
-            Which requirement does this change?
+            <T en="Which requirement does this change?" th="ข้อกำหนดใดที่จะเปลี่ยนแปลง?" />
           </label>
           <select
             id={targetId}
@@ -127,13 +130,15 @@ export function ChangeRequestForm({
           </select>
         </div>
       ) : (
-        <p className="text-[12.5px] font-medium text-text">Change request — {target?.displayId}</p>
+        <p className="text-[12.5px] font-medium text-text">
+          <T en="Change request" th="คำขอเปลี่ยนแปลง" /> — {target?.displayId}
+        </p>
       )}
 
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline gap-2">
           <label htmlFor={titleId} className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint">
-            Proposed statement
+            <T en="Proposed statement" th="ข้อความที่เสนอ" />
           </label>
           <span className="ml-auto text-[11px] tabular-nums text-text-faint">
             {title.length}/{CR_TITLE_MAX}
@@ -162,7 +167,7 @@ export function ChangeRequestForm({
             htmlFor={descriptionId}
             className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint"
           >
-            Proposed description
+            <T en="Proposed description" th="คำอธิบายที่เสนอ" />
           </label>
           <span className="ml-auto text-[11px] tabular-nums text-text-faint">
             {description.length}/{CR_DESCRIPTION_MAX}
@@ -188,7 +193,7 @@ export function ChangeRequestForm({
 
       <div className="flex flex-col gap-1">
         <label htmlFor={priorityId} className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint">
-          Proposed priority
+          <T en="Proposed priority" th="ลำดับความสำคัญที่เสนอ" />
         </label>
         <select
           id={priorityId}
@@ -209,7 +214,7 @@ export function ChangeRequestForm({
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline gap-2">
           <label htmlFor={reasonId} className="text-[11px] font-medium uppercase tracking-[0.04em] text-text-faint">
-            Reason (required)
+            <T en="Reason (required)" th="เหตุผล (จำเป็น)" />
           </label>
           <span className="ml-auto text-[11px] tabular-nums text-text-faint">
             {reason.length}/{CR_REASON_MAX}
@@ -224,7 +229,7 @@ export function ChangeRequestForm({
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           aria-invalid={state.fieldErrors.reason ? true : undefined}
-          placeholder="Why this requirement should change"
+          placeholder={pick(locale, "Why this requirement should change", "เหตุผลที่ข้อกำหนดนี้ควรเปลี่ยนแปลง")}
           className="w-full resize-y rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2 text-[13px]
                      leading-relaxed text-text placeholder:text-text-faint focus:border-accent
                      focus:outline-none focus:ring-2 focus:ring-accent/25"
@@ -237,8 +242,10 @@ export function ChangeRequestForm({
       </div>
 
       <p className="text-[11px] leading-relaxed text-text-faint">
-        This does not change the requirement. It stays pending until a reviewer approves or
-        rejects it; approving supersedes the current text but never reopens the item for review.
+        <T
+          en="This does not change the requirement. It stays pending until a reviewer approves or rejects it; approving supersedes the current text but never reopens the item for review."
+          th="สิ่งนี้ไม่ได้เปลี่ยนแปลงข้อกำหนด แต่จะค้างอยู่จนกว่าผู้ตรวจสอบจะอนุมัติหรือปฏิเสธ การอนุมัติจะแทนที่ข้อความเดิมแต่ไม่เปิดรายการกลับมาตรวจสอบใหม่"
+        />
       </p>
 
       <div className="flex items-center gap-2">
@@ -248,7 +255,7 @@ export function ChangeRequestForm({
           onClick={onCancel}
           className="min-h-11 rounded-[var(--radius-card)] px-3 text-[13px] text-text-muted transition-colors duration-150 hover:text-text"
         >
-          Cancel
+          <T en="Cancel" th="ยกเลิก" />
         </button>
       </div>
     </form>
@@ -265,7 +272,11 @@ function SubmitButton() {
       className="min-h-11 rounded-[var(--radius-card)] bg-accent px-4 text-[13px] font-semibold text-on-accent
                  transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Submitting…" : "Submit change request"}
+      {pending ? (
+        <T en="Submitting…" th="กำลังส่ง…" />
+      ) : (
+        <T en="Submit change request" th="ส่งคำขอเปลี่ยนแปลง" />
+      )}
     </button>
   );
 }

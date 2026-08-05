@@ -9,6 +9,8 @@
  * answer it" is how somebody overwrites a colleague's work by accident.
  */
 
+import { T } from "@/app/_components/t";
+import { pick, useLocale, type Locale } from "@/lib/i18n";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import { WORKFLOW_STATE_LABEL, type WorkflowState } from "@/lib/contracts/workflow";
 import { FieldLabel } from "./panel";
@@ -39,9 +41,11 @@ function day(value: string | null): string {
  * user (RLS policy `profiles_select_self`), so naming somebody else would mean widening
  * who can read whose profile — a tenancy decision, not a detail of this panel.
  */
-function actor(id: string | null, currentUserId: string | null): string {
-  if (id === null) return "Unknown";
-  return id === currentUserId ? "You" : "Another workspace member";
+function actor(id: string | null, currentUserId: string | null, locale: Locale): string {
+  if (id === null) return pick(locale, "Unknown", "ไม่ทราบ");
+  return id === currentUserId
+    ? pick(locale, "You", "คุณ")
+    : pick(locale, "Another workspace member", "สมาชิกคนอื่นในทีม");
 }
 
 export function WorkflowTab({
@@ -61,6 +65,7 @@ export function WorkflowTab({
   currentUserId: string | null;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const locale = useLocale();
   const isQuestion = item.type === "open_question";
   const state = (item.workflowState ?? "open") as WorkflowState;
   const decided = item.resolutionText !== null && item.resolutionText.trim() !== "";
@@ -70,21 +75,25 @@ export function WorkflowTab({
       {decided ? (
         <section className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted p-3">
           <FieldLabel>
-            {isQuestion
-              ? state === "answered"
-                ? "Stakeholder answer"
-                : state === "deferred"
-                  ? "Why this is deferred"
-                  : "Why this does not apply"
-              : state === "resolved"
-                ? "How this was resolved"
-                : "Why this finding does not stand"}
+            {isQuestion ? (
+              state === "answered" ? (
+                <T en="Stakeholder answer" th="คำตอบจากผู้มีส่วนได้ส่วนเสีย" />
+              ) : state === "deferred" ? (
+                <T en="Why this is deferred" th="เหตุผลที่เลื่อนออกไป" />
+              ) : (
+                <T en="Why this does not apply" th="เหตุผลที่ไม่เกี่ยวข้อง" />
+              )
+            ) : state === "resolved" ? (
+              <T en="How this was resolved" th="วิธีการแก้ไข" />
+            ) : (
+              <T en="Why this finding does not stand" th="เหตุผลที่ข้อค้นพบนี้ไม่ยืนยัน" />
+            )}
           </FieldLabel>
           <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-text">
             {item.resolutionText}
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-faint">
-            <span>{actor(item.resolvedBy, currentUserId)}</span>
+            <span>{actor(item.resolvedBy, currentUserId, locale)}</span>
             {item.resolvedAt ? (
               <>
                 <span aria-hidden="true">·</span>
@@ -95,15 +104,29 @@ export function WorkflowTab({
             <span>{WORKFLOW_STATE_LABEL[state] ?? state}</span>
           </div>
           {item.followUpOn ? (
-            <p className="text-[11.5px] text-warn">Follow up on {day(item.followUpOn)}</p>
+            <p className="text-[11.5px] text-warn">
+              <T en="Follow up on" th="ติดตามผลที่" /> {day(item.followUpOn)}
+            </p>
           ) : null}
         </section>
       ) : null}
 
       {state === "acknowledged" ? (
         <p className="rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-3 py-2 text-[12px] leading-relaxed text-signal">
-          Acknowledged means somebody has seen this finding. It is <strong>not</strong> fixed —
-          the finding stays open until it is resolved or dismissed.
+          <T
+            en={
+              <>
+                Acknowledged means somebody has seen this finding. It is <strong>not</strong>{" "}
+                fixed — the finding stays open until it is resolved or dismissed.
+              </>
+            }
+            th={
+              <>
+                รับทราบหมายถึงมีคนเห็นข้อค้นพบนี้แล้ว แต่<strong>ไม่ได้</strong>
+                หมายความว่าแก้ไขแล้ว — ข้อค้นพบยังคงเปิดอยู่จนกว่าจะถูกแก้ไขหรือยกเลิก
+              </>
+            }
+          />
         </p>
       ) : null}
 
@@ -117,9 +140,17 @@ export function WorkflowTab({
       />
 
       <p className="text-[11px] leading-relaxed text-text-faint">
-        {isQuestion
-          ? "The question, its evidence, its origin and its confidence are what the analysis produced and are never edited by this workflow."
-          : "The finding, its evidence, its origin and its confidence are what the analysis produced and are never edited by this workflow. Resolving one changes no requirement."}
+        {isQuestion ? (
+          <T
+            en="The question, its evidence, its origin and its confidence are what the analysis produced and are never edited by this workflow."
+            th="คำถาม หลักฐาน ที่มา และความมั่นใจ คือสิ่งที่การวิเคราะห์ผลิตออกมาและจะไม่ถูกแก้ไขโดยขั้นตอนนี้"
+          />
+        ) : (
+          <T
+            en="The finding, its evidence, its origin and its confidence are what the analysis produced and are never edited by this workflow. Resolving one changes no requirement."
+            th="ข้อค้นพบ หลักฐาน ที่มา และความมั่นใจ คือสิ่งที่การวิเคราะห์ผลิตออกมาและจะไม่ถูกแก้ไขโดยขั้นตอนนี้ การแก้ไขข้อค้นพบไม่เปลี่ยนแปลงข้อกำหนดใด ๆ"
+          />
+        )}
       </p>
     </div>
   );
