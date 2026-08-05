@@ -12,18 +12,20 @@
 
 import { usePathname } from "next/navigation";
 import { Icon } from "../../_components/icon";
+import { pick, useLocale } from "@/lib/i18n";
 
-function contextLabel(pathname: string): string {
-  if (pathname === "/workspace/projects/new") return "New project";
-  if (pathname.includes("/analyses/")) return "Analysis";
-  if (pathname.includes("/sources/")) return "Source";
-  if (pathname.startsWith("/workspace/projects/")) return "Project";
-  if (pathname.startsWith("/workspace/projects")) return "Projects";
-  return "Workspace";
+function contextLabel(pathname: string, locale: ReturnType<typeof useLocale>): string {
+  if (pathname === "/workspace/projects/new") return pick(locale, "New project", "โปรเจกต์ใหม่");
+  if (pathname.includes("/analyses/")) return pick(locale, "Analysis", "การวิเคราะห์");
+  if (pathname.includes("/sources/")) return pick(locale, "Source", "แหล่งข้อมูล");
+  if (pathname.startsWith("/workspace/projects/")) return pick(locale, "Project", "โปรเจกต์");
+  if (pathname.startsWith("/workspace/projects")) return pick(locale, "Projects", "โปรเจกต์");
+  return pick(locale, "Workspace", "เวิร์กสเปซ");
 }
 
 export function Toolbar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const locale = useLocale();
 
   // `screen-only` keeps the toolbar out of a printed export (globals.css → printing).
   return (
@@ -35,18 +37,22 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
         <span aria-hidden="true" className="hidden text-text-faint sm:inline">
           /
         </span>
-        <span className="truncate font-medium text-text">{contextLabel(pathname)}</span>
+        <span className="truncate font-medium text-text">{contextLabel(pathname, locale)}</span>
       </nav>
 
       <div className="ml-auto flex items-center gap-2">
         <button
           type="button"
           disabled
-          title="Search and command palette arrive with the analysis workspace"
+          title={pick(
+            locale,
+            "Search and command palette arrive with the analysis workspace",
+            "การค้นหาและคอมมานด์พาเลตต์จะมาพร้อมกับพื้นที่ทำงานวิเคราะห์",
+          )}
           className="hidden h-9 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-sm text-text-faint sm:flex"
         >
           <Icon name="search" size={14} />
-          <span>Search</span>
+          <span>{pick(locale, "Search", "ค้นหา")}</span>
           <kbd className="ml-2 rounded-[calc(var(--radius-card)_-_1px)] border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px]">
             ⌘K
           </kbd>

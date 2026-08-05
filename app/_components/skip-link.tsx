@@ -9,6 +9,8 @@
  * Implementation notes, for the two shells this is wired into (`app/workspace/layout.tsx`
  * and `app/_components/site-header.tsx`, both targeting `#main-content`).
  */
+import { T } from "./t";
+
 export function SkipLink({ targetId = "main-content" }: { targetId?: string }) {
   return (
     <a
@@ -19,7 +21,7 @@ export function SkipLink({ targetId = "main-content" }: { targetId?: string }) {
                  focus-visible:bg-surface focus-visible:px-4 focus-visible:text-sm focus-visible:font-medium
                  focus-visible:text-accent"
     >
-      Skip to main content
+      <T en="Skip to main content" th="ข้ามไปยังเนื้อหาหลัก" />
     </a>
   );
 }

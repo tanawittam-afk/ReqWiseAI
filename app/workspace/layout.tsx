@@ -9,6 +9,7 @@
 
 import { redirect } from "next/navigation";
 import { SkipLink } from "@/app/_components/skip-link";
+import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../auth/actions";
 import { Sidebar } from "./_components/sidebar";
@@ -72,7 +73,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
                   type="submit"
                   className="flex min-h-11 w-full items-center rounded-[var(--radius-card)] px-2.5 text-left text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text lg:min-h-9"
                 >
-                  Sign out
+                  <T en="Sign out" th="ออกจากระบบ" />
                 </button>
               </form>
             </div>
