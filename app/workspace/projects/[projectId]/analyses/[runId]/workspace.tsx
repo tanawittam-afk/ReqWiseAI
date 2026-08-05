@@ -274,6 +274,22 @@ export function AnalysisWorkspace({
   );
 }
 
+/*
+ * `aria-pressed`, deliberately not `role="tab"` (Phase 7's accessibility pass
+ * considered it and rejected it — docs/design/INTERFACE.md, Implementation notes).
+ * `role="tablist"` promises the browser's roving-tabindex/arrow-key contract, and it
+ * would only be honest here below `lg`: at `lg` and up the same three views become
+ * simultaneously visible panels (a drawer or a static column), so "tab" stops meaning
+ * "the one visible thing" at exactly the width this control still renders. Making the
+ * ARIA role track a breakpoint via `matchMedia` — as the inspector drawer's `role`/
+ * `aria-modal` now does, because that gap is real — would buy a second such listener
+ * for a control whose current shape (a labelled toggle group, `Tab`-reachable, `Enter`/
+ * `Space` to activate, selected state visible and in the accessibility tree) already
+ * meets INTERFACE.md §12/§15 without it. Same call as the pre-existing "Segmented
+ * control rather than tabs" comment on the project-filter control
+ * (`app/workspace/projects/page.tsx`) — this codebase's established position, not a new
+ * exception.
+ */
 function Segment({
   active,
   onClick,

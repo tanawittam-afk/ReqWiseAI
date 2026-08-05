@@ -8,6 +8,7 @@
  */
 
 import { redirect } from "next/navigation";
+import { SkipLink } from "@/app/_components/skip-link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../auth/actions";
 import { Sidebar } from "./_components/sidebar";
@@ -45,6 +46,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       className="flex min-h-dvh flex-1 flex-col bg-app
                  md:h-dvh md:flex-none md:flex-row md:overflow-hidden"
     >
+      <SkipLink />
       <Sidebar workspaceName={organizations?.name ?? "Personal workspace"} />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -77,7 +79,17 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
           </details>
         </Toolbar>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+        {/*
+         * Not a `<main>` tag: every page under this layout already renders its own
+         * `<main>` (the correct single landmark per page) — wrapping a second one here
+         * would nest landmarks, which assistive tech treats as invalid. This `id` is
+         * only the skip link's jump target, sharing the name (`main-content`) the
+         * public site header's `<main>` uses so one skip-link component works both
+         * places (docs/design/INTERFACE.md, Implementation notes).
+         */}
+        <div id="main-content" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );

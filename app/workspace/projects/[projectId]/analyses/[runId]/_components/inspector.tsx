@@ -14,7 +14,8 @@
  * History or promise a data model that does not exist.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Icon } from "@/app/_components/icon";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import type { ItemHistory } from "@/lib/review/history";
 import { isReviewableItemType, isTerminalStatus } from "@/lib/contracts/review";
@@ -61,6 +62,24 @@ function tabsFor(type: string, hasChangeRequests: boolean): InspectorTab[] {
   if (hasChangeRequests) base.push("changeRequests");
   base.push("history");
   return base;
+}
+
+const DRAWER_QUERY = "(min-width: 1024px) and (max-width: 1279.98px)";
+
+// `useSyncExternalStore`, the same technique `useLocale()` uses (app/lib/i18n.ts) — a
+// `useEffect` + `setState` pair here trips `react-hooks/set-state-in-effect`, and this
+// is exactly the "subscribe to an external source" case the hook exists for.
+function subscribeToDrawerQuery(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const query = window.matchMedia(DRAWER_QUERY);
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+function isDrawerWidth() {
+  return typeof window !== "undefined" && window.matchMedia(DRAWER_QUERY).matches;
+}
+function isDrawerWidthServer() {
+  return false;
 }
 
 const TAB_LABEL: Record<string, string> = {
@@ -116,6 +135,56 @@ export function Inspector({
 
   const stopEditing = useCallback(() => onEditingChange(false), [onEditingChange]);
 
+  /*
+   * Between `lg` (1024px) and `xl` (1280px) this panel renders as an absolutely
+   * positioned drawer floating over the source/requirements panels (the `lg:absolute
+   * ... lg:shadow-[...] xl:static xl:shadow-none` pair below) — the one place the
+   * plan's "lg inspector drawer" accessibility gaps (role, aria-modal, Escape) apply.
+   * Below `lg` it is one pane of the segmented control (normal document flow, nothing
+   * floats over anything); at `xl` and up it is a static grid column. Neither of those
+   * is a modal, so `role="dialog"`/`aria-modal` would be wrong there — a screen reader
+   * treats `aria-modal="true"` as "everything else on the page is inert", which is
+   * false outside the actual overlay state. Tracked with `matchMedia` rather than a
+   * CSS-only trick because ARIA attributes have no CSS equivalent.
+   */
+  const isDrawer = useSyncExternalStore(
+    subscribeToDrawerQuery,
+    isDrawerWidth,
+    isDrawerWidthServer,
+  );
+
+  const isOpenDrawer = isDrawer && item !== null && onClose !== undefined;
+
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const wasOpenDrawerRef = useRef(false);
+
+  // Opening the drawer: remember what was focused (a requirement row, typically) and
+  // move focus into the panel, matching the standard dialog-open contract.
+  useEffect(() => {
+    if (isOpenDrawer && !wasOpenDrawerRef.current) {
+      restoreFocusRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      closeButtonRef.current?.focus();
+    }
+    wasOpenDrawerRef.current = isOpenDrawer;
+  }, [isOpenDrawer]);
+
+  // Escape closes the drawer and returns focus to whatever opened it — never left to
+  // fall back to <body>, which is where focus silently goes if nothing else claims it.
+  useEffect(() => {
+    if (!isOpenDrawer) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      onClose?.();
+      const target = restoreFocusRef.current;
+      if (target && document.contains(target)) target.focus();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpenDrawer, onClose]);
+
   const workflowItem = item !== null && isWorkflowItemType(item.type);
   const tabs = tabsFor(item?.type ?? "", (item?.changeRequests.length ?? 0) > 0);
   // A tab list that changed with the item can leave `tab` pointing at one that is no
@@ -133,6 +202,8 @@ export function Inspector({
   return (
     <section
       aria-label="Requirement inspector"
+      role={isOpenDrawer ? "dialog" : undefined}
+      aria-modal={isOpenDrawer ? "true" : undefined}
       className={`flex min-h-0 min-w-0 flex-col overflow-hidden border-border-soft bg-surface ${className}`}
     >
       <PanelHeader>
@@ -144,12 +215,13 @@ export function Inspector({
         </div>
         {onClose ? (
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="ml-auto grid size-11 shrink-0 place-items-center rounded-[var(--radius-card)] text-text-faint
                        transition-colors duration-150 hover:bg-surface-hover hover:text-text lg:size-9"
           >
-            <span aria-hidden="true">✕</span>
+            <Icon name="close" size={16} />
             <span className="sr-only">Close inspector</span>
           </button>
         ) : null}
@@ -378,8 +450,11 @@ function Evidence({ item }: { item: AnalysisItemView }) {
                 Strength {confidencePercent(reference.evidenceStrength)}
               </span>
             ) : null}
-            <span className={reference.offsetVerified ? "text-signal" : "text-warn"}>
-              {reference.offsetVerified ? "◆ Verified" : "◇ Unverified"}
+            <span
+              className={`inline-flex items-center gap-1 ${reference.offsetVerified ? "text-signal" : "text-warn"}`}
+            >
+              <Icon name={reference.offsetVerified ? "verified" : "unverified"} size={12} />
+              {reference.offsetVerified ? "Verified" : "Unverified"}
             </span>
           </div>
         </li>

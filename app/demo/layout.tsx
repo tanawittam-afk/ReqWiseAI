@@ -16,7 +16,9 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex h-dvh flex-col bg-app">
       <SiteHeader />
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+      <main id="main-content" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </main>
     </div>
   );
 }

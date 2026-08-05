@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { T } from "./t";
 import { LangToggle } from "./lang-toggle";
+import { SkipLink } from "./skip-link";
 import { ThemeToggle } from "../workspace/_components/theme-toggle";
 
 export function SiteHeader() {
@@ -27,7 +28,9 @@ export function SiteHeader() {
    * sub-44px targets in a row meant for one.
    */
   return (
-    <header className="flex shrink-0 items-center gap-2 border-b border-border-soft bg-chrome px-4 py-2 sm:gap-3 sm:px-6">
+    <>
+      <SkipLink />
+      <header className="flex shrink-0 items-center gap-2 border-b border-border-soft bg-chrome px-4 py-2 sm:gap-3 sm:px-6">
       <Link href="/" className="flex min-h-11 items-center gap-2.5 lg:min-h-0">
         <span
           aria-hidden="true"
@@ -56,6 +59,7 @@ export function SiteHeader() {
           <T en="Sign in" th="เข้าสู่ระบบ" />
         </Link>
       </div>
-    </header>
+      </header>
+    </>
   );
 }
