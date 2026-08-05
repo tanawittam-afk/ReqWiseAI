@@ -3,7 +3,16 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-05 (**UX/UI Master Plan Phase 5 (Navigation and Dashboard) shipped**
+Last updated: 2026-08-05 (**UX/UI Master Plan Phase 6 (Mobile) shipped** — the whole app
+now holds a 44px-touch-target-until-`lg` line, not just the analysis workspace: sidebar
+becomes a stacked nav behind a Menu button below `md`, every project/source/export/
+traceability "back" link and control that used to be a 36px desktop-only target now
+carries `min-h-11 lg:min-h-9`, and the traceability matrix's wide `<table>` (already
+scrolling in its own container) was audited and left alone. `INTERFACE.md` §13 row added.
+See "Phase 6" below for the six-slice breakdown and how breakpoint correctness was
+verified when the sandbox's `resize_window` tool turned out to be non-functional.
+
+Earlier: 2026-08-05 (**UX/UI Master Plan Phase 5 (Navigation and Dashboard) shipped**
 — four new routes (`/workspace/dashboard`, `/workspace/requirements`, `/workspace/reviews`,
 `/workspace/settings`), the sidebar rebuilt so every entry works, the `startsWith`
 active-state bug fixed, a project sub-nav added, and `INTERFACE.md` §7 + `ARCHITECTURE.md`
@@ -36,7 +45,7 @@ tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phases 1–5 done. Phases 6–8 not started.**
+**Status: Phases 1–6 done. Phases 7–8 not started.**
 
 ### Phase 1 — shipped 2026-08-03
 
@@ -341,6 +350,101 @@ gate is that nobody edits it casually. Note also that this number will drift aga
 every future analysis run in that project — worth considering whether
 `projectDependencies.runs` belongs in a fingerprint at all, or whether that project
 should stop being used for ad-hoc runs.
+
+### Phase 6 — shipped 2026-08-05: Mobile
+
+**Goal, per the plan:** the whole app usable on a phone, not just the demo — the analysis
+workspace already degraded correctly (`<lg` segmented control, panes hidden not
+unmounted), so this phase was everything *else*: the projects list, the combined create
+screen, the new dashboard and global views, traceability's wide `<table>`, exports, and
+every touch target below 44px.
+
+A prior session had already started this exact phase and left the sidebar/toolbar/toggle
+rework uncommitted in the working tree — verified clean and committed first, as slice 1,
+rather than redone. Six slices followed it, each its own commit:
+
+1. **Sidebar becomes a stacked mobile nav** (the prior session's work, committed as-is):
+   below `md` (768px) the sidebar is a Menu button (`id="workspace-nav-items"`) opening a
+   stacked list, replacing a horizontal-scroll strip that showed three of five entries at
+   390px and hid the rest behind a scrollbar nobody would find. Theme/lang toggles moved
+   into the mobile menu's footer at full size — `compact` was built for the *collapsed
+   desktop column*, not a horizontal strip, and rendering it in one produced four
+   sub-44px targets stacked two-over-two. This slice also established the pattern every
+   later slice repeats: **`min-h-11 lg:min-h-9`** (or `size-11 lg:size-9`) on every
+   interactive control — 44px until `lg` (1024px), not `md`, because a 768px tablet is
+   touch-operated exactly like a phone; density waits for the width a mouse is likely.
+2. **Projects list + create screen** — the "New project" link and filter segmented
+   control were `min-h-9`/`sm:` with no mobile-width variant at all; switched to the
+   pattern. `start-form.tsx` was already compliant end to end and needed nothing.
+3. **Project sub-nav + source screens** — `project-nav.tsx`'s tabs (already scrolling in
+   their own `overflow-x-auto` container) went from `min-h-9` to the pattern. Every
+   project-scoped "← back" link across overview/sources list/source detail/source
+   create/source edit was a bare text anchor with no tap area at all — all eight fixed.
+   The two `error.tsx` "Try again" retry buttons (projects, sources) got the same fix.
+4. **Traceability** — only the page-level "back to project" link needed fixing.
+   Everything else audited clean: the matrix `<table>` already scrolls horizontally
+   inside its own `overflow-auto` box with an accessible list fallback below it, every
+   cell/button/toolbar control was already `min-h-11` (constant, not dense-until-`lg` —
+   over-compliant, left alone rather than "fixed" into a narrower desktop density that
+   wasn't asked for), and the map view's SVG nodes are 64px tall.
+5. **Exports** — fixed the back/navigation links on the scope screen, the full-width
+   preview, and the printable route's `screen-only` toolbar (never inside the printed
+   output). `scope-panel.tsx` and `download-actions.tsx` were already compliant;
+   `document.tsx`'s tables were already wrapped in their own `overflow-x-auto`. No
+   sidebar/toolbar chrome logic was added near these routes — exports stayed documents,
+   not app views, per the plan.
+6. **Inside the analysis workspace** — the `<lg` segmented control itself (Source /
+   Requirements / Inspector) was audited and confirmed still correct: panes hidden via
+   CSS not unmounted, segment buttons already `min-h-11`. What still needed the pass,
+   because it renders inside a pane visible below `lg`: the inspector's close button and
+   related-item chips, the source panel's search input and citation prev/next buttons,
+   all five change-request approve/reject/withdraw/confirm/cancel buttons, and the
+   discard/keep-editing pair in the unsaved-edit warning banner. Left deliberately alone:
+   the summary bar's "Inspector" toggle (`hidden` below `lg` entirely, so a mouse-only
+   density there is correct) and the group-header strip, whose `min-h-10` carries its own
+   comment citing the WCAG full-width-target exception.
+
+**`INTERFACE.md` §13 row added** to the Implementation notes table, same format as every
+other §-row.
+
+- **Verified:**
+  - `npm run build`/`lint`/`typecheck`/`test` clean after **every** slice, not just at
+    the end — `lint` has the one pre-existing `legacy-verifier.ts` warning throughout,
+    `test` stayed **800/800** the whole way (this phase changed only `className` strings
+    and touch-target wiring, no logic).
+  - **Breakpoint correctness was proven from the compiled stylesheet actually served to
+    the browser, not just by reading the source.** The sandbox's `resize_window` tool
+    turned out to be non-functional here: `window.innerWidth`/`outerWidth`/
+    `screen.availWidth` stayed pinned at 1920×1080 across a fresh tab, a fresh window, an
+    OS-level unmaximize shortcut (`win+Down`), and a `Ctrl+Shift+M` devtools-emulation
+    attempt — none of it moved the number. Rather than fabricate a 390px screenshot that
+    wasn't real, the actual Tailwind output was fetched
+    (`/_next/static/chunks/[root-of-the-server]*.css`) and inspected directly:
+    `.min-h-11 { min-height: calc(var(--spacing) * 11) }` (44px) is **unconditional** —
+    no enclosing `@media` — while `.lg\:min-h-9 { min-height: calc(var(--spacing) * 9) }`
+    (36px) sits inside `@media (min-width: 64rem)` (1024px), and `.md\:hidden` sits
+    inside `@media (min-width: 48rem)` (768px). That is the CSS the browser evaluates
+    against real viewport width regardless of what `resize_window` did — it settles the
+    question mobile-first-cascade would already predict, from the actual artifact rather
+    than an assumption about it.
+  - **What genuine real-device-mode verification could not confirm this session, and
+    should be the first thing re-checked once `resize_window` (or a working alternative)
+    is available:** live touch/UA/DPR-accurate rendering at 390/414/768/1024px, and
+    `getBoundingClientRect()` measurements of the fixed controls at those widths. This is
+    the same caveat prior sessions recorded about the iframe technique, now true of
+    `resize_window` too in this particular sandbox — it is an environment limitation, not
+    a decision to skip the check.
+  - **What was verified live in the browser** (`localhost:3000`, signed in as
+    `slice3.demo@reqwise.dev`, at the sandbox's fixed 1920×1080): zero console errors on
+    Dashboard, Projects, a project's Traceability and Export screens; dark theme toggled
+    via the real UI control (not a `localStorage` hack) and checked visually on the
+    Export and Traceability screens — hairline borders, no shadow on a resting panel,
+    correct token swap, no layout break; `document.documentElement.scrollWidth ===
+    clientWidth` on the traceability matrix page (no horizontal page-body overflow even
+    with the 900px-wide table present, confirming its `overflow-auto` container is doing
+    the job at the width tested).
+  - **`Preview2.png`** at the repo root is untracked debug residue from a prior session,
+    unrelated to this phase — left alone, as instructed.
 
 ### Phase 5 — shipped 2026-08-05: Navigation and Dashboard
 
