@@ -9,6 +9,7 @@
 import { Icon } from "@/app/_components/icon";
 import type { ProjectStatus } from "@/lib/contracts/project";
 import { SOURCE_KIND_LABELS, type SourceKind } from "@/lib/contracts/source";
+import { T } from "@/app/_components/t";
 
 export function StatusBadge({ status }: { status: ProjectStatus }) {
   const archived = status === "archived";
@@ -24,7 +25,7 @@ export function StatusBadge({ status }: { status: ProjectStatus }) {
         aria-hidden="true"
         className={`size-1.5 rounded-full ${archived ? "bg-text-faint" : "bg-ok"}`}
       />
-      {archived ? "Archived" : "Active"}
+      {archived ? <T en="Archived" th="เก็บถาวรแล้ว" /> : <T en="Active" th="ใช้งานอยู่" />}
     </span>
   );
 }
@@ -69,7 +70,11 @@ export function LockBadge({ locked }: { locked: boolean }) {
       }`}
     >
       <Icon name={locked ? "locked" : "unlocked"} size={12} />
-      {locked ? "Analysed — locked" : "Editable"}
+      {locked ? (
+        <T en="Analysed — locked" th="วิเคราะห์แล้ว — ล็อก" />
+      ) : (
+        <T en="Editable" th="แก้ไขได้" />
+      )}
     </span>
   );
 }

@@ -22,6 +22,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isActiveNav } from "@/lib/workspace/nav";
+import { pick, useLocale } from "@/lib/i18n";
 
 export function ProjectNav({
   projectId,
@@ -32,22 +33,27 @@ export function ProjectNav({
   hasItems: boolean;
 }) {
   const pathname = usePathname();
+  const locale = useLocale();
   const base = `/workspace/projects/${projectId}`;
 
   const tabs = [
-    { href: base, label: "Overview" },
-    { href: `${base}/sources`, label: "Sources", ownsSubtree: true },
-    { href: `/workspace/requirements?project=${projectId}`, label: "Requirements", external: true },
+    { href: base, label: pick(locale, "Overview", "ภาพรวม") },
+    { href: `${base}/sources`, label: pick(locale, "Sources", "แหล่งข้อมูล"), ownsSubtree: true },
+    {
+      href: `/workspace/requirements?project=${projectId}`,
+      label: pick(locale, "Requirements", "ข้อกำหนด"),
+      external: true,
+    },
     ...(hasItems
       ? [
-          { href: `${base}/traceability`, label: "Traceability" },
-          { href: `${base}/exports`, label: "Export", ownsSubtree: true },
+          { href: `${base}/traceability`, label: pick(locale, "Traceability", "การสืบย้อน") },
+          { href: `${base}/exports`, label: pick(locale, "Export", "ส่งออก"), ownsSubtree: true },
         ]
       : []),
   ];
 
   return (
-    <nav aria-label="Project" className="screen-only -mx-1 overflow-x-auto">
+    <nav aria-label={pick(locale, "Project", "โปรเจกต์")} className="screen-only -mx-1 overflow-x-auto">
       <ul className="flex w-max gap-0.5 rounded-[var(--radius-panel)] border border-border-soft bg-chrome p-0.5">
         {tabs.map((tab) => {
           // The Requirements tab leaves the project subtree entirely (it is the

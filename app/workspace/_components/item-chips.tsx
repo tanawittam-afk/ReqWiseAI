@@ -14,6 +14,7 @@ import {
   TYPE_SHORT_LABEL,
   labelFor,
 } from "./item-labels";
+import { T } from "@/app/_components/t";
 
 const NEUTRAL =
   "inline-flex items-center rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-1.5 py-0.5 text-[11px] font-medium text-text-muted";
@@ -55,12 +56,16 @@ export function PriorityChip({ priority }: { priority: string }) {
  */
 export function EvidenceChip({ cited }: { cited: boolean }) {
   if (!cited) {
-    return <span className={NEUTRAL}>Not cited</span>;
+    return (
+      <span className={NEUTRAL}>
+        <T en="Not cited" th="ไม่มีการอ้างอิง" />
+      </span>
+    );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-1.5 py-0.5 text-[11px] font-medium text-signal">
       <Icon name="quote" size={11} />
-      Cited
+      <T en="Cited" th="มีการอ้างอิง" />
     </span>
   );
 }
@@ -78,7 +83,11 @@ export function ProjectChip({ name, archived }: { name: string; archived: boolea
     <span className="inline-flex items-center gap-1 text-[11px] text-text-faint">
       <Icon name="projects" size={11} />
       <span className="max-w-[24ch] truncate">{name}</span>
-      {archived ? <span className="text-text-faint">· Archived</span> : null}
+      {archived ? (
+        <span className="text-text-faint">
+          · <T en="Archived" th="เก็บถาวรแล้ว" />
+        </span>
+      ) : null}
     </span>
   );
 }

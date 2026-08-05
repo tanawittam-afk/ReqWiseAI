@@ -14,8 +14,14 @@
  */
 
 import { Icon } from "../../_components/icon";
+import { pick, useLocale } from "@/lib/i18n";
 
 const STORAGE_KEY = "reqwise-theme";
+
+const OPTION_LABEL: Record<"light" | "dark", { en: string; th: string }> = {
+  light: { en: "Light", th: "สว่าง" },
+  dark: { en: "Dark", th: "มืด" },
+};
 
 function apply(next: "light" | "dark") {
   document.documentElement.setAttribute("data-theme", next);
@@ -32,31 +38,40 @@ function apply(next: "light" | "dark") {
  * the sidebar's collapsed (icon-only) state, where the full pill does not fit.
  */
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const locale = useLocale();
   return (
     <div
-      aria-label="Color theme"
+      aria-label={pick(locale, "Color theme", "ธีมสี")}
       className={
         "inline-flex items-center gap-0.5 rounded-[var(--radius-card)] bg-chrome-hover p-0.5" +
         (compact ? " flex-col" : "")
       }
     >
-      {(["light", "dark"] as const).map((option) => (
-        <button
-          key={option}
-          type="button"
-          data-theme-option={option}
-          onClick={() => apply(option)}
-          aria-label={`Switch to ${option} theme`}
-          title={compact ? `Switch to ${option} theme` : undefined}
-          className={
-            "theme-toggle-option flex items-center justify-center gap-1.5 rounded-[calc(var(--radius-card)_-_1px)] text-xs font-medium text-text-faint transition-colors hover:text-text-muted " +
-            (compact ? "size-8" : "min-h-11 px-3 py-1.5 lg:min-h-0")
-          }
-        >
-          <Icon name={option === "light" ? "theme-light" : "theme-dark"} size={14} />
-          {!compact && <span className="capitalize">{option}</span>}
-        </button>
-      ))}
+      {(["light", "dark"] as const).map((option) => {
+        const label = pick(locale, OPTION_LABEL[option].en, OPTION_LABEL[option].th);
+        const switchLabel = pick(
+          locale,
+          `Switch to ${OPTION_LABEL[option].en.toLowerCase()} theme`,
+          `เปลี่ยนเป็นธีม${OPTION_LABEL[option].th}`,
+        );
+        return (
+          <button
+            key={option}
+            type="button"
+            data-theme-option={option}
+            onClick={() => apply(option)}
+            aria-label={switchLabel}
+            title={compact ? switchLabel : undefined}
+            className={
+              "theme-toggle-option flex items-center justify-center gap-1.5 rounded-[calc(var(--radius-card)_-_1px)] text-xs font-medium text-text-faint transition-colors hover:text-text-muted " +
+              (compact ? "size-8" : "min-h-11 px-3 py-1.5 lg:min-h-0")
+            }
+          >
+            <Icon name={option === "light" ? "theme-light" : "theme-dark"} size={14} />
+            {!compact && <span>{label}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }
