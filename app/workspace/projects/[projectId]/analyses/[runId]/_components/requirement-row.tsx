@@ -25,6 +25,8 @@ import {
   confidencePercent,
   labelFor,
 } from "@/app/workspace/_components/item-labels";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 
 /**
  * Review status carries a tone as well as its word — the word is what conveys the
@@ -84,6 +86,7 @@ export function RequirementRow({
   const state = item.workflowState ?? "open";
   const kind = workflow ? findingKind(item) : null;
   const hasPendingChangeRequest = item.changeRequests.some((changeRequest) => changeRequest.status === "pending");
+  const locale = useLocale();
 
   return (
     <button
@@ -129,7 +132,7 @@ export function RequirementRow({
                 <Dot />
                 <span
                   className="inline-flex items-center gap-1 text-warn tabular-nums"
-                  title="Follow up on"
+                  title={pick(locale, "Follow up on", "ติดตามเมื่อ")}
                 >
                   <Icon name="follow-up" size={11} />
                   {item.followUpOn}
@@ -146,7 +149,7 @@ export function RequirementRow({
               {labelFor(STATUS_LABEL, item.status)}
             </span>
             <Dot />
-            <span className="tabular-nums" title={`Version ${item.versionNo}`}>
+            <span className="tabular-nums" title={pick(locale, `Version ${item.versionNo}`, `เวอร์ชัน ${item.versionNo}`)}>
               v{item.versionNo}
             </span>
           </>
@@ -154,21 +157,27 @@ export function RequirementRow({
         {cited ? (
           <span className="inline-flex items-center gap-1 text-signal">
             <Icon name="quote" size={11} />
-            <span className="sr-only">Has an exact source excerpt</span>
+            <span className="sr-only">
+              <T en="Has an exact source excerpt" th="มีข้อความอ้างอิงตรงจากต้นทาง" />
+            </span>
           </span>
         ) : null}
         {item.relatedDisplayIds.length > 0 ? (
           <span className="inline-flex items-center gap-1">
             <Icon name="relations" size={11} />
             {item.relatedDisplayIds.length}
-            <span className="sr-only">related items</span>
+            <span className="sr-only">
+              <T en="related items" th="รายการที่เกี่ยวข้อง" />
+            </span>
           </span>
         ) : null}
         {hasPendingChangeRequest ? (
           <span className="inline-flex items-center gap-1 font-medium text-warn">
             <Dot />
             <Icon name="pending" size={11} />
-            <span>Change pending</span>
+            <span>
+              <T en="Change pending" th="รอเปลี่ยนแปลง" />
+            </span>
           </span>
         ) : null}
       </div>

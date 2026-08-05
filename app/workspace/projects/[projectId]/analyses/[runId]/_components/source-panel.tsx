@@ -21,6 +21,8 @@ import {
 import type { SourceDetail } from "@/lib/sources/types";
 import { LockBadge, RevisionBadge, SourceKindBadge } from "@/app/workspace/_components/badges";
 import { PanelHeader, PanelTitle } from "./panel";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 
 export function SourcePanel({
   source,
@@ -41,6 +43,7 @@ export function SourcePanel({
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const bodyRef = useRef<HTMLPreElement>(null);
+  const locale = useLocale();
 
   const citations = useMemo(() => computeHighlightRanges(item), [item]);
   const matches = useMemo(() => findMatchRanges(source.rawText, query), [source.rawText, query]);
@@ -72,7 +75,7 @@ export function SourcePanel({
 
   return (
     <section
-      aria-label="Source document"
+      aria-label={pick(locale, "Source document", "เอกสารต้นทาง")}
       className={`flex min-h-0 min-w-0 flex-col overflow-hidden border-border-soft bg-surface ${className}`}
     >
       <PanelHeader>
@@ -91,18 +94,23 @@ export function SourcePanel({
           <span className="text-text-faint">
             <Icon name="search" size={14} />
           </span>
-          <span className="sr-only">Search in document</span>
+          <span className="sr-only">
+            <T en="Search in document" th="ค้นหาในเอกสาร" />
+          </span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search in document"
+            placeholder={pick(locale, "Search in document", "ค้นหาในเอกสาร")}
             className="min-h-11 lg:min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
           />
         </label>
         {query.trim().length > 0 ? (
           <span className="text-xs tabular-nums text-text-faint">
-            {matches.length} match{matches.length === 1 ? "" : "es"}
+            <T
+              en={`${matches.length} match${matches.length === 1 ? "" : "es"}`}
+              th={`พบ ${matches.length} รายการ`}
+            />
           </span>
         ) : null}
       </div>
@@ -136,22 +144,42 @@ export function SourcePanel({
 
       <footer className="flex items-center gap-2 border-t border-border-soft px-4 py-2">
         <span className="text-xs text-text-muted">
-          {citations.length === 0
-            ? item
-              ? // A domain-profile item is raised BECAUSE the source is silent. Saying
-                // where it came from is the honest alternative to highlighting a
-                // plausible-looking sentence (product spec §14).
-                item.origin === "domain_profile"
-                ? "Generated from domain guidance; no direct source evidence."
-                : "No exact excerpt for this item"
-              : "Nothing selected"
-            : `Highlight ${activeIndex + 1} of ${citations.length}`}
+          {citations.length === 0 ? (
+            item ? (
+              // A domain-profile item is raised BECAUSE the source is silent. Saying
+              // where it came from is the honest alternative to highlighting a
+              // plausible-looking sentence (product spec §14).
+              item.origin === "domain_profile" ? (
+                <T
+                  en="Generated from domain guidance; no direct source evidence."
+                  th="สร้างจากแนวทางโดเมน; ไม่มีหลักฐานอ้างอิงโดยตรงจากต้นทาง"
+                />
+              ) : (
+                <T en="No exact excerpt for this item" th="ไม่มีข้อความอ้างอิงตรงสำหรับรายการนี้" />
+              )
+            ) : (
+              <T en="Nothing selected" th="ยังไม่ได้เลือกรายการ" />
+            )
+          ) : (
+            <T
+              en={`Highlight ${activeIndex + 1} of ${citations.length}`}
+              th={`ไฮไลต์ที่ ${activeIndex + 1} จาก ${citations.length}`}
+            />
+          )}
         </span>
         <div className="ml-auto flex items-center gap-1">
-          <NavButton label="Previous highlight" disabled={citations.length < 2} onClick={() => step(-1)}>
+          <NavButton
+            label={pick(locale, "Previous highlight", "ไฮไลต์ก่อนหน้า")}
+            disabled={citations.length < 2}
+            onClick={() => step(-1)}
+          >
             <Icon name="chevron-up" size={16} />
           </NavButton>
-          <NavButton label="Next highlight" disabled={citations.length < 2} onClick={() => step(1)}>
+          <NavButton
+            label={pick(locale, "Next highlight", "ไฮไลต์ถัดไป")}
+            disabled={citations.length < 2}
+            onClick={() => step(1)}
+          >
             <Icon name="chevron-down" size={16} />
           </NavButton>
         </div>
