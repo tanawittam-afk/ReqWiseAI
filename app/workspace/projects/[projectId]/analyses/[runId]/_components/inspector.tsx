@@ -16,6 +16,8 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import type { ItemHistory } from "@/lib/review/history";
 import { isReviewableItemType, isTerminalStatus } from "@/lib/contracts/review";
@@ -82,14 +84,14 @@ function isDrawerWidthServer() {
   return false;
 }
 
-const TAB_LABEL: Record<string, string> = {
-  details: "Details",
-  evidence: "Evidence",
-  relations: "Relations",
-  answer: "Answer",
-  resolution: "Resolution",
-  changeRequests: "Change requests",
-  history: "History",
+const TAB_LABEL: Record<string, { en: string; th: string }> = {
+  details: { en: "Details", th: "รายละเอียด" },
+  evidence: { en: "Evidence", th: "หลักฐาน" },
+  relations: { en: "Relations", th: "ความสัมพันธ์" },
+  answer: { en: "Answer", th: "คำตอบ" },
+  resolution: { en: "Resolution", th: "การแก้ไข" },
+  changeRequests: { en: "Change requests", th: "คำขอเปลี่ยนแปลง" },
+  history: { en: "History", th: "ประวัติ" },
 };
 
 export function Inspector({
@@ -122,6 +124,7 @@ export function Inspector({
   onClose?: () => void;
   className?: string;
 }) {
+  const locale = useLocale();
   const [tab, setTab] = useState<InspectorTab>("details");
 
   // A new item is read from the top; carrying the previous tab across hides the
@@ -192,23 +195,25 @@ export function Inspector({
   const activeTab = tabs.includes(tab) ? tab : "details";
   const panelTitle =
     item === null
-      ? "Inspector"
+      ? { en: "Inspector", th: "แผงตรวจสอบ" }
       : item.type === "open_question"
-        ? "Question inspector"
+        ? { en: "Question inspector", th: "แผงตรวจสอบคำถาม" }
         : item.type === "quality_finding"
-          ? "Finding inspector"
-          : "Requirement inspector";
+          ? { en: "Finding inspector", th: "แผงตรวจสอบข้อค้นพบ" }
+          : { en: "Requirement inspector", th: "แผงตรวจสอบข้อกำหนด" };
 
   return (
     <section
-      aria-label="Requirement inspector"
+      aria-label={pick(locale, "Requirement inspector", "แผงตรวจสอบข้อกำหนด")}
       role={isOpenDrawer ? "dialog" : undefined}
       aria-modal={isOpenDrawer ? "true" : undefined}
       className={`flex min-h-0 min-w-0 flex-col overflow-hidden border-border-soft bg-surface ${className}`}
     >
       <PanelHeader>
         <div className="flex min-w-0 flex-col">
-          <PanelTitle>{panelTitle}</PanelTitle>
+          <PanelTitle>
+            <T en={panelTitle.en} th={panelTitle.th} />
+          </PanelTitle>
           {item ? (
             <span className="font-mono text-[11px] text-text-faint">{item.displayId}</span>
           ) : null}
@@ -222,14 +227,16 @@ export function Inspector({
                        transition-colors duration-150 hover:bg-surface-hover hover:text-text lg:size-9"
           >
             <Icon name="close" size={16} />
-            <span className="sr-only">Close inspector</span>
+            <span className="sr-only">
+              <T en="Close inspector" th="ปิดแผงตรวจสอบ" />
+            </span>
           </button>
         ) : null}
       </PanelHeader>
 
       {item === null ? (
         <p className="px-4 py-8 text-center text-sm text-text-muted">
-          Select a requirement to inspect it.
+          <T en="Select a requirement to inspect it." th="เลือกข้อกำหนดเพื่อตรวจสอบ" />
         </p>
       ) : (
         <>
@@ -246,7 +253,7 @@ export function Inspector({
                     : "border-b-transparent text-text-muted hover:text-text"
                 }`}
               >
-                {TAB_LABEL[value]}
+                <T en={TAB_LABEL[value].en} th={TAB_LABEL[value].th} />
               </button>
             ))}
           </div>
@@ -346,18 +353,28 @@ function Details({ item }: { item: AnalysisItemView }) {
           <Chip>{labelFor(STATUS_LABEL, item.status)}</Chip>
         )}
         {workflow ? null : <Chip>{labelFor(PRIORITY_LABEL, item.priority)}</Chip>}
-        <Chip tone="signal">Confidence {confidencePercent(item.confidence)}</Chip>
-        {workflow ? null : <Chip>Version {item.versionNo}</Chip>}
+        <Chip tone="signal">
+          <T en="Confidence" th="ความมั่นใจ" /> {confidencePercent(item.confidence)}
+        </Chip>
+        {workflow ? null : (
+          <Chip>
+            <T en="Version" th="เวอร์ชัน" /> {item.versionNo}
+          </Chip>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
-        <FieldLabel>Statement</FieldLabel>
+        <FieldLabel>
+          <T en="Statement" th="ข้อความ" />
+        </FieldLabel>
         <p className="text-[15px] font-medium leading-snug text-text">{item.title}</p>
       </div>
 
       {item.description.trim() ? (
         <div className="flex flex-col gap-1">
-          <FieldLabel>Description</FieldLabel>
+          <FieldLabel>
+            <T en="Description" th="คำอธิบาย" />
+          </FieldLabel>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
             {item.description}
           </p>
@@ -366,36 +383,63 @@ function Details({ item }: { item: AnalysisItemView }) {
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
         <div className="flex flex-col gap-0.5">
-          <FieldLabel>Evidence class</FieldLabel>
+          <FieldLabel>
+            <T en="Evidence class" th="ประเภทหลักฐาน" />
+          </FieldLabel>
           <FieldValue>{labelFor(EVIDENCE_LABEL, item.evidenceClass)}</FieldValue>
         </div>
         <div className="flex flex-col gap-0.5">
-          <FieldLabel>Origin</FieldLabel>
+          <FieldLabel>
+            <T en="Origin" th="ที่มา" />
+          </FieldLabel>
           <FieldValue>{labelFor(ORIGIN_LABEL, item.origin)}</FieldValue>
         </div>
       </dl>
 
       {item.rationale?.trim() ? (
         <div className="flex flex-col gap-1">
-          <FieldLabel>Rationale</FieldLabel>
+          <FieldLabel>
+            <T en="Rationale" th="เหตุผล" />
+          </FieldLabel>
           <p className="text-sm leading-relaxed text-text-muted">{item.rationale}</p>
         </div>
       ) : null}
 
       {workflow && item.followUpOn ? (
-        <p className="text-[11.5px] text-warn">Follow up on {item.followUpOn}</p>
+        <p className="text-[11.5px] text-warn">
+          <T en="Follow up on" th="ติดตามผลที่" /> {item.followUpOn}
+        </p>
       ) : null}
 
       <p className="text-[11px] leading-relaxed text-text-faint">
-        {workflow
-          ? item.type === "open_question"
-            ? `This is a question the analysis could not settle. Answer it in the Answer tab — the question, its evidence and its confidence never change. Current state: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}.`
-            : `This is an observation about the analysis, not a requirement. Acknowledge, resolve or dismiss it in the Resolution tab. Current state: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}.`
-          : deferred
-          ? "Type, evidence, origin and confidence describe what the analysis found and are never edited."
-          : isTerminalStatus(item.status)
-            ? "This requirement is closed. Its statement, description and priority are frozen; type, evidence and confidence were never editable."
-            : "Statement, description and priority can be edited. Type, evidence, origin and confidence describe what the analysis found and are never edited."}
+        {workflow ? (
+          item.type === "open_question" ? (
+            <T
+              en={`This is a question the analysis could not settle. Answer it in the Answer tab — the question, its evidence and its confidence never change. Current state: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}.`}
+              th={`นี่คือคำถามที่การวิเคราะห์ยังหาข้อสรุปไม่ได้ ตอบคำถามได้ในแท็บคำตอบ — ตัวคำถาม หลักฐาน และความมั่นใจจะไม่เปลี่ยนแปลง สถานะปัจจุบัน: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}`}
+            />
+          ) : (
+            <T
+              en={`This is an observation about the analysis, not a requirement. Acknowledge, resolve or dismiss it in the Resolution tab. Current state: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}.`}
+              th={`นี่คือข้อสังเกตเกี่ยวกับการวิเคราะห์ ไม่ใช่ข้อกำหนด รับทราบ แก้ไข หรือยกเลิกได้ในแท็บการแก้ไข สถานะปัจจุบัน: ${WORKFLOW_STATE_LABEL[(item.workflowState ?? "open") as WorkflowState]}`}
+            />
+          )
+        ) : deferred ? (
+          <T
+            en="Type, evidence, origin and confidence describe what the analysis found and are never edited."
+            th="ประเภท หลักฐาน ที่มา และความมั่นใจ อธิบายสิ่งที่การวิเคราะห์พบ และจะไม่ถูกแก้ไข"
+          />
+        ) : isTerminalStatus(item.status) ? (
+          <T
+            en="This requirement is closed. Its statement, description and priority are frozen; type, evidence and confidence were never editable."
+            th="ข้อกำหนดนี้ปิดแล้ว ข้อความ คำอธิบาย และลำดับความสำคัญถูกล็อกไว้ ส่วนประเภท หลักฐาน และความมั่นใจไม่เคยแก้ไขได้อยู่แล้ว"
+          />
+        ) : (
+          <T
+            en="Statement, description and priority can be edited. Type, evidence, origin and confidence describe what the analysis found and are never edited."
+            th="สามารถแก้ไขข้อความ คำอธิบาย และลำดับความสำคัญได้ ส่วนประเภท หลักฐาน ที่มา และความมั่นใจ อธิบายสิ่งที่การวิเคราะห์พบและจะไม่ถูกแก้ไข"
+          />
+        )}
       </p>
     </div>
   );
@@ -413,15 +457,23 @@ function Evidence({ item }: { item: AnalysisItemView }) {
     return (
       <div className="flex flex-col gap-2">
         <p className="text-sm text-text-muted">
-          {fromProfile
-            ? "Generated from domain guidance; no direct source evidence."
-            : "This item cites no excerpt from the source document."}
+          {fromProfile ? (
+            <T
+              en="Generated from domain guidance; no direct source evidence."
+              th="สร้างจากแนวทางของโดเมน ไม่มีหลักฐานจากแหล่งข้อมูลโดยตรง"
+            />
+          ) : (
+            <T
+              en="This item cites no excerpt from the source document."
+              th="รายการนี้ไม่ได้อ้างอิงข้อความจากเอกสารต้นฉบับ"
+            />
+          )}
         </p>
         <p className="text-[11px] leading-relaxed text-text-faint">
-          That is expected for an {labelFor(EVIDENCE_LABEL, item.evidenceClass).toLowerCase()} item
-          raised from {labelFor(ORIGIN_LABEL, item.origin).toLowerCase()} — it is a question the
-          source never answered, not a claim about what the source says. The source panel shows
-          no highlight for it, deliberately.
+          <T
+            en={`That is expected for an ${labelFor(EVIDENCE_LABEL, item.evidenceClass).toLowerCase()} item raised from ${labelFor(ORIGIN_LABEL, item.origin).toLowerCase()} — it is a question the source never answered, not a claim about what the source says. The source panel shows no highlight for it, deliberately.`}
+            th={`เป็นเรื่องปกติสำหรับรายการประเภท ${labelFor(EVIDENCE_LABEL, item.evidenceClass)} ที่มาจาก ${labelFor(ORIGIN_LABEL, item.origin)} — เป็นคำถามที่แหล่งข้อมูลไม่เคยตอบ ไม่ใช่ข้อความอ้างว่าแหล่งข้อมูลระบุไว้ แผงแหล่งข้อมูลจึงตั้งใจไม่ไฮไลต์ให้`}
+          />
         </p>
       </div>
     );
@@ -440,21 +492,23 @@ function Evidence({ item }: { item: AnalysisItemView }) {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-faint">
             {reference.offsetVerified && reference.startOffset !== null && reference.endOffset !== null ? (
               <span className="tabular-nums">
-                Characters {reference.startOffset}–{reference.endOffset}
+                <T en="Characters" th="ตัวอักษร" /> {reference.startOffset}–{reference.endOffset}
               </span>
             ) : (
-              <span>Excerpt found; no exact position proven</span>
+              <span>
+                <T en="Excerpt found; no exact position proven" th="พบข้อความ แต่ไม่สามารถยืนยันตำแหน่งที่แน่นอนได้" />
+              </span>
             )}
             {reference.evidenceStrength !== null ? (
               <span className="tabular-nums">
-                Strength {confidencePercent(reference.evidenceStrength)}
+                <T en="Strength" th="ความหนักแน่น" /> {confidencePercent(reference.evidenceStrength)}
               </span>
             ) : null}
             <span
               className={`inline-flex items-center gap-1 ${reference.offsetVerified ? "text-signal" : "text-warn"}`}
             >
               <Icon name={reference.offsetVerified ? "verified" : "unverified"} size={12} />
-              {reference.offsetVerified ? "Verified" : "Unverified"}
+              <T en={reference.offsetVerified ? "Verified" : "Unverified"} th={reference.offsetVerified ? "ยืนยันแล้ว" : "ยังไม่ยืนยัน"} />
             </span>
           </div>
         </li>
@@ -471,7 +525,11 @@ function Relations({
   onSelectDisplayId: (displayId: string) => void;
 }) {
   if (item.relatedDisplayIds.length === 0) {
-    return <p className="text-sm text-text-muted">This item has no recorded relations.</p>;
+    return (
+      <p className="text-sm text-text-muted">
+        <T en="This item has no recorded relations." th="รายการนี้ไม่มีความสัมพันธ์ที่บันทึกไว้" />
+      </p>
+    );
   }
 
   return (
@@ -492,8 +550,10 @@ function Relations({
         ))}
       </ul>
       <p className="text-xs leading-relaxed text-text-muted">
-        Relations are typed by the provider and validated against the application pair
-        matrix. Legacy derives_from rows remain visible without being reclassified.
+        <T
+          en="Relations are typed by the provider and validated against the application pair matrix. Legacy derives_from rows remain visible without being reclassified."
+          th="ความสัมพันธ์ถูกกำหนดประเภทโดยผู้ให้บริการและตรวจสอบกับตารางคู่ความสัมพันธ์ที่ใช้ได้ แถว derives_from แบบเดิมยังคงแสดงอยู่โดยไม่ถูกจัดประเภทใหม่"
+        />
       </p>
     </div>
   );
