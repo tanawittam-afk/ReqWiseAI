@@ -46,7 +46,7 @@ export default async function AnalyzeSourcePage({
 
   if (project.status === "archived") {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-8 sm:px-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-[var(--space-shell-x)] py-[var(--space-shell-y-tight)] sm:px-[var(--space-shell-x-lg)]">
         <Link
           href={base}
           className="inline-flex w-fit items-center gap-1 text-xs text-text-faint hover:text-text-muted"
@@ -68,7 +68,7 @@ export default async function AnalyzeSourcePage({
   const defaultProvider = availableDefaultProvider(environment);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-8 sm:px-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-[var(--space-shell-x)] py-[var(--space-shell-y-tight)] sm:px-[var(--space-shell-x-lg)]">
       <div className="flex flex-col gap-2">
         <Link
           href={base}

@@ -1,7 +1,7 @@
 /** Skeleton for a document — a page-shaped block, not a spinner. */
 export default function SourceLoading() {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-[var(--space-shell-gap)] px-[var(--space-shell-x)] py-[var(--space-shell-y)] sm:px-[var(--space-shell-x-lg)] sm:py-[var(--space-shell-y-lg)]">
       <p className="sr-only" role="status">
         Loading source document
       </p>

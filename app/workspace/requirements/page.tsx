@@ -26,7 +26,7 @@ export default async function RequirementsPage({
   const { items, truncated } = await listWorkspaceItems(supabase);
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-[var(--space-shell-gap)] px-[var(--space-shell-x)] py-[var(--space-shell-y)] sm:px-[var(--space-shell-x-lg)] sm:py-[var(--space-shell-y-lg)]">
       <header className="flex flex-col gap-1.5">
         <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Requirements</h1>
         <p className="text-sm text-text-muted">

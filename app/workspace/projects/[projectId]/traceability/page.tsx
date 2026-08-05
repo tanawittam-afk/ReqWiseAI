@@ -63,7 +63,7 @@ export default async function TraceabilityPage({
       </div>
 
       {data.graph.items.length === 0 ? (
-        <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 px-4 py-8 sm:px-8">
+        <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 px-[var(--space-shell-x)] py-[var(--space-shell-y-tight)] sm:px-[var(--space-shell-x-lg)]">
           <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Traceability</h1>
           <p className="text-sm leading-relaxed text-text-muted">
             This project has no analysed requirements yet, so there is nothing to trace.

@@ -52,7 +52,7 @@ export default async function AnalysisResultPage({
 
   if (run.validationStatus !== "valid") {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-8 sm:px-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-[var(--space-shell-x)] py-[var(--space-shell-y-tight)] sm:px-[var(--space-shell-x-lg)]">
         <Header
           projectId={projectId}
           runId={runId}

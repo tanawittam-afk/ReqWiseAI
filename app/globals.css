@@ -66,6 +66,27 @@
   --radius-panel: 6px;
   --radius-card: 4px;
 
+  /*
+   * Page-shell spacing rhythm. Radius and colour already had a token layer here;
+   * density did not, and an audit found it drifting page to page with no scale to
+   * check it against — the outer wrapper on ~19 pages carried the same shape
+   * (`px-4 py-6 sm:px-8 sm:py-8`) but a `gap-*` anywhere from 3 to 8 with no rule
+   * deciding which. Two named tiers, matching the two shell shapes the app actually
+   * uses (not invented): the wide list/dashboard shell (`--space-shell-y` steps up at
+   * `sm`, `--space-shell-gap` is now the one value every such page shares) and the
+   * narrower single-column detail shell (`--space-shell-y-tight` does not step up —
+   * these screens are read top-to-bottom, not scanned, so they don't need a card grid's
+   * extra breathing room). Scoped to the page wrapper only: everything inside a page —
+   * header gaps, card padding, `dl` grids — keeps using Tailwind's own spacing scale
+   * exactly as before. See HANDOFF.md for what this did and did not migrate.
+   */
+  --space-shell-x: 1rem;
+  --space-shell-x-lg: 2rem;
+  --space-shell-y: 1.5rem;
+  --space-shell-y-lg: 2rem;
+  --space-shell-y-tight: 2rem;
+  --space-shell-gap: 1.5rem;
+
   /* Legacy tokens from the scaffold, still referenced by the marketing/auth pages. */
   --background: var(--app);
   --foreground: var(--text);
