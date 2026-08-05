@@ -181,13 +181,16 @@ function RecentProjects({
 }) {
   return (
     <section aria-labelledby="recent-projects-heading" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-3">
+      {/* `items-center` below `lg` so the link's 44px tap area is centred on the row
+          rather than hung off the text baseline; the dense desktop row keeps its
+          baseline alignment. */}
+      <div className="flex items-center justify-between gap-3 lg:items-baseline">
         <h2 id="recent-projects-heading" className="text-sm font-semibold text-text">
           Recent projects
         </h2>
         <Link
           href="/workspace/projects"
-          className="text-xs font-medium text-accent underline underline-offset-2"
+          className="inline-flex min-h-11 items-center text-xs font-medium text-accent underline underline-offset-2 lg:min-h-0"
         >
           All projects
         </Link>

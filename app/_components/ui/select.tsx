@@ -18,8 +18,11 @@ export function Select({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2 text-xs font-medium text-text
-                 transition-colors duration-150 hover:bg-surface-hover"
+      // 44px until `lg` — a facet filter is tapped as often as anything on the screen,
+      // and a 36px select is a miss on a phone or a tablet. The dense toolbar row this
+      // was built for only exists from `lg` up.
+      className="min-h-11 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2 text-xs font-medium text-text
+                 transition-colors duration-150 hover:bg-surface-hover lg:min-h-9"
     >
       {children}
     </select>

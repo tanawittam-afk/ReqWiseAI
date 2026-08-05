@@ -127,7 +127,7 @@ export function RequirementsPanel({
             value={filters.query}
             onChange={(event) => set({ query: event.target.value })}
             placeholder="Search"
-            className="min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
+            className="min-h-11 lg:min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
           />
         </label>
 
@@ -146,7 +146,7 @@ export function RequirementsPanel({
           type="button"
           onClick={() => setFiltersOpen((open) => !open)}
           aria-expanded={filtersOpen}
-          className={`min-h-9 rounded-[var(--radius-card)] border px-2.5 text-xs font-medium transition-colors duration-150 ${
+          className={`min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border px-2.5 text-xs font-medium transition-colors duration-150 ${
             hasActiveFilter(filters)
               ? "border-accent-border bg-accent-soft text-accent"
               : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"
@@ -214,7 +214,7 @@ export function RequirementsPanel({
               onClick={() =>
                 set({ type: "all", priority: "all", status: "all", evidenceClass: "all", workflowState: "all" })
               }
-              className="min-h-9 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2"
+              className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2"
             >
               Clear filters
             </button>
@@ -334,7 +334,7 @@ function Select({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2 text-xs font-medium text-text
+      className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2 text-xs font-medium text-text
                  transition-colors duration-150 hover:bg-surface-hover"
     >
       {children}

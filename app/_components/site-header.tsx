@@ -15,9 +15,20 @@ import { LangToggle } from "./lang-toggle";
 import { ThemeToggle } from "../workspace/_components/theme-toggle";
 
 export function SiteHeader() {
+  /*
+   * Touch targets are 44px until `lg`, the same rule the workspace chrome follows
+   * (`app/workspace/_components/sidebar.tsx`): `md` is the width at which a sidebar
+   * column fits, which is a different question from whether a finger is doing the
+   * pointing. A 768px tablet is touch-operated; density waits for `lg`.
+   *
+   * The toggles are **not** `compact` here. `compact` is the collapsed desktop
+   * column's shape — it stacks its two options vertically and shrinks each to 32px —
+   * and in a horizontal header that rendered as ☀ over ☾ and EN over TH, four
+   * sub-44px targets in a row meant for one.
+   */
   return (
-    <header className="flex shrink-0 items-center gap-3 border-b border-border-soft bg-chrome px-4 py-2.5 sm:px-6">
-      <Link href="/" className="flex items-center gap-2.5">
+    <header className="flex shrink-0 items-center gap-2 border-b border-border-soft bg-chrome px-4 py-2 sm:gap-3 sm:px-6">
+      <Link href="/" className="flex min-h-11 items-center gap-2.5 lg:min-h-0">
         <span
           aria-hidden="true"
           className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-card)] bg-accent text-sm font-semibold text-on-accent"
@@ -27,20 +38,20 @@ export function SiteHeader() {
         <span className="hidden font-display text-sm font-bold text-text sm:inline">ReqWise AI</span>
       </Link>
 
-      <div className="ml-auto flex items-center gap-2">
-        <ThemeToggle compact />
-        <LangToggle compact />
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <ThemeToggle />
+        <LangToggle />
         <Link
           href="/sign-up"
-          className="hidden min-h-9 items-center rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-sm font-medium
-                     text-text transition-colors hover:bg-surface-hover sm:flex"
+          className="hidden min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-sm font-medium
+                     text-text transition-colors hover:bg-surface-hover sm:flex lg:min-h-9"
         >
           <T en="Create account" th="สร้างบัญชี" />
         </Link>
         <Link
           href="/sign-in"
-          className="flex min-h-9 items-center rounded-[var(--radius-card)] bg-accent px-3 text-sm font-semibold text-on-accent
-                     transition-colors hover:bg-accent-hover"
+          className="flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-3 text-sm font-semibold text-on-accent
+                     transition-colors hover:bg-accent-hover lg:min-h-9"
         >
           <T en="Sign in" th="เข้าสู่ระบบ" />
         </Link>

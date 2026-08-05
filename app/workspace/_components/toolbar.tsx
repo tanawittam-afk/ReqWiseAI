@@ -11,8 +11,6 @@
  */
 
 import { usePathname } from "next/navigation";
-import { LangToggle } from "../../_components/lang-toggle";
-import { ThemeToggle } from "./theme-toggle";
 
 function contextLabel(pathname: string): string {
   if (pathname === "/workspace/projects/new") return "New project";
@@ -52,12 +50,15 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
             ⌘K
           </kbd>
         </button>
-        {/* Sidebar carries the toggles on desktop (md+); the sidebar collapses to a
-            horizontal strip below md with no room for them, so they live here instead. */}
-        <div className="flex items-center gap-2 md:hidden">
-          <ThemeToggle compact />
-          <LangToggle compact />
-        </div>
+        {/*
+         * The theme and language toggles live in the navigation at every width — in the
+         * sidebar's footer on desktop, inside the stacked mobile menu below `md`. They
+         * used to be duplicated here in their `compact` form for mobile, but `compact`
+         * is the *collapsed desktop column's* shape: it stacks its two options
+         * vertically and shrinks each to 32px, which in a horizontal toolbar came out
+         * as ☀ over ☾ and EN over TH — four sub-44px targets, and a toolbar that looked
+         * broken. One home for them is also one fewer thing to keep in step.
+         */}
         {children}
       </div>
     </header>

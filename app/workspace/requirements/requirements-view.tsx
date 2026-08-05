@@ -72,7 +72,7 @@ export function RequirementsView({
                 ? "ค้นหาด้วยรหัส ชื่อ หรือชื่อโปรเจกต์"
                 : "Search by id, statement or project"
             }
-            className="min-h-10 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-sm text-text placeholder:text-text-faint"
+            className="min-h-11 w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-sm text-text placeholder:text-text-faint"
           />
         </label>
 
@@ -126,7 +126,7 @@ export function RequirementsView({
             ))}
           </FacetSelect>
 
-          <label className="flex items-center gap-1.5 text-xs text-text-faint">
+          <label className="flex min-h-11 items-center gap-1.5 text-xs text-text-faint lg:min-h-0">
             <input
               type="checkbox"
               checked={filters.citedOnly}
@@ -136,7 +136,7 @@ export function RequirementsView({
             <span>Cited only</span>
           </label>
 
-          <label className="flex items-center gap-1.5 text-xs text-text-faint">
+          <label className="flex min-h-11 items-center gap-1.5 text-xs text-text-faint lg:min-h-0">
             <input
               type="checkbox"
               checked={filters.includeArchived}
@@ -150,7 +150,7 @@ export function RequirementsView({
             <button
               type="button"
               onClick={() => setFilters(EMPTY_WORKSPACE_FILTERS)}
-              className="min-h-9 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2"
+              className="min-h-11 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2 lg:min-h-9"
             >
               Clear filters
             </button>

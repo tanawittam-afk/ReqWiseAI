@@ -137,19 +137,23 @@ function Header({
   provider: ProviderKey;
 }) {
   return (
-    <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    // `items-center` rather than `items-baseline`: the two links carry a 44px tap area
+    // below `md` (they are the only way out of this screen on a phone, and neither is
+    // repeated anywhere else on it), and a baseline row would hang that padding off the
+    // text instead of centring it.
+    <header className="flex flex-wrap items-center gap-x-3 gap-y-1 md:items-baseline">
       <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">Analysis result</h1>
       <span className="text-xs font-medium text-text-muted">{providerLabel(provider)}</span>
       <span className="text-xs text-text-faint">{formatDate(createdAt)}</span>
       <Link
         href={`/workspace/projects/${projectId}/traceability?run=${runId}`}
-        className="ml-auto text-xs text-text-muted transition-colors hover:text-text"
+        className="ml-auto inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
       >
         Traceability →
       </Link>
       <Link
         href={`/workspace/projects/${projectId}/sources/${source.id}`}
-        className="text-xs text-text-muted transition-colors hover:text-text"
+        className="inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
       >
         ← Back to source
       </Link>

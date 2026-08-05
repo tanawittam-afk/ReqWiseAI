@@ -48,7 +48,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
           title={compact ? `Switch to ${option} theme` : undefined}
           className={
             "theme-toggle-option flex items-center justify-center gap-1.5 rounded-[calc(var(--radius-card)_-_1px)] text-xs font-medium text-text-faint transition-colors hover:text-text-muted " +
-            (compact ? "size-8" : "px-3 py-1.5")
+            (compact ? "size-8" : "min-h-11 px-3 py-1.5 lg:min-h-0")
           }
         >
           <span aria-hidden="true">{option === "light" ? "☀" : "☾"}</span>

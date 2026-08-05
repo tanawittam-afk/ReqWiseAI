@@ -52,7 +52,7 @@ export function LangToggle({ compact = false }: { compact?: boolean }) {
           title={compact ? (option === "th" ? "เปลี่ยนเป็นภาษาไทย" : "Switch to English") : undefined}
           className={
             "lang-toggle-option flex items-center justify-center gap-1.5 rounded-[calc(var(--radius-card)_-_1px)] font-mono text-xs font-semibold text-text-faint transition-colors hover:text-text-muted " +
-            (compact ? "size-8" : "px-3 py-1.5")
+            (compact ? "size-8" : "min-h-11 px-3 py-1.5 lg:min-h-0")
           }
         >
           {option.toUpperCase()}
