@@ -33,13 +33,14 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { isActiveNav, type NavTarget } from "@/lib/workspace/nav";
+import { Icon, type IconName } from "../../_components/icon";
 import { T } from "../../_components/t";
 import { LangToggle } from "../../_components/lang-toggle";
 import { ThemeToggle } from "./theme-toggle";
 
 type Item = NavTarget & {
   label: React.ReactNode;
-  icon: string;
+  icon: IconName;
 };
 
 /**
@@ -66,7 +67,7 @@ const ITEMS: Item[] = [
   {
     href: "/workspace/dashboard",
     label: <T en="Dashboard" th="แดชบอร์ด" />,
-    icon: "▤",
+    icon: "dashboard",
     // `/workspace` redirects here, so that path counts as Dashboard. An **alias**, not
     // a prefix: `/workspace` as a prefix would own the entire application.
     aliases: ["/workspace"],
@@ -74,7 +75,7 @@ const ITEMS: Item[] = [
   {
     href: "/workspace/projects",
     label: <T en="Projects" th="โปรเจกต์" />,
-    icon: "▣",
+    icon: "projects",
     // An analysis run, a source and an export are all reached through a project and
     // have no sidebar entry of their own, so the project entry stays lit under them.
     ownsSubtree: true,
@@ -82,10 +83,10 @@ const ITEMS: Item[] = [
   {
     href: "/workspace/requirements",
     label: <T en="Requirements" th="ความต้องการ" />,
-    icon: "≡",
+    icon: "requirements",
   },
-  { href: "/workspace/reviews", label: <T en="Reviews" th="การรีวิว" />, icon: "✓" },
-  { href: "/workspace/settings", label: <T en="Settings" th="ตั้งค่า" />, icon: "⚙" },
+  { href: "/workspace/reviews", label: <T en="Reviews" th="การรีวิว" />, icon: "reviews" },
+  { href: "/workspace/settings", label: <T en="Settings" th="ตั้งค่า" />, icon: "settings" },
 ];
 
 export function Sidebar({ workspaceName }: { workspaceName: string }) {
@@ -121,8 +122,10 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
           className="ml-auto hidden size-11 shrink-0 place-items-center rounded-[var(--radius-card)] text-text-faint
                      transition-colors hover:bg-chrome-hover hover:text-text md:grid lg:size-8"
         >
-          <span aria-hidden="true">{collapsed ? "»" : "«"}</span>
-          <span className="sr-only">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
+          <Icon name={collapsed ? "sidebar-expand" : "sidebar-collapse"} size={16} />
+          <span className="sr-only">
+            {collapsed ? <T en="Expand sidebar" th="ขยายแถบด้านข้าง" /> : <T en="Collapse sidebar" th="ย่อแถบด้านข้าง" />}
+          </span>
         </button>
 
         {/*
@@ -139,7 +142,7 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
           className="ml-auto flex min-h-11 shrink-0 items-center gap-2 rounded-[var(--radius-card)] px-3 text-sm
                      text-text-muted transition-colors hover:bg-chrome-hover hover:text-text md:hidden"
         >
-          <span aria-hidden="true">{menuOpen ? "✕" : "☰"}</span>
+          <Icon name={menuOpen ? "close" : "menu"} size={16} />
           <span>
             <T en="Menu" th="เมนู" />
           </span>
@@ -180,8 +183,8 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
                     : "text-text-muted hover:bg-chrome-hover hover:text-text"
                 }`}
               >
-                <span aria-hidden="true" className="w-4 text-center">
-                  {item.icon}
+                <span className="grid w-4 place-items-center">
+                  <Icon name={item.icon} size={16} />
                 </span>
                 <span className={collapsed ? "md:hidden" : ""}>{item.label}</span>
               </Link>

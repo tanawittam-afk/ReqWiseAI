@@ -15,6 +15,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@/app/_components/icon";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -46,8 +47,11 @@ export default async function AnalyzeSourcePage({
   if (project.status === "archived") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-8 sm:px-8">
-        <Link href={base} className="w-fit text-xs text-text-faint hover:text-text-muted">
-          ← Back to source
+        <Link
+          href={base}
+          className="inline-flex w-fit items-center gap-1 text-xs text-text-faint hover:text-text-muted"
+        >
+          <Icon name="arrow-left" size={13} /> Back to source
         </Link>
         <p
           role="alert"
@@ -66,8 +70,11 @@ export default async function AnalyzeSourcePage({
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 py-8 sm:px-8">
       <div className="flex flex-col gap-2">
-        <Link href={base} className="w-fit text-xs text-text-faint hover:text-text-muted">
-          ← Back to source
+        <Link
+          href={base}
+          className="inline-flex w-fit items-center gap-1 text-xs text-text-faint hover:text-text-muted"
+        >
+          <Icon name="arrow-left" size={13} /> Back to source
         </Link>
         <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
           Analyze &ldquo;{source.title}&rdquo;

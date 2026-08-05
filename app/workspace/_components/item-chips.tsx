@@ -6,6 +6,7 @@
  * writing a second copy of it.
  */
 
+import { Icon } from "@/app/_components/icon";
 import type { ItemType } from "@/lib/contracts/item-types";
 import {
   PRIORITY_LABEL,
@@ -58,7 +59,7 @@ export function EvidenceChip({ cited }: { cited: boolean }) {
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-1.5 py-0.5 text-[11px] font-medium text-signal">
-      <span aria-hidden="true">❝</span>
+      <Icon name="quote" size={11} />
       Cited
     </span>
   );
@@ -75,7 +76,7 @@ export function DisplayId({ value }: { value: string }) {
 export function ProjectChip({ name, archived }: { name: string; archived: boolean }) {
   return (
     <span className="inline-flex items-center gap-1 text-[11px] text-text-faint">
-      <span aria-hidden="true">▣</span>
+      <Icon name="projects" size={11} />
       <span className="max-w-[24ch] truncate">{name}</span>
       {archived ? <span className="text-text-faint">· Archived</span> : null}
     </span>

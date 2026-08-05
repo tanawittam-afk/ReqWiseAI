@@ -13,6 +13,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@/app/_components/icon";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { listSources } from "@/lib/sources/queries";
@@ -54,9 +55,9 @@ export default async function ProjectOverviewPage({
       <header className="flex flex-col gap-2">
         <Link
           href="/workspace/projects"
-          className="inline-flex min-h-11 w-fit items-center text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
+          className="inline-flex min-h-11 w-fit items-center gap-1 text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
         >
-          ← Projects
+          <Icon name="arrow-left" size={13} /> Projects
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">

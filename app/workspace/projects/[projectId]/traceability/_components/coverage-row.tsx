@@ -100,9 +100,7 @@ function Figure({
       <span className="flex items-baseline gap-1.5">
         <span className="text-base font-semibold tabular-nums text-text">{figure.value}</span>
         {flagged ? (
-          <span aria-hidden="true" className="text-xs text-warn">
-            ●
-          </span>
+          <span aria-hidden="true" className="size-1.5 shrink-0 self-center rounded-full bg-warn" />
         ) : null}
       </span>
       <span className="text-[11px] leading-tight text-text-faint">{figure.label}</span>

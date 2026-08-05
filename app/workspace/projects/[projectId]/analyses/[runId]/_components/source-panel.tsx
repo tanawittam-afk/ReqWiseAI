@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@/app/_components/icon";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import {
   buildSourceSegments,
@@ -87,8 +88,8 @@ export function SourcePanel({
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border-soft px-4 py-2">
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
-          <span aria-hidden="true" className="text-text-faint">
-            ⌕
+          <span className="text-text-faint">
+            <Icon name="search" size={14} />
           </span>
           <span className="sr-only">Search in document</span>
           <input
@@ -148,10 +149,10 @@ export function SourcePanel({
         </span>
         <div className="ml-auto flex items-center gap-1">
           <NavButton label="Previous highlight" disabled={citations.length < 2} onClick={() => step(-1)}>
-            ↑
+            <Icon name="chevron-up" size={16} />
           </NavButton>
           <NavButton label="Next highlight" disabled={citations.length < 2} onClick={() => step(1)}>
-            ↓
+            <Icon name="chevron-down" size={16} />
           </NavButton>
         </div>
       </footer>
@@ -179,7 +180,7 @@ function NavButton({
                  transition-colors duration-150 hover:bg-surface-hover hover:text-text
                  disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface lg:size-9"
     >
-      <span aria-hidden="true">{children}</span>
+      {children}
       <span className="sr-only">{label}</span>
     </button>
   );

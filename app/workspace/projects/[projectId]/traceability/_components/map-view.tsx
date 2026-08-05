@@ -18,6 +18,7 @@
  * summary. A reader who cannot see the lines gets the same graph, in sentences.
  */
 
+import { Icon } from "@/app/_components/icon";
 import {
   COLUMN_WIDTH,
   NODE_HEIGHT,
@@ -193,8 +194,8 @@ function Node({
         {item.hasSourceEvidence ? "Cited in the source." : "No source citation."}
       </span>
       {item.hasSourceEvidence ? (
-        <span aria-hidden="true" className="absolute right-2 top-1.5 text-[10px] text-signal">
-          ❝
+        <span className="absolute right-2 top-1.5 text-signal">
+          <Icon name="quote" size={10} />
         </span>
       ) : null}
     </button>

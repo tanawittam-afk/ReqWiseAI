@@ -13,6 +13,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@/app/_components/icon";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getTraceability } from "@/lib/traceability/queries";
@@ -47,9 +48,9 @@ export default async function TraceabilityPage({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
         <Link
           href={`/workspace/projects/${projectId}`}
-          className="inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
+          className="inline-flex min-h-11 items-center gap-1 text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
         >
-          ← {project.name}
+          <Icon name="arrow-left" size={13} /> {project.name}
         </Link>
         {project.status === "archived" ? (
           <span className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-1.5 py-px text-[10px] font-medium text-warn">

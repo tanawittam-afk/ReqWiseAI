@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@/app/_components/icon";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { SourceForm } from "../source-form";
@@ -49,9 +50,9 @@ export default async function NewSourcePage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
       <Link
         href={`/workspace/projects/${projectId}/sources`}
-        className="inline-flex min-h-11 w-fit items-center text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
+        className="inline-flex min-h-11 w-fit items-center gap-1 text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
       >
-        ← Sources
+        <Icon name="arrow-left" size={13} /> Sources
       </Link>
       <SourceForm
         mode="create"

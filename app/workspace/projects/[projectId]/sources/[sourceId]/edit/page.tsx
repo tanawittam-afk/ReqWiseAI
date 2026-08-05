@@ -13,6 +13,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@/app/_components/icon";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -83,9 +84,9 @@ export default async function EditSourcePage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
       <Link
         href={detail}
-        className="inline-flex min-h-11 w-fit items-center text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
+        className="inline-flex min-h-11 w-fit items-center gap-1 text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
       >
-        ← {source.title}
+        <Icon name="arrow-left" size={13} /> {source.title}
       </Link>
       <SourceForm
         mode={source.locked ? "revise" : "edit"}

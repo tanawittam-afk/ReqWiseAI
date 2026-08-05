@@ -15,6 +15,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { Icon } from "@/app/_components/icon";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import { EVIDENCE_CLASSES, PRIORITIES, type ItemType } from "@/lib/contracts/item-types";
 import {
@@ -118,8 +119,8 @@ export function RequirementsPanel({
 
       <div className="flex flex-wrap items-center gap-2 border-b border-border-soft px-3 py-2">
         <label className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
-          <span aria-hidden="true" className="text-text-faint">
-            ⌕
+          <span className="text-text-faint">
+            <Icon name="search" size={14} />
           </span>
           <span className="sr-only">Search requirements</span>
           <input
@@ -253,8 +254,8 @@ export function RequirementsPanel({
                     className="flex min-h-10 w-full items-center gap-2 bg-surface-muted px-3.5 py-2 text-left
                                transition-colors duration-150 hover:bg-surface-hover"
                   >
-                    <span aria-hidden="true" className="w-3 text-[10px] text-text-faint">
-                      {isCollapsed ? "▸" : "▾"}
+                    <span className="grid w-3 place-items-center text-text-faint">
+                      <Icon name={isCollapsed ? "chevron-right" : "chevron-down"} size={11} />
                     </span>
                     <span className="truncate text-xs font-semibold text-text">{group.label}</span>
                     <span className="shrink-0 rounded-full bg-surface px-1.5 py-0.5 font-mono text-[10px] text-text-muted ring-1 ring-border-soft">

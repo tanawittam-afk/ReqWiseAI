@@ -19,6 +19,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Icon } from "@/app/_components/icon";
 import {
   EXPORT_FORMATS,
   EXPORT_FORMAT_LABEL,
@@ -100,8 +101,8 @@ export function DownloadActions({
             Opens in a new tab · print or save as PDF from the browser
           </span>
         </span>
-        <span aria-hidden="true" className="shrink-0 text-text-faint">
-          ↗
+        <span className="shrink-0 text-text-faint">
+          <Icon name="external" size={14} />
         </span>
       </Link>
 

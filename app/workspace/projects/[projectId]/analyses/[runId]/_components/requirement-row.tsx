@@ -10,6 +10,7 @@
  * a glow alone is not either (docs/design/INTERFACE.md §3).
  */
 
+import { Icon } from "@/app/_components/icon";
 import type { AnalysisItemView } from "@/lib/analysis/queries";
 import { computeHighlightRanges } from "@/lib/analysis/highlight";
 import {
@@ -126,8 +127,12 @@ export function RequirementRow({
             {item.followUpOn ? (
               <>
                 <Dot />
-                <span className="text-warn tabular-nums" title="Follow up on">
-                  ⏱ {item.followUpOn}
+                <span
+                  className="inline-flex items-center gap-1 text-warn tabular-nums"
+                  title="Follow up on"
+                >
+                  <Icon name="follow-up" size={11} />
+                  {item.followUpOn}
                 </span>
               </>
             ) : null}
@@ -148,13 +153,13 @@ export function RequirementRow({
         )}
         {cited ? (
           <span className="inline-flex items-center gap-1 text-signal">
-            <span aria-hidden="true">◆</span>
+            <Icon name="quote" size={11} />
             <span className="sr-only">Has an exact source excerpt</span>
           </span>
         ) : null}
         {item.relatedDisplayIds.length > 0 ? (
           <span className="inline-flex items-center gap-1">
-            <span aria-hidden="true">⇄</span>
+            <Icon name="relations" size={11} />
             {item.relatedDisplayIds.length}
             <span className="sr-only">related items</span>
           </span>
@@ -162,7 +167,7 @@ export function RequirementRow({
         {hasPendingChangeRequest ? (
           <span className="inline-flex items-center gap-1 font-medium text-warn">
             <Dot />
-            <span aria-hidden="true">⟳</span>
+            <Icon name="pending" size={11} />
             <span>Change pending</span>
           </span>
         ) : null}

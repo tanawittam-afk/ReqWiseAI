@@ -15,6 +15,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@/app/_components/icon";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -76,9 +77,9 @@ export default async function AnalysisResultPage({
         </section>
         <Link
           href={`/workspace/projects/${projectId}/sources/${source.id}`}
-          className="w-fit text-sm font-medium text-accent underline underline-offset-2"
+          className="inline-flex w-fit items-center gap-1 text-sm font-medium text-accent underline underline-offset-2"
         >
-          ← Back to source
+          <Icon name="arrow-left" size={14} /> Back to source
         </Link>
       </main>
     );
@@ -153,9 +154,9 @@ function Header({
       </Link>
       <Link
         href={`/workspace/projects/${projectId}/sources/${source.id}`}
-        className="inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
+        className="inline-flex min-h-11 items-center gap-1 text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
       >
-        ← Back to source
+        <Icon name="arrow-left" size={13} /> Back to source
       </Link>
     </header>
   );

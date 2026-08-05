@@ -6,6 +6,7 @@
  * label is the state.
  */
 
+import { Icon } from "@/app/_components/icon";
 import type { ProjectStatus } from "@/lib/contracts/project";
 import { SOURCE_KIND_LABELS, type SourceKind } from "@/lib/contracts/source";
 
@@ -31,7 +32,7 @@ export function StatusBadge({ status }: { status: ProjectStatus }) {
 export function DomainBadge({ name }: { name: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-signal-border bg-signal-soft px-2.5 py-0.5 text-xs font-medium text-signal">
-      <span aria-hidden="true">◇</span>
+      <Icon name="analyze" size={12} />
       {name}
     </span>
   );
@@ -67,7 +68,7 @@ export function LockBadge({ locked }: { locked: boolean }) {
           : "border-border-soft bg-surface-muted text-text-muted"
       }`}
     >
-      <span aria-hidden="true">{locked ? "◆" : "◇"}</span>
+      <Icon name={locked ? "locked" : "unlocked"} size={12} />
       {locked ? "Analysed — locked" : "Editable"}
     </span>
   );

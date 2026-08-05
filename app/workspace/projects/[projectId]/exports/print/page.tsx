@@ -19,6 +19,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Icon } from "@/app/_components/icon";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
@@ -95,9 +96,9 @@ export default async function ExportPrintPage({
         </ul>
         <Link
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
-          className="screen-only inline-flex min-h-11 w-fit items-center text-sm font-medium text-accent underline underline-offset-2 lg:min-h-0"
+          className="screen-only inline-flex min-h-11 w-fit items-center gap-1 text-sm font-medium text-accent underline underline-offset-2 lg:min-h-0"
         >
-          ← Back to export scope
+          <Icon name="arrow-left" size={14} /> Back to export scope
         </Link>
       </main>
     );
@@ -109,9 +110,9 @@ export default async function ExportPrintPage({
       <div className="screen-only flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border-soft bg-chrome px-4 py-2 sm:px-5">
         <Link
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
-          className="inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
+          className="inline-flex min-h-11 items-center gap-1 text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
         >
-          ← Export scope
+          <Icon name="arrow-left" size={13} /> Export scope
         </Link>
         <p className="text-xs text-text-faint">
           Use your browser&apos;s print dialog to print or save this as a PDF.

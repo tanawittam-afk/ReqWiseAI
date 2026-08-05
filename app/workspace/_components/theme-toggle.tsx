@@ -13,6 +13,8 @@
  * react-hooks/set-state-in-effect — neither is worth it for a value CSS can just read.
  */
 
+import { Icon } from "../../_components/icon";
+
 const STORAGE_KEY = "reqwise-theme";
 
 function apply(next: "light" | "dark") {
@@ -51,7 +53,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
             (compact ? "size-8" : "min-h-11 px-3 py-1.5 lg:min-h-0")
           }
         >
-          <span aria-hidden="true">{option === "light" ? "☀" : "☾"}</span>
+          <Icon name={option === "light" ? "theme-light" : "theme-dark"} size={14} />
           {!compact && <span className="capitalize">{option}</span>}
         </button>
       ))}

@@ -11,6 +11,7 @@
  */
 
 import { usePathname } from "next/navigation";
+import { Icon } from "../../_components/icon";
 
 function contextLabel(pathname: string): string {
   if (pathname === "/workspace/projects/new") return "New project";
@@ -44,7 +45,7 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
           title="Search and command palette arrive with the analysis workspace"
           className="hidden h-9 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 text-sm text-text-faint sm:flex"
         >
-          <span aria-hidden="true">⌕</span>
+          <Icon name="search" size={14} />
           <span>Search</span>
           <kbd className="ml-2 rounded-[calc(var(--radius-card)_-_1px)] border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px]">
             ⌘K

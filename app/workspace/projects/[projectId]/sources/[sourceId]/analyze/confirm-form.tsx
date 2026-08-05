@@ -11,6 +11,7 @@
  */
 
 import { useActionState, useState } from "react";
+import { Icon } from "@/app/_components/icon";
 import type { ProviderOption } from "@/lib/config/env";
 import type { ProviderKey } from "@/lib/providers/types";
 import { analyzeSourceAction } from "./actions";
@@ -89,8 +90,8 @@ export function AnalyzeConfirmForm({
 function ConfirmPoint({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex gap-2.5">
-      <span aria-hidden="true" className="mt-1 text-signal">
-        ◆
+      <span className="mt-1 text-signal">
+        <Icon name="check" size={13} />
       </span>
       <span>{children}</span>
     </li>

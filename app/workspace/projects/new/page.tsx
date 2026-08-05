@@ -12,6 +12,7 @@
  */
 
 import Link from "next/link";
+import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { listDomainProfileOptions } from "@/lib/domain/load-profile";
@@ -54,9 +55,9 @@ export default async function NewProjectPage({
       <header className="flex flex-col gap-3">
         <Link
           href="/workspace/projects"
-          className="inline-flex min-h-11 w-fit items-center text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
+          className="inline-flex min-h-11 w-fit items-center gap-1 text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
         >
-          ← <T en="Projects" th="โปรเจกต์" />
+          <Icon name="arrow-left" size={13} /> <T en="Projects" th="โปรเจกต์" />
         </Link>
         <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
           <T en="Start a project" th="เริ่มโปรเจกต์" />
