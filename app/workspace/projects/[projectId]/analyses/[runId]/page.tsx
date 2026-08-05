@@ -26,6 +26,7 @@ import { providerLabel } from "@/lib/providers/labels";
 import type { ProviderKey } from "@/lib/providers/types";
 import { formatDate } from "../../../../_components/badges";
 import { AnalysisWorkspace } from "./workspace";
+import { T } from "@/app/_components/t";
 
 export const metadata = { title: "Analysis — ReqWise AI" };
 
@@ -65,21 +66,31 @@ export default async function AnalysisResultPage({
           className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-danger-border bg-danger-soft p-5"
         >
           <h2 className="text-sm font-semibold text-danger">
-            {run.validationStatus === "provider_error" ? "Analysis could not be completed" : "Analysis output was invalid"}
+            {run.validationStatus === "provider_error" ? (
+              <T en="Analysis could not be completed" th="ไม่สามารถวิเคราะห์ให้เสร็จสมบูรณ์ได้" />
+            ) : (
+              <T en="Analysis output was invalid" th="ผลลัพธ์การวิเคราะห์ไม่ถูกต้อง" />
+            )}
           </h2>
           <p className="text-sm leading-relaxed text-text-muted">
-            {run.errorSummary?.message ?? "The analysis did not produce a usable result."}
+            {run.errorSummary?.message ?? (
+              <T en="The analysis did not produce a usable result." th="การวิเคราะห์ไม่ได้ผลลัพธ์ที่ใช้งานได้" />
+            )}
           </p>
           <p className="text-xs text-text-faint">
-            No requirements were created from this run. The source revision remains
-            locked, because this run still references it.
+            <T
+              en="No requirements were created from this run. The source revision remains
+              locked, because this run still references it."
+              th="ไม่มีข้อกำหนดถูกสร้างจากรอบนี้ ฉบับต้นทางยังคงถูกล็อกอยู่
+              เนื่องจากรอบนี้ยังอ้างอิงถึงมัน"
+            />
           </p>
         </section>
         <Link
           href={`/workspace/projects/${projectId}/sources/${source.id}`}
           className="inline-flex w-fit items-center gap-1 text-sm font-medium text-accent underline underline-offset-2"
         >
-          <Icon name="arrow-left" size={14} /> Back to source
+          <Icon name="arrow-left" size={14} /> <T en="Back to source" th="กลับไปยังต้นทาง" />
         </Link>
       </main>
     );
@@ -143,20 +154,22 @@ function Header({
     // repeated anywhere else on it), and a baseline row would hang that padding off the
     // text instead of centring it.
     <header className="flex flex-wrap items-center gap-x-3 gap-y-1 md:items-baseline">
-      <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">Analysis result</h1>
+      <h1 className="text-sm font-semibold tracking-[-0.005em] text-text">
+        <T en="Analysis result" th="ผลการวิเคราะห์" />
+      </h1>
       <span className="text-xs font-medium text-text-muted">{providerLabel(provider)}</span>
       <span className="text-xs text-text-faint">{formatDate(createdAt)}</span>
       <Link
         href={`/workspace/projects/${projectId}/traceability?run=${runId}`}
         className="ml-auto inline-flex min-h-11 items-center text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
       >
-        Traceability →
+        <T en="Traceability →" th="การสืบย้อน →" />
       </Link>
       <Link
         href={`/workspace/projects/${projectId}/sources/${source.id}`}
         className="inline-flex min-h-11 items-center gap-1 text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
       >
-        <Icon name="arrow-left" size={13} /> Back to source
+        <Icon name="arrow-left" size={13} /> <T en="Back to source" th="กลับไปยังต้นทาง" />
       </Link>
     </header>
   );

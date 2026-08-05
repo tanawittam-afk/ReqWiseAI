@@ -39,6 +39,8 @@ import { Inspector } from "./_components/inspector";
 import { RequirementsPanel } from "./_components/requirements-panel";
 import { SourcePanel } from "./_components/source-panel";
 import { SummaryBar } from "./_components/summary-bar";
+import { T } from "@/app/_components/t";
+import { pick, useLocale } from "@/lib/i18n";
 
 type Pane = "source" | "requirements" | "inspector";
 
@@ -163,6 +165,8 @@ export function AnalysisWorkspace({
     if (next === "source") setScrollSignal((value) => value + 1);
   }
 
+  const locale = useLocale();
+
   const columns = inspectorOpen
     ? "lg:grid-cols-[minmax(260px,32%)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,30%)_minmax(0,1fr)_minmax(300px,28%)]"
     : "lg:grid-cols-[minmax(260px,32%)_minmax(0,1fr)] xl:grid-cols-[minmax(280px,30%)_minmax(0,1fr)]";
@@ -184,21 +188,27 @@ export function AnalysisWorkspace({
           className="flex flex-wrap items-center gap-2 border-b border-warn-border bg-warn-soft px-3 py-2 text-[12.5px] text-warn"
         >
           <span>
-            You have unsaved changes. Opening {blocked.displayId} will discard them.
+            <T
+              en={`You have unsaved changes. Opening ${blocked.displayId} will discard them.`}
+              th={`คุณมีการเปลี่ยนแปลงที่ยังไม่บันทึก การเปิด ${blocked.displayId} จะทำให้ข้อมูลนี้หายไป`}
+            />
           </span>
           <button
             type="button"
             onClick={discardAndSelect}
             className="ml-auto min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-warn-border px-2.5 font-medium transition-colors duration-150 hover:border-warn"
           >
-            Discard and open {blocked.displayId}
+            <T
+              en={`Discard and open ${blocked.displayId}`}
+              th={`ทิ้งข้อมูลและเปิด ${blocked.displayId}`}
+            />
           </button>
           <button
             type="button"
             onClick={() => setBlockedSelection(null)}
             className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] px-2.5 font-medium underline underline-offset-2"
           >
-            Keep editing
+            <T en="Keep editing" th="แก้ไขต่อ" />
           </button>
         </div>
       ) : null}
@@ -206,17 +216,17 @@ export function AnalysisWorkspace({
       {/* One panel at a time below lg — a portrait tablet cannot hold three readable columns. */}
       <div
         role="group"
-        aria-label="Workspace panel"
+        aria-label={pick(locale, "Workspace panel", "แผงเวิร์กสเปซ")}
         className="flex gap-1 border-b border-border-soft bg-chrome px-3 py-2 lg:hidden"
       >
         <Segment active={pane === "source"} onClick={() => showPane("source")}>
-          Source
+          <T en="Source" th="ต้นทาง" />
         </Segment>
         <Segment active={pane === "requirements"} onClick={() => showPane("requirements")}>
-          Requirements
+          <T en="Requirements" th="ข้อกำหนด" />
         </Segment>
         <Segment active={pane === "inspector"} onClick={() => showPane("inspector")}>
-          Inspector
+          <T en="Inspector" th="แผงตรวจสอบ" />
         </Segment>
       </div>
 
