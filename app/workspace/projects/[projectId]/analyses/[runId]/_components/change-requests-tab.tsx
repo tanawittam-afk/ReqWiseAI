@@ -159,7 +159,7 @@ function ResolveForm({
           <button
             type="button"
             onClick={() => setDecision("approved")}
-            className="min-h-9 rounded-[var(--radius-card)] border border-ok-border bg-ok-soft px-2.5 text-[12.5px] font-medium
+            className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-ok-border bg-ok-soft px-2.5 text-[12.5px] font-medium
                        text-ok transition-colors duration-150 hover:border-ok"
           >
             Approve change
@@ -167,7 +167,7 @@ function ResolveForm({
           <button
             type="button"
             onClick={() => setDecision("rejected")}
-            className="min-h-9 rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-2.5 text-[12.5px] font-medium
+            className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-2.5 text-[12.5px] font-medium
                        text-danger transition-colors duration-150 hover:border-danger"
           >
             Reject change
@@ -221,7 +221,7 @@ function ResolveForm({
                 setDecision(null);
                 setNote("");
               }}
-              className="min-h-9 rounded-[var(--radius-card)] px-2.5 text-[12.5px] text-text-muted transition-colors duration-150 hover:text-text"
+              className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] px-2.5 text-[12.5px] text-text-muted transition-colors duration-150 hover:text-text"
             >
               Cancel
             </button>
@@ -239,7 +239,7 @@ function ConfirmButton({ label }: { label: string }) {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="min-h-9 rounded-[var(--radius-card)] bg-accent px-3 text-[12.5px] font-semibold text-on-accent
+      className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] bg-accent px-3 text-[12.5px] font-semibold text-on-accent
                  transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Working…" : label}
@@ -254,7 +254,7 @@ function WithdrawButton() {
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2.5 text-[12.5px] font-medium
+      className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2.5 text-[12.5px] font-medium
                  text-text-muted transition-colors duration-150 hover:bg-surface-hover hover:text-text
                  disabled:cursor-not-allowed disabled:opacity-60"
     >

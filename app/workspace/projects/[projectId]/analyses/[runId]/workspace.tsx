@@ -189,14 +189,14 @@ export function AnalysisWorkspace({
           <button
             type="button"
             onClick={discardAndSelect}
-            className="ml-auto min-h-9 rounded-[var(--radius-card)] border border-warn-border px-2.5 font-medium transition-colors duration-150 hover:border-warn"
+            className="ml-auto min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-warn-border px-2.5 font-medium transition-colors duration-150 hover:border-warn"
           >
             Discard and open {blocked.displayId}
           </button>
           <button
             type="button"
             onClick={() => setBlockedSelection(null)}
-            className="min-h-9 rounded-[var(--radius-card)] px-2.5 font-medium underline underline-offset-2"
+            className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] px-2.5 font-medium underline underline-offset-2"
           >
             Keep editing
           </button>

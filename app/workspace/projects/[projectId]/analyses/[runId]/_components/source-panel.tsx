@@ -96,7 +96,7 @@ export function SourcePanel({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search in document"
-            className="min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
+            className="min-h-11 lg:min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
           />
         </label>
         {query.trim().length > 0 ? (
@@ -175,9 +175,9 @@ function NavButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="grid size-9 place-items-center rounded-[var(--radius-card)] border border-border-soft bg-surface text-text-muted
+      className="grid size-11 place-items-center rounded-[var(--radius-card)] border border-border-soft bg-surface text-text-muted
                  transition-colors duration-150 hover:bg-surface-hover hover:text-text
-                 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface"
+                 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface lg:size-9"
     >
       <span aria-hidden="true">{children}</span>
       <span className="sr-only">{label}</span>

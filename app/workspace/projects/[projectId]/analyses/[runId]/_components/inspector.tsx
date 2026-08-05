@@ -146,8 +146,8 @@ export function Inspector({
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto grid size-9 shrink-0 place-items-center rounded-[var(--radius-card)] text-text-faint
-                       transition-colors duration-150 hover:bg-surface-hover hover:text-text"
+            className="ml-auto grid size-11 shrink-0 place-items-center rounded-[var(--radius-card)] text-text-faint
+                       transition-colors duration-150 hover:bg-surface-hover hover:text-text lg:size-9"
           >
             <span aria-hidden="true">✕</span>
             <span className="sr-only">Close inspector</span>
@@ -407,7 +407,7 @@ function Relations({
             <button
               type="button"
               onClick={() => onSelectDisplayId(displayId)}
-              className="min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 font-mono text-[11px]
+              className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 font-mono text-[11px]
                          font-medium text-text-muted transition-colors duration-150
                          hover:border-accent-border hover:bg-accent-soft hover:text-accent"
             >
