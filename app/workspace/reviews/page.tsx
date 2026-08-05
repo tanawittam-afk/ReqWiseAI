@@ -30,6 +30,7 @@ import type { WorkspaceChangeRequestRow, WorkspaceItemRow } from "@/lib/workspac
 import { formatDate } from "../_components/badges";
 import { DisplayId, ProjectChip } from "../_components/item-chips";
 import { ItemRow, ItemRowList } from "../_components/workspace-item-row";
+import { T } from "../../_components/t";
 
 export const metadata = { title: "Reviews — ReqWise AI" };
 
@@ -47,56 +48,80 @@ export default async function ReviewsPage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-[var(--space-shell-gap)] px-[var(--space-shell-x)] py-[var(--space-shell-y)] sm:px-[var(--space-shell-x-lg)] sm:py-[var(--space-shell-y-lg)]">
       <header className="flex flex-col gap-1.5">
-        <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Reviews</h1>
+        <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
+          <T en="Reviews" th="การตรวจสอบ" />
+        </h1>
         <p className="text-sm text-text-muted">
-          {total === 0
-            ? "Nothing is waiting on you. Every requirement, question and finding has been decided."
-            : `${total} ${total === 1 ? "item is" : "items are"} waiting on a decision. Nothing is ever approved without you.`}
+          {total === 0 ? (
+            <T
+              en="Nothing is waiting on you. Every requirement, question and finding has been decided."
+              th="ไม่มีสิ่งใดรอคุณอยู่ ทุกข้อกำหนด คำถาม และข้อค้นพบได้รับการตัดสินใจแล้ว"
+            />
+          ) : (
+            <T
+              en={`${total} ${total === 1 ? "item is" : "items are"} waiting on a decision. Nothing is ever approved without you.`}
+              th={`มี ${total} รายการรอการตัดสินใจ ไม่มีสิ่งใดถูกอนุมัติโดยไม่ผ่านคุณ`}
+            />
+          )}
         </p>
       </header>
 
       <Section
         anchor={BUCKET_ANCHOR.awaiting_review}
-        title="Requirements awaiting review"
+        title={{ en: "Requirements awaiting review", th: "ข้อกำหนดที่รอตรวจสอบ" }}
         count={counts.awaiting_review}
-        blurb="Draft, or sent back for clarification. Every one of these was generated as a draft — no code path can create a requirement in any other status."
-        empty="Every requirement has been reviewed."
+        blurb={{
+          en: "Draft, or sent back for clarification. Every one of these was generated as a draft — no code path can create a requirement in any other status.",
+          th: "อยู่ในสถานะร่างหรือถูกตีกลับเพื่อขอความชัดเจน ทุกรายการถูกสร้างขึ้นเป็นร่าง — ไม่มีเส้นทางใดสร้างข้อกำหนดในสถานะอื่นได้",
+        }}
+        empty={{ en: "Every requirement has been reviewed.", th: "ข้อกำหนดทุกข้อได้รับการตรวจสอบแล้ว" }}
       >
         <ItemsSection items={work.awaitingReview} />
       </Section>
 
       <Section
         anchor={BUCKET_ANCHOR.unanswered_questions}
-        title="Unanswered questions"
+        title={{ en: "Unanswered questions", th: "คำถามที่ยังไม่มีคำตอบ" }}
         count={counts.unanswered_questions}
-        blurb="The analysis surfaced missing information instead of guessing at it. Each one needs an answer, a deferral, or a note that it does not apply."
-        empty="No open questions."
+        blurb={{
+          en: "The analysis surfaced missing information instead of guessing at it. Each one needs an answer, a deferral, or a note that it does not apply.",
+          th: "การวิเคราะห์แจ้งข้อมูลที่ขาดหายแทนการเดา แต่ละรายการต้องการคำตอบ การเลื่อนออกไป หรือหมายเหตุว่าไม่เกี่ยวข้อง",
+        }}
+        empty={{ en: "No open questions.", th: "ไม่มีคำถามที่ยังเปิดอยู่" }}
       >
         <ItemsSection items={work.unansweredQuestions} />
       </Section>
 
       <Section
         anchor={BUCKET_ANCHOR.open_findings}
-        title="Open quality findings"
+        title={{ en: "Open quality findings", th: "ข้อค้นพบด้านคุณภาพที่ยังไม่ปิด" }}
         count={counts.open_findings}
-        blurb="Ambiguous, incomplete, conflicting, untestable or duplicated requirements the analysis found in its own output. Acknowledged still counts — seeing a finding is not resolving it."
-        empty="No findings outstanding."
+        blurb={{
+          en: "Ambiguous, incomplete, conflicting, untestable or duplicated requirements the analysis found in its own output. Acknowledged still counts — seeing a finding is not resolving it.",
+          th: "ข้อกำหนดที่คลุมเครือ ไม่ครบถ้วน ขัดแย้ง ทดสอบไม่ได้ หรือซ้ำซ้อน ที่การวิเคราะห์พบในผลลัพธ์ของตัวเอง การรับทราบยังไม่ใช่การแก้ไข",
+        }}
+        empty={{ en: "No findings outstanding.", th: "ไม่มีข้อค้นพบที่ค้างอยู่" }}
       >
         <ItemsSection items={work.openFindings} />
       </Section>
 
       <Section
         anchor={BUCKET_ANCHOR.pending_change_requests}
-        title="Change requests pending"
+        title={{ en: "Change requests pending", th: "คำขอเปลี่ยนแปลงที่รออนุมัติ" }}
         count={counts.pending_change_requests}
-        blurb="A proposal against a requirement that was already approved or rejected. Approved and rejected content is never silently rewritten — a disagreement becomes a new object with its own audit trail."
-        empty="No change requests waiting."
+        blurb={{
+          en: "A proposal against a requirement that was already approved or rejected. Approved and rejected content is never silently rewritten — a disagreement becomes a new object with its own audit trail.",
+          th: "ข้อเสนอต่อข้อกำหนดที่ได้รับการอนุมัติหรือปฏิเสธไปแล้ว เนื้อหาที่อนุมัติหรือปฏิเสธแล้วจะไม่ถูกเขียนทับโดยไม่แจ้ง — ความเห็นต่างจะกลายเป็นออบเจกต์ใหม่ที่มีประวัติของตัวเอง",
+        }}
+        empty={{ en: "No change requests waiting.", th: "ไม่มีคำขอเปลี่ยนแปลงที่รออยู่" }}
       >
         <ChangeRequestSection rows={work.pendingChangeRequests} />
       </Section>
     </main>
   );
 }
+
+type Bilingual = { en: string; th: string };
 
 function Section({
   anchor,
@@ -107,10 +132,10 @@ function Section({
   children,
 }: {
   anchor: string;
-  title: string;
+  title: Bilingual;
   count: number;
-  blurb: string;
-  empty: string;
+  blurb: Bilingual;
+  empty: Bilingual;
   children: React.ReactNode;
 }) {
   const headingId = `${anchor}-heading`;
@@ -121,7 +146,7 @@ function Section({
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline gap-2">
           <h2 id={headingId} className="text-sm font-semibold text-text">
-            {title}
+            <T en={title.en} th={title.th} />
           </h2>
           <span
             className={`font-mono text-xs font-semibold ${count > 0 ? "text-accent" : "text-text-faint"}`}
@@ -129,12 +154,14 @@ function Section({
             {count}
           </span>
         </div>
-        <p className="max-w-2xl text-xs leading-relaxed text-text-faint">{blurb}</p>
+        <p className="max-w-2xl text-xs leading-relaxed text-text-faint">
+          <T en={blurb.en} th={blurb.th} />
+        </p>
       </div>
 
       {count === 0 ? (
         <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-6 text-sm text-text-muted">
-          {empty}
+          <T en={empty.en} th={empty.th} />
         </p>
       ) : (
         children
@@ -178,7 +205,10 @@ function ChangeRequestSection({ rows }: { rows: WorkspaceChangeRequestRow[] }) {
             <p className="line-clamp-2 text-xs leading-relaxed text-text-muted">{row.reason}</p>
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] text-text-faint">
-                Replaces “{row.targetTitle}” · raised {formatDate(row.requestedAt)}
+                <T
+                  en={`Replaces "${row.targetTitle}" · raised ${formatDate(row.requestedAt)}`}
+                  th={`แทนที่ "${row.targetTitle}" · เสนอเมื่อ ${formatDate(row.requestedAt)}`}
+                />
               </span>
               <span aria-hidden="true" className="text-text-faint">
                 ·
