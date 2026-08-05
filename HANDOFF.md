@@ -3,7 +3,71 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-05 (**UX/UI Master Plan Phase 7 (Visual polish and i18n
+Last updated: 2026-08-05 (**Phase 7 follow-up — i18n sweep continued + real browser
+verification.** Closes the two gaps Phase 7 explicitly disclosed as incomplete: the i18n
+sweep and a live keyboard/browser pass. Eight commits.
+
+**i18n:** seven more slices wrapped in `<T>`/`useLocale()`+`pick()` — auth screens
+(sign-in/sign-up/`AuthForm`, whose `submitLabel` prop became a `sign-in`|`create-account`
+enum instead of a free English string), the four workspace-root pages (dashboard,
+requirements, reviews, settings), shared chrome (`badges.tsx`, `item-chips.tsx`,
+`theme-toggle.tsx`, `project-nav.tsx`), and the analysis workspace's summary bar, source
+panel, requirement row, workspace shell, result-page header, and requirements panel
+(tabs/search/filters/groups). **Grep count: 33 of 83 `.tsx` files now use `<T>`/
+`useLocale`, up from 14 at the start of this round** (`grep -rl "<T \|useLocale" app
+--include=*.tsx | wc -l`). Still untranslated and left for a future round: the
+inspector (`inspector.tsx`, the single largest remaining file), the review/workflow/
+change-request action panels, history panel, traceability, exports, sources and
+projects-list pages/forms — all disclosed, none silently skipped. Two label maps are a
+**deliberate, permanent scope boundary**, not a gap: `STATUS_LABEL`/`PRIORITY_LABEL`/
+`TYPE_LABEL`/`TYPE_SHORT_LABEL`/`EVIDENCE_LABEL` (`item-labels.ts`) and `activityLabel()`
++`WORKFLOW_ACTIVITY_LABEL`/`CHANGE_REQUEST_ACTIVITY_LABEL` (`lib/review/history.ts`,
+`lib/contracts/*.ts`) are shared status vocabulary consumed by many components outside
+this round's file list — localizing them means threading a `locale` argument through a
+lib layer that today returns plain strings, which is a bigger, separate piece of work
+than "wrap the JSX this page renders."
+
+**Browser verification, actually run this time** (previous two sessions could not
+get a real session going): signed in as `slice3.demo@reqwise.dev`, `claude-in-chrome`,
+dev server on `localhost:3000`. Found and fixed two real bugs along the way:
+
+1. **The skip link never moved keyboard focus.** It scrolled to `#main-content` (URL
+   hash changed) but focus stayed on `<body>`, because none of the skip link's three
+   targets (`app/page.tsx`, `app/workspace/layout.tsx`, `app/demo/layout.tsx`) carried a
+   `tabindex`. Fixed with `tabIndex={-1}` plus a `focus-visible` outline (existing
+   `--accent` token) on all three. Confirmed via `.focus()` + click-activation: focus now
+   lands on the correct element every time.
+2. **A Next.js 16 dev warning fired on every load**: `scroll-behavior: smooth` is set
+   deliberately in `globals.css`, but `<html>` never declared
+   `data-scroll-behavior="smooth"`, so Next.js logged a warning every navigation. Added
+   the attribute to `app/layout.tsx`. Confirmed gone via `read_console_messages` on a
+   fresh navigation.
+
+**What was and wasn't exercised:** `resize_window` returns a "success" message in this
+session (previous two sessions got an outright error) but **does not actually change the
+render viewport** — `window.innerWidth` stayed `1920` regardless of the width requested,
+confirmed via JS after each call. The sandbox is still effectively pinned above `xl`
+(1280px), so the inspector drawer's `lg`–`xl`-only `role="dialog"`/`aria-modal`/Escape
+code path (added Phase 7, commit `5df86c3`) was **read and confirmed correct in code, not
+exercised live** — same honest limitation Phase 6 recorded, still true. What *was*
+exercised live: theme + language toggles across dashboard/project/analysis-workspace
+screens (instant swap, zero console errors, zero hydration warnings, confirmed via
+`read_console_messages`); the Inspector open/close toggle and its static third-column
+behavior at the sandbox's actual width; Escape correctly doing nothing to the inspector
+at that width (it is not a dialog there, by design); two `EmptyState` primitive
+instances triggered live (`requirements-view.tsx`'s filter-miss state via
+`/workspace/requirements`, and `requirements-panel.tsx`'s own filter-miss state inside
+the analysis workspace) — both rendered with a working next-action link
+(`Clear filters`), the second one correctly in Thai per this round's own translation.
+Pure multi-step keyboard-only `Tab`/`Return` sequences via the `computer` tool's `key`
+action were **unreliable in this sandbox** — the same single action sometimes landed on
+the expected element and sometimes did not, independent of any application code (isolated
+by re-testing the identical sequence multiple times with waits inserted). Mouse clicks,
+programmatic `.focus()`, and single Tab-then-check spot-checks were consistently
+reliable and are what the findings above rest on; a genuinely continuous human keyboard
+session remains the gold-standard confirmation this environment could not fully replace.
+
+Earlier: 2026-08-05 (**UX/UI Master Plan Phase 7 (Visual polish and i18n
 completion) shipped** — five slices, five commits: the `lucide-react` icon rollout is
 now complete (every remaining unicode glyph used as an icon, ~35 call sites across the
 sidebar, toolbar, inspector, badges, chips, and every "← Back"/"↗ external" link, now
