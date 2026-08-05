@@ -61,7 +61,7 @@ export function ProjectNav({
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`inline-flex min-h-9 items-center rounded-[var(--radius-card)] px-3 text-sm whitespace-nowrap transition-colors ${
+                className={`inline-flex min-h-11 items-center rounded-[var(--radius-card)] px-3 text-sm whitespace-nowrap transition-colors lg:min-h-9 ${
                   active
                     ? "bg-accent-soft font-medium text-accent"
                     : "text-text-muted hover:bg-chrome-hover hover:text-text"

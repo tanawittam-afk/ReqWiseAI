@@ -83,7 +83,7 @@ export default async function EditSourcePage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8">
       <Link
         href={detail}
-        className="w-fit text-xs text-text-faint transition-colors hover:text-text-muted"
+        className="inline-flex min-h-11 w-fit items-center text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
       >
         ← {source.title}
       </Link>

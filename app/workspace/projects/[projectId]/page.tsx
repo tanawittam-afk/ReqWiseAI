@@ -54,7 +54,7 @@ export default async function ProjectOverviewPage({
       <header className="flex flex-col gap-2">
         <Link
           href="/workspace/projects"
-          className="w-fit text-xs text-text-faint transition-colors hover:text-text-muted"
+          className="inline-flex min-h-11 w-fit items-center text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
         >
           ← Projects
         </Link>
@@ -197,8 +197,8 @@ export default async function ProjectOverviewPage({
                   {archived ? null : (
                     <Link
                       href={`/workspace/projects/${projectId}/sources/new`}
-                      className="rounded-[var(--radius-card)] border border-border-soft px-2.5 py-1.5 text-xs font-medium
-                                 text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+                      className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft px-2.5 text-xs font-medium
+                                 text-text-muted transition-colors hover:bg-surface-hover hover:text-text lg:min-h-9"
                     >
                       Add source
                     </Link>

@@ -45,7 +45,7 @@ export default async function SourcesPage({
       <header className="flex flex-col gap-3">
         <Link
           href={`/workspace/projects/${projectId}`}
-          className="w-fit text-xs text-text-faint transition-colors hover:text-text-muted"
+          className="inline-flex min-h-11 w-fit items-center text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
         >
           ← {project.name}
         </Link>

@@ -28,7 +28,7 @@ export default function ProjectsError({
       <button
         type="button"
         onClick={reset}
-        className="rounded-[var(--radius-card)] border border-border-soft px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft px-3 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text lg:min-h-9"
       >
         Try again
       </button>
