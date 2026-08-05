@@ -3,7 +3,25 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-08-05 (**UX/UI Master Plan Phase 6 (Mobile) shipped** — the whole app
+Last updated: 2026-08-05 (**UX/UI Master Plan Phase 7 (Visual polish and i18n
+completion) shipped** — five slices, five commits: the `lucide-react` icon rollout is
+now complete (every remaining unicode glyph used as an icon, ~35 call sites across the
+sidebar, toolbar, inspector, badges, chips, and every "← Back"/"↗ external" link, now
+renders through `app/_components/icon.tsx`); the `--space-shell-*` page-shell spacing
+token (`app/globals.css`) closes the audit's "no spacing scale" finding for the one
+place density actually drifted (the outer page wrapper's `gap-*`, unified from a
+3–8 spread to one value); the Phase 1 `EmptyState` primitive finally has real call
+sites (sources, projects, exports, traceability, requirements); a skip link plus
+`#main-content` and the `lg`-breakpoint inspector drawer's `role="dialog"`/
+`aria-modal`/Escape handler close the three accessibility gaps the audit named; and a
+bounded i18n pass wrapped the toolbar breadcrumb and account menu. Motion was audited
+(every transition already 150–200ms, inside the 120–220ms budget) and needed no
+changes. `INTERFACE.md`'s Implementation notes table gained four new rows. See "Phase
+7" below for the full five-slice breakdown, the tab-pattern decision (kept
+`aria-pressed`, did not adopt `role="tablist"`), and what the i18n sweep did and did
+not cover.
+
+Earlier: 2026-08-05 (**UX/UI Master Plan Phase 6 (Mobile) shipped** — the whole app
 now holds a 44px-touch-target-until-`lg` line, not just the analysis workspace: sidebar
 becomes a stacked nav behind a Menu button below `md`, every project/source/export/
 traceability "back" link and control that used to be a 36px desktop-only target now
@@ -45,7 +63,7 @@ tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phases 1–6 done. Phases 7–8 not started.**
+**Status: Phases 1–7 done. Phase 8 not started.**
 
 ### Phase 1 — shipped 2026-08-03
 
@@ -350,6 +368,157 @@ gate is that nobody edits it casually. Note also that this number will drift aga
 every future analysis run in that project — worth considering whether
 `projectDependencies.runs` belongs in a fingerprint at all, or whether that project
 should stop being used for ad-hoc runs.
+
+### Phase 7 — shipped 2026-08-05: Visual polish and i18n completion
+
+**Goal, per the plan:** close out the two things that span every file — finish the
+icon rollout and the i18n sweep — plus motion, a spacing scale, empty states and the
+accessibility gaps the audit named. Five slices, five commits (`2dbf929`, `5df86c3`,
+`653a7be`, `d3d2743`, `d0446b9`).
+
+1. **Icons** — every remaining unicode glyph used *as an icon* now renders through
+   `app/_components/icon.tsx`'s single `<Icon name="…">` mapping, which stayed the only
+   file importing `lucide-react` directly. Covered: the sidebar's collapse (`»`/`«`) and
+   mobile-menu (`☰`/`✕`) controls plus its five nav icons (previously raw glyph
+   characters, now the same `Icon` names the mapping already exposed for `dashboard`/
+   `projects`/`requirements`/`reviews`/`settings`); the theme toggle (`☀`/`☾`); the
+   inspector's close button and its evidence "◆ Verified"/"◇ Unverified" marks;
+   requirement-row's cited/related/change-pending/follow-up marks; `badges.tsx`'s
+   domain and lock badges; `item-chips.tsx`'s cited and project chips; the toolbar's
+   disabled search button; the source and requirements panels' search glyph, citation
+   prev/next buttons (now real up/down chevrons, not `↑`/`↓` text) and group expand/
+   collapse chevrons; the traceability map's citation mark; `coverage-row.tsx`'s
+   attention dot (switched to the same small `rounded-full` div `StatusBadge` already
+   uses for its dot — not a unicode glyph, so it didn't need an `Icon` at all);
+   `confirm-form.tsx`'s confirmation bullets; and all **15** "← Back"/"← {name}" links
+   plus the **2** "↗ external" marks scattered across the export/source/project detail
+   screens (new `arrow-left` and reused `external` names in the icon map; new
+   `chevron-up`/`chevron-down` for the citation nav buttons).
+   **Left alone, correctly:** the toolbar's `⌘K` kbd hint (a textual keyboard-shortcut
+   convention, not a UI icon) and every remaining non-ASCII character in the codebase,
+   which is inside a JSDoc comment — verified by grepping the rendered glyph ranges
+   after the slice, not just by eye.
+2. **Accessibility** — the three gaps the audit named:
+   - **Skip link + `#main-content`**, neither of which existed. New
+     `app/_components/skip-link.tsx`, wired into the two shells that put nav chrome
+     ahead of content: `app/workspace/layout.tsx` (before the sidebar) and
+     `app/_components/site-header.tsx` (shared by `/` and `/demo`). Every page under
+     `app/workspace/` already renders its own `<main>`, so the layout's own wrapper
+     stayed a plain `<div id="main-content">` rather than nesting a second `<main>`
+     landmark inside it — `app/page.tsx`'s pre-existing `<main id="main">` and
+     `app/demo/layout.tsx`'s content wrapper (promoted to a real `<main
+     id="main-content">`, since nothing else in `/demo` declares one) both carry the
+     id the shared skip link targets.
+   - **The `lg`-breakpoint inspector drawer** gets `role="dialog"`, `aria-modal="true"`
+     and an Escape handler — but *only* in the 1024–1279px band where it actually
+     renders as the absolutely-positioned overlay (§9's shadow exception). Below `lg`
+     it's one pane of the segmented control (normal flow); at `xl` it's a static grid
+     column. Neither of those is a dialog, so the ARIA attributes are conditioned on a
+     `matchMedia` query read through `useSyncExternalStore` — the same technique
+     `useLocale()` uses — rather than `useEffect`+`setState`, which trips
+     `react-hooks/set-state-in-effect` (hit and fixed during this slice). Opening the
+     drawer moves focus to its close button and remembers what was focused before;
+     Escape closes it and restores that focus instead of dropping it to `<body>`.
+   - **Tab-pattern decision**, recorded inline at `workspace.tsx`'s `Segment`
+     component: kept `aria-pressed`, did **not** adopt `role="tablist"` for the
+     Source/Requirements/Inspector switcher, even though it was the plan's strongest
+     candidate. A tablist's roving-tabindex/arrow-key contract would only be true
+     below `lg` — at `lg` and up the same three views become simultaneously-visible
+     panels, so "the one active tab" stops being an honest description exactly where
+     the control still renders, and making the ARIA role itself track a breakpoint
+     (as the inspector drawer's `role`/`aria-modal` now legitimately does) would buy a
+     second such listener for a control that already meets INTERFACE.md §12/§15
+     without it. Matches the codebase's pre-existing position on the projects-list
+     filter control ("Segmented control rather than tabs — a filter is a view of one
+     list"). The other `aria-pressed` groups audited (summary-bar's Inspector toggle,
+     scope-panel's presets, traceability's view/tab switches, coverage/matrix
+     selection, and the inspector's own Details/Evidence/… strip, which uses
+     `aria-current`) are single-toggle or filter controls, not tab-panel ownership,
+     and were left as they are.
+3. **Spacing scale** — `app/globals.css`'s `--space-shell-*` tokens, the same plain
+   `:root` custom-property convention `--radius-card`/`--radius-panel` already use
+   (not a Tailwind `@theme` scale). The audit found "no spacing scale token — density
+   varies by page": ~19 page wrappers already shared the identical shape (`px-4 py-6
+   sm:px-8 sm:py-8`), but the `gap-*` between header/subnav/content ranged from 3 to 8
+   with nothing to check it against. Two named tiers matching shapes the app already
+   had (not invented): the wide list/dashboard shell (14 pages, gap unified to the
+   1.5rem the majority already used) and the narrower single-column detail shell (5
+   pages: the analysis-run redirect, export scope, both analyze-source screens,
+   traceability — `--space-shell-y-tight` does not step up at `sm`, and each keeps its
+   own content-driven inner `gap-*`). **Deliberately not migrated:** anything *inside*
+   a page (header rows, `dl` grids, card padding), the not-found/error full-page
+   pattern's `px-6 py-16`, sign-in/up's `p-6`, and the printable export document's own
+   `px-6 py-8`/`py-10` — either already internally consistent for their own page type
+   or a deliberately different shape (a centered error state, a printable document);
+   folding them in would have been the "excuse to touch every px value" the plan's
+   scope note warned against.
+4. **Empty states** — the Phase 1 `EmptyState` primitive (`app/_components/ui/
+   empty-state.tsx`) had existed since Phase 1 with zero consumers until this slice.
+   Migrated: `sources/page.tsx`'s dashed "Nothing to analyse yet" panel; `projects/
+   page.tsx`'s local `EmptyState()` (split into its two branches — archived-filter and
+   no-projects-at-all — both now the shared primitive; the old "notes → requirements →
+   review" mono line and centered layout were dropped for the primitive's own
+   left-aligned shape, a deliberate simplification); `exports/page.tsx` and
+   `traceability/page.tsx`'s near-identical "no analysed requirements yet" blocks; and
+   `requirements-view.tsx`'s single empty `<p>`, which was collapsing two different
+   states into one string — split into "no requirements exist anywhere yet" and
+   "filters matched nothing," each with its own title, body and next action. Every
+   migrated instance now leads with the next action (Add the first source / Create
+   your first project / Go to source documents / Clear filters / Start a project), not
+   a restated absence. **Left alone:** `workflow-actions.tsx`'s disabled-button
+   caption ("No approved or rejected requirement exists yet…") — a compact inline hint
+   next to a button inside the inspector, not a page-level empty state; the dashed-box
+   primitive doesn't fit that context.
+5. **i18n sweep** — a bounded pass, not the full-application sweep the plan's text
+   gestures at. `toolbar.tsx`'s `contextLabel()` (five hardcoded English route labels)
+   now `pick()`s an EN/TH pair per route; the account-menu "Sign out" button and the
+   new skip link's own text now use `<T>`. **Honestly: 14 of 83 `.tsx` files under
+   `app/` use `<T>`/`useLocale()` after this slice (was 8 of 82 before Phase 1's own
+   count).** A complete sweep — every inspector tab, badge, chip, filter label,
+   dashboard tile, empty-state string this phase just wrote in English, etc. — is a
+   materially larger effort than one slice among five in one phase, and CLAUDE.md's
+   own rule (`<T>` is chrome-only, never requirement content) means most of what's
+   left genuinely is in scope for a future i18n phase, not a "this doesn't count"
+   exclusion. This slice targeted the highest-traffic shared surfaces that render on
+   every screen (breadcrumb, account menu, skip link) — the same "smoke-tested, not a
+   translation pass" scoping Phase 1 recorded for its own first slice.
+
+**Motion** was audited, not changed: every `duration-*` class in the app is 150 or
+200ms (`grep -rnoE "duration-[0-9]+" app` — one `duration-200` on the workspace grid,
+everything else `duration-150`), inside the plan's 120–220ms budget; no
+`animate-*`/`@keyframes` decoration exists anywhere. `prefers-reduced-motion` was
+already neutralised globally in Phase 1. Nothing to fix, so nothing was touched.
+
+`INTERFACE.md`'s Implementation notes table gained four new rows (Icons, Spacing
+scale, Tab-pattern decision, Accessibility), all under "(Phase 7)".
+
+- **Verified:**
+  - `npm run build`/`lint`/`typecheck`/`test` clean after **every** slice — `test`
+    stayed **800/800** throughout (this phase changed markup, tokens and a handful of
+    client-side hooks, not analysis logic). One real lint error was hit and fixed
+    mid-slice: the inspector drawer's first `matchMedia` implementation used
+    `useEffect`+`setState`, which `react-hooks/set-state-in-effect` correctly flagged;
+    rewritten with `useSyncExternalStore` before the slice's commit.
+  - **Icon grep sweep:** `grep -rnoP "[\x{2190}-\x{2BFF}\x{25A0}-\x{25FF}\x{2600}-\x{27BF}]" app --include=*.tsx` after the icons
+    slice returns only JSDoc-comment characters and the toolbar's `⌘` — zero remaining
+    glyph-as-icon usages in rendered JSX.
+  - **i18n grep:** `grep -rl "<T \|useLocale" app --include=*.tsx | wc -l` → **14** (of
+    83 `.tsx` files), up from 8 before this phase. The exact remaining-English count
+    depends on how narrowly "chrome, not content" is drawn per file; a follow-up i18n
+    phase should start by running the full `grep -rniE` sweep this phase's own
+    instructions specified and triaging file by file, since a blanket regex over this
+    codebase's comments/type labels/test fixtures produces too much noise to report a
+    single meaningful number here.
+  - **What this session could not do:** a real keyboard-only browser walkthrough and
+    light/dark × EN/TH screenshot pass via `claude-in-chrome`, and the sandbox's
+    `resize_window` limitation recorded in Phase 6 was not re-tested — Phase 7 does not
+    require breakpoint verification the way Phase 6 did, and no breakpoint-affecting
+    change was made here (the spacing-token slice is numerically identical output on
+    14 of the pages it touched, and the inspector drawer's `matchMedia` query mirrors
+    the same `lg`/`xl` breakpoints already proven correct in Phase 6 from the compiled
+    stylesheet). Verification for this phase was `build`/`lint`/`typecheck`/`test` plus
+    direct reading of the compiled markup and the grep sweeps above, not a live
+    browser session — flagged here rather than fabricated.
 
 ### Phase 6 — shipped 2026-08-05: Mobile
 
