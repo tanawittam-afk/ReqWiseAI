@@ -16,8 +16,8 @@ export function EmptyState({
   secondary,
 }: {
   icon?: IconName;
-  title: string;
-  body: string;
+  title: React.ReactNode;
+  body: React.ReactNode;
   action?: React.ReactNode;
   secondary?: React.ReactNode;
 }) {
