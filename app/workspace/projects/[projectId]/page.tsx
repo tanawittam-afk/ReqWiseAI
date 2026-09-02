@@ -14,6 +14,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { listSources } from "@/lib/sources/queries";
@@ -57,7 +58,7 @@ export default async function ProjectOverviewPage({
           href="/workspace/projects"
           className="inline-flex min-h-11 w-fit items-center gap-1 text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
         >
-          <Icon name="arrow-left" size={13} /> Projects
+          <Icon name="arrow-left" size={13} /> <T en="Projects" th="โปรเจกต์" />
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
@@ -78,14 +79,22 @@ export default async function ProjectOverviewPage({
           role="alert"
           className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
         >
-          {error === "archive"
-            ? "The project could not be archived."
-            : error === "source"
-              ? // The intake screen created this project but could not attach the text.
-                // Nothing was lost and nothing was duplicated — the project is here, and
-                // the source can be added below.
-                "The project was created, but the source text could not be saved. Add it below and analyse from there."
-              : "The project could not be restored. Only a workspace owner can restore."}
+          {error === "archive" ? (
+            <T en="The project could not be archived." th="ไม่สามารถเก็บโปรเจกต์เข้าคลังได้" />
+          ) : error === "source" ? (
+            // The intake screen created this project but could not attach the text.
+            // Nothing was lost and nothing was duplicated — the project is here, and
+            // the source can be added below.
+            <T
+              en="The project was created, but the source text could not be saved. Add it below and analyse from there."
+              th="สร้างโปรเจกต์แล้ว แต่บันทึกข้อความต้นฉบับไม่สำเร็จ เพิ่มด้านล่างแล้ววิเคราะห์จากตรงนั้น"
+            />
+          ) : (
+            <T
+              en="The project could not be restored. Only a workspace owner can restore."
+              th="ไม่สามารถกู้คืนโปรเจกต์ได้ เจ้าของพื้นที่ทำงานเท่านั้นที่กู้คืนได้"
+            />
+          )}
         </p>
       ) : null}
 
@@ -95,12 +104,25 @@ export default async function ProjectOverviewPage({
           className="flex flex-col gap-1 rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3"
         >
           <p className="text-sm font-semibold text-warn">
-            This project is archived — read-only
+            <T en="This project is archived — read-only" th="โปรเจกต์นี้ถูกเก็บเข้าคลังแล้ว — อ่านได้อย่างเดียว" />
           </p>
           <p className="text-xs leading-relaxed text-text-muted">
-            Nothing was deleted: sources, analysis runs and review history are all intact.
-            Restore the project to work on it again.
-            {project.archiveReason ? ` Reason given: “${project.archiveReason}”.` : ""}
+            <T
+              en={
+                <>
+                  Nothing was deleted: sources, analysis runs and review history are all
+                  intact. Restore the project to work on it again.
+                  {project.archiveReason ? ` Reason given: “${project.archiveReason}”.` : ""}
+                </>
+              }
+              th={
+                <>
+                  ไม่มีอะไรถูกลบ: เอกสารต้นฉบับ รอบการวิเคราะห์ และประวัติการรีวิวยังคงอยู่ครบถ้วน
+                  กู้คืนโปรเจกต์เพื่อทำงานต่อได้อีกครั้ง
+                  {project.archiveReason ? ` เหตุผลที่ระบุ: “${project.archiveReason}”` : ""}
+                </>
+              }
+            />
           </p>
         </section>
       ) : null}
@@ -108,9 +130,9 @@ export default async function ProjectOverviewPage({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="flex flex-col gap-4">
           <section className="grid gap-3 sm:grid-cols-3">
-            <Stat label="Source documents" value={project.sourceDocumentCount} />
-            <Stat label="Analysis runs" value={project.analysisRunCount} />
-            <Stat label="Requirements" value={project.analysisItemCount} />
+            <Stat label={<T en="Source documents" th="เอกสารต้นฉบับ" />} value={project.sourceDocumentCount} />
+            <Stat label={<T en="Analysis runs" th="รอบการวิเคราะห์" />} value={project.analysisRunCount} />
+            <Stat label={<T en="Requirements" th="ข้อกำหนด" />} value={project.analysisItemCount} />
           </section>
 
           {/*
@@ -123,8 +145,13 @@ export default async function ProjectOverviewPage({
             <div className="grid gap-3 sm:grid-cols-2">
               <ProjectLink
                 href={`/workspace/projects/${projectId}/traceability`}
-                title="Traceability"
-                detail="Objectives → requirements → stories → acceptance criteria, and what is missing"
+                title={<T en="Traceability" th="การเชื่อมโยง" />}
+                detail={
+                  <T
+                    en="Objectives → requirements → stories → acceptance criteria, and what is missing"
+                    th="วัตถุประสงค์ → ข้อกำหนด → เรื่องราวผู้ใช้ → เกณฑ์การยอมรับ และสิ่งที่ยังขาด"
+                  />
+                }
               />
               {/*
                * Export is offered on the same terms and for the same reason: it reads what
@@ -134,21 +161,29 @@ export default async function ProjectOverviewPage({
                */}
               <ProjectLink
                 href={`/workspace/projects/${projectId}/exports`}
-                title="Export"
-                detail="Markdown, JSON, CSV or a printable document for handoff"
+                title={<T en="Export" th="ส่งออก" />}
+                detail={
+                  <T
+                    en="Markdown, JSON, CSV or a printable document for handoff"
+                    th="Markdown, JSON, CSV หรือเอกสารสำหรับพิมพ์เพื่อส่งมอบ"
+                  />
+                }
               />
             </div>
           ) : null}
 
           <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
             <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
-              Project brief
+              <T en="Project brief" th="ข้อมูลสรุปโปรเจกต์" />
             </h2>
             <div className="flex flex-col divide-y divide-[var(--border)]">
-              <Row label="Description" value={project.description} />
-              <Row label="Business objective" value={project.businessObjective} />
+              <Row label={<T en="Description" th="รายละเอียด" />} value={project.description} />
               <Row
-                label="Known stakeholders"
+                label={<T en="Business objective" th="วัตถุประสงค์ทางธุรกิจ" />}
+                value={project.businessObjective}
+              />
+              <Row
+                label={<T en="Known stakeholders" th="ผู้มีส่วนได้ส่วนเสียที่ทราบ" />}
                 value={
                   project.knownStakeholders.length > 0
                     ? project.knownStakeholders.join(" · ")
@@ -161,39 +196,51 @@ export default async function ProjectOverviewPage({
           {recentSources.length === 0 ? (
             archived ? (
               <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface-muted px-5 py-4">
-                <h2 className="text-sm font-semibold text-text">No source documents</h2>
+                <h2 className="text-sm font-semibold text-text">
+                  <T en="No source documents" th="ยังไม่มีเอกสารต้นฉบับ" />
+                </h2>
                 <p className="mt-1 text-sm leading-relaxed text-text-muted">
-                  This project was archived before any source information was added.
+                  <T
+                    en="This project was archived before any source information was added."
+                    th="โปรเจกต์นี้ถูกเก็บเข้าคลังก่อนที่จะมีการเพิ่มข้อมูลต้นฉบับใดๆ"
+                  />
                 </p>
               </section>
             ) : (
               <section className="rounded-[var(--radius-panel)] border border-accent-border bg-accent-soft px-5 py-4">
                 <h2 className="text-sm font-semibold text-text">
-                  Next step — add source information
+                  <T en="Next step — add source information" th="ขั้นตอนถัดไป — เพิ่มข้อมูลต้นฉบับ" />
                 </h2>
                 <p className="mt-1 text-sm leading-relaxed text-text-muted">
-                  Paste the meeting notes, interview or client message this project is
-                  about. Requirements are only ever generated from text you supply.
+                  <T
+                    en="Paste the meeting notes, interview or client message this project is about. Requirements are only ever generated from text you supply."
+                    th="วางบันทึกการประชุม บทสัมภาษณ์ หรือข้อความจากลูกค้าที่เกี่ยวกับโปรเจกต์นี้ ข้อกำหนดจะถูกสร้างจากข้อความที่คุณให้มาเท่านั้น"
+                  />
                 </p>
                 <Link
                   href={`/workspace/projects/${projectId}/sources/new`}
                   className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4
                              text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
                 >
-                  Add source information
+                  <T en="Add source information" th="เพิ่มข้อมูลต้นฉบับ" />
                 </Link>
               </section>
             )
           ) : (
             <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-soft px-5 py-3">
-                <h2 className="text-sm font-semibold text-text">Recent sources</h2>
+                <h2 className="text-sm font-semibold text-text">
+                  <T en="Recent sources" th="เอกสารต้นฉบับล่าสุด" />
+                </h2>
                 <div className="flex items-center gap-3">
                   <Link
                     href={`/workspace/projects/${projectId}/sources`}
                     className="text-xs font-medium text-accent underline underline-offset-2"
                   >
-                    View all {project.sourceDocumentCount}
+                    <T
+                      en={`View all ${project.sourceDocumentCount}`}
+                      th={`ดูทั้งหมด ${project.sourceDocumentCount}`}
+                    />
                   </Link>
                   {archived ? null : (
                     <Link
@@ -201,7 +248,7 @@ export default async function ProjectOverviewPage({
                       className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft px-2.5 text-xs font-medium
                                  text-text-muted transition-colors hover:bg-surface-hover hover:text-text lg:min-h-9"
                     >
-                      Add source
+                      <T en="Add source" th="เพิ่มเอกสารต้นฉบับ" />
                     </Link>
                   )}
                 </div>
@@ -219,16 +266,22 @@ export default async function ProjectOverviewPage({
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
           <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-              Details
+              <T en="Details" th="รายละเอียด" />
             </h2>
             <dl className="mt-3 flex flex-col gap-2 text-sm">
-              <Meta label="Domain" value={project.domain?.name ?? "—"} />
-              <Meta label="Output" value={project.outputLang === "th" ? "Thai" : "English"} />
-              <Meta label="Status" value={archived ? "Archived" : "Active"} />
-              <Meta label="Created" value={formatDate(project.createdAt)} />
-              <Meta label="Updated" value={formatDate(project.updatedAt)} />
+              <Meta label={<T en="Domain" th="โดเมน" />} value={project.domain?.name ?? "—"} />
+              <Meta
+                label={<T en="Output" th="ผลลัพธ์" />}
+                value={project.outputLang === "th" ? <T en="Thai" th="ไทย" /> : <T en="English" th="อังกฤษ" />}
+              />
+              <Meta
+                label={<T en="Status" th="สถานะ" />}
+                value={archived ? <T en="Archived" th="เก็บเข้าคลัง" /> : <T en="Active" th="ใช้งานอยู่" />}
+              />
+              <Meta label={<T en="Created" th="สร้างเมื่อ" />} value={formatDate(project.createdAt)} />
+              <Meta label={<T en="Updated" th="อัปเดตเมื่อ" />} value={formatDate(project.updatedAt)} />
               {archived && project.archivedAt ? (
-                <Meta label="Archived" value={formatDate(project.archivedAt)} />
+                <Meta label={<T en="Archived" th="เก็บเข้าคลังเมื่อ" />} value={formatDate(project.archivedAt)} />
               ) : null}
             </dl>
           </section>
@@ -275,8 +328,8 @@ function ProjectLink({
   detail,
 }: {
   href: string;
-  title: string;
-  detail: string;
+  title: React.ReactNode;
+  detail: React.ReactNode;
 }) {
   return (
     <Link
@@ -295,7 +348,7 @@ function ProjectLink({
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: React.ReactNode; value: number }) {
   return (
     <div className="rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 py-3">
       <p className="text-xl font-semibold text-text">{value}</p>
@@ -304,20 +357,20 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string | null }) {
+function Row({ label, value }: { label: React.ReactNode; value: string | null }) {
   return (
     <div className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:gap-6">
       <span className="w-44 shrink-0 text-xs font-medium uppercase tracking-wide text-text-faint">
         {label}
       </span>
       <span className={`text-sm leading-relaxed ${value ? "text-text" : "text-text-faint"}`}>
-        {value ?? "Not provided"}
+        {value ?? <T en="Not provided" th="ไม่มีข้อมูล" />}
       </span>
     </div>
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Meta({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="text-xs text-text-faint">{label}</dt>

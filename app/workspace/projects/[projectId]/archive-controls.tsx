@@ -15,6 +15,8 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { archiveProjectAction, restoreProjectAction } from "../actions";
+import { T } from "@/app/_components/t";
+import { useLocale, pick } from "@/lib/i18n";
 
 export function ArchiveControls({
   projectId,
@@ -24,20 +26,25 @@ export function ArchiveControls({
   archived: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const locale = useLocale();
 
   if (archived) {
     return (
       <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">Restore project</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
+          <T en="Restore project" th="กู้คืนโปรเจกต์" />
+        </h2>
         <p className="text-xs leading-relaxed text-text-muted">
-          Puts the project back in the active list and makes it editable again. Only a
-          workspace owner can restore.
+          <T
+            en="Puts the project back in the active list and makes it editable again. Only a workspace owner can restore."
+            th="นำโปรเจกต์กลับมาอยู่ในรายการที่ใช้งานอยู่และแก้ไขได้อีกครั้ง เจ้าของพื้นที่ทำงานเท่านั้นที่กู้คืนได้"
+          />
         </p>
         <form action={restoreProjectAction}>
           <input type="hidden" name="projectId" value={projectId} />
           <SubmitButton
-            idleLabel="Restore project"
-            busyLabel="Restoring…"
+            idleLabel={<T en="Restore project" th="กู้คืนโปรเจกต์" />}
+            busyLabel={<T en="Restoring…" th="กำลังกู้คืน…" />}
             className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
           />
         </form>
@@ -47,30 +54,35 @@ export function ArchiveControls({
 
   return (
     <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">Archive project</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
+        <T en="Archive project" th="เก็บโปรเจกต์เข้าคลัง" />
+      </h2>
       <p className="text-xs leading-relaxed text-text-muted">
-        Takes the project out of the active list and makes it read-only. Nothing is
-        deleted — sources, runs and review history stay exactly as they are, and you can
-        restore it at any time.
+        <T
+          en="Takes the project out of the active list and makes it read-only. Nothing is deleted — sources, runs and review history stay exactly as they are, and you can restore it at any time."
+          th="นำโปรเจกต์ออกจากรายการที่ใช้งานอยู่และทำให้อ่านได้อย่างเดียว ไม่มีอะไรถูกลบ — เอกสารต้นฉบับ รอบการวิเคราะห์ และประวัติการรีวิวยังคงอยู่ตามเดิม และคุณสามารถกู้คืนได้ทุกเมื่อ"
+        />
       </p>
 
       {open ? (
         <form action={archiveProjectAction} className="flex flex-col gap-3">
           <input type="hidden" name="projectId" value={projectId} />
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-text">Reason (optional)</span>
+            <span className="font-medium text-text">
+              <T en="Reason (optional)" th="เหตุผล (ไม่บังคับ)" />
+            </span>
             <input
               name="reason"
               type="text"
               maxLength={2000}
-              placeholder="Client paused the engagement"
+              placeholder={pick(locale, "Client paused the engagement", "ลูกค้าระงับโครงการชั่วคราว")}
               className="w-full rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
             />
           </label>
           <div className="flex items-center gap-3">
             <SubmitButton
-              idleLabel="Archive project"
-              busyLabel="Archiving…"
+              idleLabel={<T en="Archive project" th="เก็บโปรเจกต์เข้าคลัง" />}
+              busyLabel={<T en="Archiving…" th="กำลังเก็บเข้าคลัง…" />}
               className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 text-sm font-semibold text-warn transition-colors hover:border-warn disabled:cursor-not-allowed disabled:opacity-60"
             />
             <button
@@ -78,7 +90,7 @@ export function ArchiveControls({
               onClick={() => setOpen(false)}
               className="rounded-[var(--radius-card)] px-3 py-2 text-sm text-text-muted transition-colors hover:text-text"
             >
-              Cancel
+              <T en="Cancel" th="ยกเลิก" />
             </button>
           </div>
         </form>
@@ -88,7 +100,7 @@ export function ArchiveControls({
           onClick={() => setOpen(true)}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-card)] border border-border-soft px-4 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
-          Archive project…
+          <T en="Archive project…" th="เก็บโปรเจกต์เข้าคลัง…" />
         </button>
       )}
     </section>
@@ -100,8 +112,8 @@ function SubmitButton({
   busyLabel,
   className,
 }: {
-  idleLabel: string;
-  busyLabel: string;
+  idleLabel: React.ReactNode;
+  busyLabel: React.ReactNode;
   className: string;
 }) {
   const { pending } = useFormStatus();
