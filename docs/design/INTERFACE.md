@@ -107,7 +107,15 @@ A subtle temporary relationship indicator may appear only when the selected requ
 
 The center panel is the primary analysis workspace.
 
-Use a compact structured list rather than large category cards.
+**Revised 2026-09-02** — originally "use a compact structured list rather than large
+category cards." An owner audit found the flush, divider-separated row too easy to read
+as one continuous block rather than distinct items ("มองยากมาก ไม่รู้อะไรเป็นอะไร ·
+มีแต่ Text"). Each row is now a small **bordered card** — its own border, `--radius-card`
+and a light-mode-only `shadow-[var(--shadow-card)]` — laid out with a gap between rows
+instead of a hairline divider. The accepted trade-off: fewer rows fit on one screen than
+the original flush list, in exchange for a row a reader can actually tell apart from its
+neighbours. This is still a small card, not the "large category card" the original text
+warned against — see the row anatomy below, unchanged in substance.
 
 The panel should include:
 
@@ -135,7 +143,9 @@ Each requirement row should display:
 
 The list must allow users to scan many requirements quickly.
 
-Avoid oversized cards that show only a few requirements at once.
+Avoid oversized cards that show only a few requirements at once — the 2026-09-02 bordered
+card is deliberately compact (padding in the 9–12px range, not a large card's 20px+) for
+exactly this reason.
 
 Selected requirement:
 
@@ -347,29 +357,59 @@ attribute the toggle writes, or they silently stop following it (this broke once
 
 Primary visual direction:
 
-* Depth comes from hairline borders and background-shade shifts, never from a shadow
-  around a resting panel (`--border`, `--border-strong` on hover) — see the two named
-  exceptions below
+* Depth comes from hairline borders and background-shade shifts, **plus a soft shadow on
+  resting cards and panels in light mode only** (`--shadow-card`/`--shadow-panel` in
+  `app/globals.css`, added 2026-09-02 — see the revision note right below; both resolve to
+  `none` under `[data-theme="dark"]`, where a shadow on a near-black ground is invisible
+  and the surface/border step still does the separating)
 * One saturated primary accent (`--accent`, electric blue) for interactive/selection state
 * One separate accent (`--signal`, green) reserved exclusively for citation and liveness
   indicators — never a generic decoration, never interchangeable with `--accent`
+* Soft per-item-type tints — `--tint-context`/`-requirement`/`-spec`/`-caveat` (added
+  2026-09-02) — for the four content families a reviewer scans for (problem/objective/
+  stakeholder · the three requirement kinds plus business rule · user story/acceptance
+  criterion · assumption/constraint). Fourteen item types collapsed into four tints, not
+  fourteen colours, to stay signal rather than noise; risk, open question and quality
+  finding keep the existing `--warn`/`--danger` tokens because they are states needing
+  attention, not a content category. Every tint is paired with the item type's own text
+  label — never colour alone
 * Controlled `--ok` / `--warn` / `--danger` status colours, always paired with a word, never
   colour alone
 * Sharp, small corner radii — `--radius-card: 4px` for controls/inputs/buttons/badges,
   `--radius-panel: 6px` for panel/card containers — not Tailwind's default `rounded-lg`/
   `rounded-md`/`rounded-xl`
 * Selection/active state is flat: `bg-accent-soft` background with `text-accent`/
-  `border-accent-border`, never a shadow or ring
+  `border-accent-border`, plus the shared `--shadow-card` any resting card already carries
+  — never an extra shadow or ring layered on top for selection alone
 * Mono type (`font-mono`, JetBrains Mono) for anything that is data — display IDs
   (`BR-001`), counts, badges, breadcrumbs; a geometric display face (`font-display`, Space
   Grotesk) for headings and nav labels; Inter for body copy
 * High information density without feeling crowded
+* **Every interactive action is visibly framed, in three tiers** (added 2026-09-02):
+  primary = filled `--accent`; secondary = `--surface` fill with a `--border-strong`
+  border; tertiary/ghost = transparent with a hairline `--border` border. An owner audit
+  found 13 actions rendered as bare underlined accent text and sidebar items with no frame
+  at rest — both read as prose, not controls ("หาปุ่มไม่เจอ"). No tier is ever bare text.
+  One shared definition: `app/_components/ui/action-styles.ts`, consumed by the client
+  `Button` and the server-renderable `ActionLink`/`ActionAnchor`.
 
-Two deliberate exceptions carry a real box-shadow, because both are transient overlays
-floating above the surrounding content rather than panels resting in the layout: the
-inspector drawer at the `lg` breakpoint (`analyses/[runId]/workspace.tsx`, dropped again at
-`xl` once it becomes a static grid column) and the account-menu dropdown in
-`app/workspace/layout.tsx`. No other surface in the application uses a shadow.
+**Revised 2026-09-02 — the no-shadow rule.** Originally: *"depth comes from hairline
+borders and background-shade shifts, never from a shadow around a resting panel,"* with
+exactly two named transient-overlay exceptions (below). The owner reversed this after
+finding the interface hard to parse at a glance ("มองยากมาก ไม่รู้อะไรเป็นอะไร"): a soft
+shadow is what lets one card read as separate from the one behind it, faster than a
+border alone does. The reversal is deliberately narrow — `--shadow-card`/`--shadow-panel`
+are shallow (`0 1px 2–3px rgba(11,14,20,0.06)`), light-mode-only, and every resting
+card/panel gets the *same* one token; this is still not the floating, deep-shadow "card
+UI" look the original rule was written to rule out, and dark mode is untouched — it still
+separates by hairline and surface-shade alone, exactly as originally specified.
+
+Two exceptions from the original rule still carry a *deeper* box-shadow than the new
+baseline, because both are transient overlays floating above the surrounding content
+rather than panels resting in the layout: the inspector drawer at the `lg` breakpoint
+(`analyses/[runId]/workspace.tsx`, dropped again at `xl` once it becomes a static grid
+column) and the account-menu dropdown in `app/workspace/layout.tsx`. Every other surface
+now uses at most the shallow `--shadow-card`/`--shadow-panel` baseline, in light mode only.
 
 Avoid:
 
@@ -380,8 +420,12 @@ Avoid:
 * Large gradients behind content
 * Floating decorative orbs
 * Oversized KPI cards or an invented metric to fill a layout (`--` see §6)
-* Marketing-style hero sections
+* Marketing-style hero sections **inside the app** — the public landing page at `/` sits
+  outside the workspace shell and is a separate, already-established exception
 * Chat bubbles as the primary interface
+* A shadow anywhere in dark mode, or deeper than `--shadow-card`/`--shadow-panel` in light
+  mode, outside the two named transient-overlay exceptions above
+* An action rendered as bare underlined text with no border, at any of the three tiers
 * A shadow around a panel that is not one of the two named exceptions above
 * Tailwind's `dark:` variant on any component — theming goes through the `[data-theme]`
   tokens, never a parallel dark-mode class set
@@ -541,3 +585,4 @@ Where the direction leaves room, these are the choices this codebase has already
 | Spacing scale (Phase 7) | `app/globals.css`'s `--space-shell-*` tokens (same plain-custom-property convention as `--radius-*`), scoped to the outer page wrapper only — two tiers (a wide list/dashboard shell and a narrower single-column detail shell), not a general 1–12 ramp. Everything inside a page keeps using Tailwind's own spacing scale |
 | Tab-pattern decision (Phase 7) | Every `aria-pressed` toggle group in the app (workspace panel switcher, inspector's own Details/Evidence/… strip, project/traceability filters and view switches) stays `aria-pressed`/`aria-current`, not `role="tablist"` — see the code comment at `workspace.tsx`'s `Segment` component for the full reasoning: a real tablist's roving-tabindex contract would only be honest below `lg`, where the same three views stop being mutually exclusive |
 | Accessibility (Phase 7) | Skip link (`app/_components/skip-link.tsx`) targets `#main-content` everywhere — a `<div id="main-content">` in `app/workspace/layout.tsx` (pages under it already render their own `<main>`), a real `<main id="main-content">` in `app/page.tsx` and `app/demo/layout.tsx`. The `lg`-breakpoint inspector drawer (§9's shadow exception) carries `role="dialog"`/`aria-modal="true"` and an Escape handler only while it is actually rendered as that floating overlay (tracked via `useSyncExternalStore` + `matchMedia`, not a `useEffect`+`setState` pair) |
+| ERP-clarity pass (2026-09-02) | Owner-driven redesign after an audit found the app hard to parse. Shadows: `--shadow-card`/`--shadow-panel` in `app/globals.css`, light-mode only (`none` under `[data-theme="dark"]`) — §9's original no-shadow rule reversed, narrowly. Type tints: `--tint-context`/`-requirement`/`-spec`/`-caveat`, four families not fourteen colours, each measured against its own soft background before commit (5.22–9.44:1, all clearing WCAG AA). Actions: `app/_components/ui/action-styles.ts` is the one definition of the 3-tier button look, drawn on by `button.tsx` (client) and `action-link.tsx` (server-renderable `ActionLink`/`ActionAnchor`) — replaced 13 bare-text actions app-wide and the sidebar's rest-state (`app/workspace/_components/sidebar.tsx`). Requirement rows: §3's "compact rows, not cards" narrowed to "compact **bordered** cards" — `requirement-row.tsx` + `requirements-panel.tsx`'s list wrapper (gap-separated, not `divide-y`). `SectionHeader`/`Panel` primitives in `app/_components/ui/section-header.tsx` give every panel an icon+title header band; rolled out to `projects/[projectId]/page.tsx`'s `Row`/`Meta` first (a `divide-y` label/value list becoming individually bordered fields), the rest of the app to follow incrementally as later phases touch those files (§7's own "convert opportunistically" precedent) |

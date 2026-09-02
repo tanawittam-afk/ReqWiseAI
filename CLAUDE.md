@@ -229,36 +229,55 @@ guess. This is the sharpest test of the core principle above.
 A precise, technical analytical workspace. Not a generic admin dashboard. Not a chatbot
 page. Usability, information density and long-form reading come before decorative effects.
 
-**Visual character:** hairline borders and background-shade shifts for depth, not shadows
-(two named exceptions only — see `INTERFACE.md` §9) · one saturated primary accent
-(`--accent`, blue) for interaction/selection · a second accent (`--signal`, green) reserved
-exclusively for citation/liveness, never decoration · controlled `--ok`/`--warn`/`--danger`
-status colors, always paired with a word · sharp small radii (`--radius-card: 4px` controls,
-`--radius-panel: 6px` panels), never Tailwind's default `rounded-lg`/`rounded-md` ·
-mono type (JetBrains Mono) for IDs/counts/badges, a geometric display face (Space Grotesk)
-for headings/nav, Inter for body · high density without crowding · motion of 120–220ms,
-only for panel collapse, inspector opening, selection, highlight navigation and loading.
+**Visual character:** hairline borders and background-shade shifts for depth, plus a soft
+shadow on resting cards and panels **in light mode only** (`--shadow-card`/
+`--shadow-panel`, added 2026-09-02 — see `INTERFACE.md` §9 for why the original
+no-shadow rule was reversed and how dark mode still gets none) · one saturated primary
+accent (`--accent`, blue) for interaction/selection · a second accent (`--signal`, green)
+reserved exclusively for citation/liveness, never decoration · soft per-item-type tints
+(`--tint-context`/`-requirement`/`-spec`/`-caveat`) for the four content families, always
+paired with the item type's own text label, never colour alone · controlled
+`--ok`/`--warn`/`--danger` status colors, always paired with a word · sharp small radii
+(`--radius-card: 4px` controls, `--radius-panel: 6px` panels), never Tailwind's default
+`rounded-lg`/`rounded-md` · mono type (JetBrains Mono) for IDs/counts/badges, a geometric
+display face (Space Grotesk) for headings/nav, Inter for body · high density without
+crowding · motion of 120–220ms, only for panel collapse, inspector opening, selection,
+highlight navigation and loading.
+
+**Every interactive action is visibly framed, in three tiers** (added 2026-09-02, after
+an owner audit found bare underlined text standing in for buttons in 13 places and sidebar
+items with no border at rest — "หาปุ่มไม่เจอ"): primary (filled accent), secondary
+(surface fill + a clear border), tertiary/ghost (transparent + a hairline border — never
+bare text). See `app/_components/ui/action-styles.ts`, `button.tsx` and `action-link.tsx`
+for the one shared definition both a client `Button` and a server-renderable `ActionLink`
+draw from.
 
 **Signature interface** — the Analysis Workspace is a stable **three-panel** layout:
 **Source Document · Requirements · Requirement Inspector**. The requirements panel is the
-largest, and holds compact scannable rows, not large cards. Selecting a requirement
-highlights the exact source excerpt it came from; the inspector shows that item's detail
-without a modal and can be collapsed. Below `xl` the inspector becomes a drawer; on tablet
-portrait and mobile a segmented control shows one panel at a time, preserving the
-selection. Open questions and quality findings stay reachable without leaving the
-workspace, on their own tab.
+largest, and holds requirement rows as small **bordered cards**, each with its own frame,
+radius and light-mode shadow (revised 2026-09-02 from the original "compact rows, not
+cards" — the owner's trade-off: fewer rows visible per screen, in exchange for a row a
+reader can actually tell apart from its neighbours; see `INTERFACE.md` §5). Selecting a
+requirement highlights the exact source excerpt it came from; the inspector shows that
+item's detail without a modal and can be collapsed. Below `xl` the inspector becomes a
+drawer; on tablet portrait and mobile a segmented control shows one panel at a time,
+preserving the selection. Open questions and quality findings stay reachable without
+leaving the workspace, on their own tab.
 
 **Components:** application sidebar · compact toolbar · one-row analysis summary · source
-panel with in-panel search and highlight navigation · grouped compact requirement rows ·
+panel with in-panel search and highlight navigation · grouped requirement cards ·
 requirement inspector · domain selector · source editor · open-question queue ·
 traceability map · version comparison view · command palette · review status controls.
 
 **Avoid:** neon saturation as a resting-state color (reserve it for `--signal` citation
 moments only) · permanent glowing relationship lines · excessive gradients or
 glassmorphism · floating decorative orbs · oversized KPI cards · marketing-style hero
-sections inside the app · generic template dashboards · chat bubbles as the primary
-interaction · a shadow on any panel other than the two named transient-overlay exceptions
-· a Tailwind `dark:` class on any component · decoration that costs readability.
+sections **inside the app** (the public landing page at `/` is a separate, already-
+established exception — it sits outside the workspace shell) · generic template
+dashboards · chat bubbles as the primary interaction · a
+shadow anywhere in dark mode, or a shadow heavier than `--shadow-card`/`--shadow-panel` in
+light mode · a Tailwind `dark:` class on any component · decoration that costs
+readability · an action rendered as bare underlined text with no border.
 
 **Never invent a metric to fill a mockup.** The reference render shows a quality score,
 coverage percentages and sparklines; no such data exists, and the quality-score panel is
