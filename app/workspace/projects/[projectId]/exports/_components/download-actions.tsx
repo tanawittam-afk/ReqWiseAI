@@ -20,6 +20,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import {
   EXPORT_FORMATS,
   EXPORT_FORMAT_LABEL,
@@ -49,8 +50,10 @@ export function DownloadActions({
   if (disabled) {
     return (
       <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2.5 text-[13px] text-text-muted">
-        Downloads are unavailable until the blocking problems above are resolved. The
-        printable view is unavailable for the same reason.
+        <T
+          en="Downloads are unavailable until the blocking problems above are resolved. The printable view is unavailable for the same reason."
+          th="ยังไม่สามารถดาวน์โหลดได้จนกว่าปัญหาที่ปิดกั้นข้างต้นจะได้รับการแก้ไข มุมมองสำหรับพิมพ์ก็ใช้ไม่ได้ด้วยเหตุผลเดียวกัน"
+        />
       </p>
     );
   }
@@ -82,7 +85,11 @@ export function DownloadActions({
               <span className="truncate font-mono text-xs text-text-faint">{filename}</span>
             </span>
             <span className="shrink-0 text-xs text-text-faint">
-              {isBusy ? "Preparing…" : "Download"}
+              {isBusy ? (
+                <T en="Preparing…" th="กำลังเตรียม…" />
+              ) : (
+                <T en="Download" th="ดาวน์โหลด" />
+              )}
             </span>
           </a>
         );
@@ -96,9 +103,14 @@ export function DownloadActions({
                    bg-accent-soft px-3 py-2 transition-colors hover:bg-surface-hover"
       >
         <span className="flex flex-col">
-          <span className="text-sm font-medium text-text">Printable version</span>
+          <span className="text-sm font-medium text-text">
+            <T en="Printable version" th="เวอร์ชันสำหรับพิมพ์" />
+          </span>
           <span className="text-xs text-text-faint">
-            Opens in a new tab · print or save as PDF from the browser
+            <T
+              en="Opens in a new tab · print or save as PDF from the browser"
+              th="เปิดในแท็บใหม่ · พิมพ์หรือบันทึกเป็น PDF จากเบราว์เซอร์"
+            />
           </span>
         </span>
         <span className="shrink-0 text-text-faint">
@@ -107,8 +119,10 @@ export function DownloadActions({
       </Link>
 
       <p className="text-xs leading-relaxed text-text-faint">
-        Nothing is saved when you export. Each download is generated from the project as it
-        is right now.
+        <T
+          en="Nothing is saved when you export. Each download is generated from the project as it is right now."
+          th="ไม่มีการบันทึกสิ่งใดเมื่อคุณส่งออก แต่ละไฟล์ที่ดาวน์โหลดถูกสร้างขึ้นจากโปรเจกต์ตามสภาพปัจจุบัน"
+        />
       </p>
     </div>
   );

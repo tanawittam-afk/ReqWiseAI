@@ -20,6 +20,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
@@ -86,7 +87,9 @@ export default async function ExportPrintPage({
   if (readiness.level === "cannot_export") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 px-6 py-10">
-        <h1 className="text-[20px] font-semibold text-text">This document cannot be produced</h1>
+        <h1 className="text-[20px] font-semibold text-text">
+          <T en="This document cannot be produced" th="ไม่สามารถสร้างเอกสารนี้ได้" />
+        </h1>
         <ul className="flex flex-col gap-2">
           {readiness.errors.map((issue) => (
             <li key={issue.key} className="text-sm leading-relaxed text-danger">
@@ -98,7 +101,7 @@ export default async function ExportPrintPage({
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
           className="screen-only inline-flex min-h-11 w-fit items-center gap-1 text-sm font-medium text-accent underline underline-offset-2 lg:min-h-0"
         >
-          <Icon name="arrow-left" size={14} /> Back to export scope
+          <Icon name="arrow-left" size={14} /> <T en="Back to export scope" th="กลับไปที่ขอบเขตการส่งออก" />
         </Link>
       </main>
     );
@@ -112,10 +115,13 @@ export default async function ExportPrintPage({
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
           className="inline-flex min-h-11 items-center gap-1 text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
         >
-          <Icon name="arrow-left" size={13} /> Export scope
+          <Icon name="arrow-left" size={13} /> <T en="Export scope" th="ขอบเขตการส่งออก" />
         </Link>
         <p className="text-xs text-text-faint">
-          Use your browser&apos;s print dialog to print or save this as a PDF.
+          <T
+            en="Use your browser's print dialog to print or save this as a PDF."
+            th="ใช้กล่องโต้ตอบการพิมพ์ของเบราว์เซอร์เพื่อพิมพ์หรือบันทึกเป็น PDF"
+          />
         </p>
       </div>
 

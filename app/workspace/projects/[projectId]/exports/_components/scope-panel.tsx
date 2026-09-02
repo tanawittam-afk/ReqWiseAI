@@ -15,6 +15,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { T } from "@/app/_components/t";
 import {
   EXPORT_PRESETS,
   EXPORT_PRESET_LABEL,
@@ -104,10 +105,12 @@ export function ScopePanel({
     <div className="flex flex-col gap-5" aria-busy={pending}>
       <section className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">Preset</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
+            <T en="Preset" th="ค่าเริ่มต้น" />
+          </h2>
           {pending ? (
             <span role="status" className="text-xs text-text-faint">
-              Recomputing…
+              <T en="Recomputing…" th="กำลังคำนวณใหม่…" />
             </span>
           ) : null}
         </div>
@@ -134,14 +137,16 @@ export function ScopePanel({
           ))}
         </div>
         <p className="text-xs leading-relaxed text-text-faint">
-          A preset only fills in the choices below. Change any of them and the document
-          follows the choices, not the preset name.
+          <T
+            en="A preset only fills in the choices below. Change any of them and the document follows the choices, not the preset name."
+            th="ค่าเริ่มต้นเป็นเพียงการเติมตัวเลือกด้านล่างให้เท่านั้น หากเปลี่ยนตัวเลือกใด เอกสารจะทำตามตัวเลือกนั้น ไม่ใช่ตามชื่อค่าเริ่มต้น"
+          />
         </p>
       </section>
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-          Requirement status
+          <T en="Requirement status" th="สถานะข้อกำหนด" />
         </legend>
         {EXPORT_STATUS_SCOPES.map((value) => (
           <label
@@ -168,7 +173,7 @@ export function ScopePanel({
       </fieldset>
 
       <SectionGroup
-        title="Requirement types"
+        title={<T en="Requirement types" th="ประเภทข้อกำหนด" />}
         sections={REQUIREMENT_SECTIONS}
         scope={scope}
         pending={pending}
@@ -177,7 +182,7 @@ export function ScopePanel({
       />
 
       <SectionGroup
-        title="Observations"
+        title={<T en="Observations" th="ข้อสังเกต" />}
         sections={OBSERVATION_SECTIONS}
         scope={scope}
         pending={pending}
@@ -185,7 +190,7 @@ export function ScopePanel({
       />
 
       <SectionGroup
-        title="Evidence, traceability and history"
+        title={<T en="Evidence, traceability and history" th="หลักฐาน การเชื่อมโยง และประวัติ" />}
         sections={CROSS_CUTTING_SECTIONS}
         scope={scope}
         pending={pending}
@@ -201,10 +206,14 @@ export function ScopePanel({
           className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]"
         />
         <span className="flex flex-col gap-0.5">
-          <span className="text-sm text-text">Show confidence</span>
+          <span className="text-sm text-text">
+            <T en="Show confidence" th="แสดงความมั่นใจ" />
+          </span>
           <span className="text-xs leading-relaxed text-text-faint">
-            The model&apos;s own estimate. Some readers take it for a measurement, so it is a
-            choice rather than a constant.
+            <T
+              en="The model's own estimate. Some readers take it for a measurement, so it is a choice rather than a constant."
+              th="เป็นค่าประมาณของโมเดลเอง ผู้อ่านบางคนอาจเข้าใจผิดว่าเป็นการวัดจริง จึงทำให้เป็นตัวเลือกแทนที่จะบังคับแสดงเสมอ"
+            />
           </span>
         </span>
       </label>
@@ -220,7 +229,7 @@ function SectionGroup({
   onToggle,
   onAll,
 }: {
-  title: string;
+  title: React.ReactNode;
   sections: readonly ExportSection[];
   scope: ExportScope;
   pending: boolean;
@@ -242,7 +251,7 @@ function SectionGroup({
             disabled={pending}
             className="text-xs font-medium text-accent underline underline-offset-2 disabled:opacity-60"
           >
-            {allOn ? "Clear all" : "Select all"}
+            {allOn ? <T en="Clear all" th="ล้างทั้งหมด" /> : <T en="Select all" th="เลือกทั้งหมด" />}
           </button>
         ) : null}
       </div>

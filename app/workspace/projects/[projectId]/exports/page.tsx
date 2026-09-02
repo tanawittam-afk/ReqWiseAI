@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
@@ -80,29 +81,37 @@ export default async function ExportPage({
         </Link>
         {input.project.status === "archived" ? (
           <span className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-1.5 py-px text-[10px] font-medium text-warn">
-            Archived — read-only
+            <T en="Archived — read-only" th="เก็บเข้าคลัง — อ่านอย่างเดียว" />
           </span>
         ) : null}
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <ProjectNav projectId={projectId} hasItems={hasItems} />
-          <span className="text-xs text-text-faint">Export schema {EXPORT_SCHEMA_VERSION}</span>
+          <span className="text-xs text-text-faint">
+            <T en="Export schema" th="สคีมาการส่งออก" /> {EXPORT_SCHEMA_VERSION}
+          </span>
         </div>
       </div>
 
       {!hasItems ? (
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-3 px-[var(--space-shell-x)] py-[var(--space-shell-y-tight)] sm:px-[var(--space-shell-x-lg)]">
-          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Export</h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
+            <T en="Export" th="ส่งออก" />
+          </h1>
           <EmptyState
             icon="paste"
-            title="Nothing to export yet"
-            body="This project has no analysed requirements yet. Add a source document and run
-              an analysis first — an export reads from the run, not from raw text."
+            title={<T en="Nothing to export yet" th="ยังไม่มีอะไรให้ส่งออก" />}
+            body={
+              <T
+                en="This project has no analysed requirements yet. Add a source document and run an analysis first — an export reads from the run, not from raw text."
+                th="โปรเจกต์นี้ยังไม่มีข้อกำหนดที่วิเคราะห์แล้ว เพิ่มเอกสารต้นฉบับและรันการวิเคราะห์ก่อน — การส่งออกอ่านจากรอบการวิเคราะห์ ไม่ใช่จากข้อความดิบ"
+              />
+            }
             action={
               <Link
                 href={`/workspace/projects/${projectId}/sources`}
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
               >
-                Go to source documents
+                <T en="Go to source documents" th="ไปที่เอกสารต้นฉบับ" />
               </Link>
             }
           />
@@ -112,19 +121,23 @@ export default async function ExportPage({
                          lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-start">
           {/* Scope */}
           <aside className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4 lg:sticky lg:top-4">
-            <h1 className="text-[17px] font-semibold text-text">Export</h1>
+            <h1 className="text-[17px] font-semibold text-text">
+              <T en="Export" th="ส่งออก" />
+            </h1>
             <ScopePanel projectId={projectId} scope={scope} preset={preset} />
           </aside>
 
           {/* Document */}
           <section className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-semibold text-text">Document preview</h2>
+              <h2 className="text-sm font-semibold text-text">
+                <T en="Document preview" th="ตัวอย่างเอกสาร" />
+              </h2>
               <Link
                 href={`/workspace/projects/${projectId}/exports/preview?${serialised}`}
                 className="text-xs font-medium text-accent underline underline-offset-2"
               >
-                Open full-width preview
+                <T en="Open full-width preview" th="เปิดตัวอย่างแบบเต็มความกว้าง" />
               </Link>
             </div>
             <div className="min-w-0 rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-5 sm:px-6 sm:py-6">
@@ -137,7 +150,7 @@ export default async function ExportPage({
             <ReadinessCard readiness={readiness} />
             <section className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Download
+                <T en="Download" th="ดาวน์โหลด" />
               </h2>
               <DownloadActions
                 projectId={projectId}
@@ -168,7 +181,7 @@ function ReadinessCard({
   return (
     <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-        Export readiness
+        <T en="Export readiness" th="ความพร้อมในการส่งออก" />
       </h2>
 
       {/* The level is a word, never a colour alone. */}
@@ -177,28 +190,30 @@ function ReadinessCard({
       </p>
 
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[13px]">
-        <Count label="Requirements" value={readiness.counts.requirements} />
-        <Count label="Questions" value={readiness.counts.openQuestions} />
-        <Count label="Findings" value={readiness.counts.qualityFindings} />
-        <Count label="Relations" value={readiness.counts.relations} />
+        <Count label={<T en="Requirements" th="ข้อกำหนด" />} value={readiness.counts.requirements} />
+        <Count label={<T en="Questions" th="คำถาม" />} value={readiness.counts.openQuestions} />
+        <Count label={<T en="Findings" th="ข้อค้นพบ" />} value={readiness.counts.qualityFindings} />
+        <Count label={<T en="Relations" th="ความสัมพันธ์" />} value={readiness.counts.relations} />
       </dl>
 
       {readiness.errors.length > 0 ? (
         <IssueList
-          title="Blocking problems"
+          title={<T en="Blocking problems" th="ปัญหาที่ปิดกั้นการส่งออก" />}
           issues={readiness.errors}
           className="text-danger"
         />
       ) : null}
 
       {readiness.warnings.length > 0 ? (
-        <IssueList title="Warnings" issues={readiness.warnings} className="text-text-muted" />
+        <IssueList title={<T en="Warnings" th="คำเตือน" />} issues={readiness.warnings} className="text-text-muted" />
       ) : null}
 
       {readiness.errors.length === 0 && readiness.warnings.length === 0 ? (
         <p className="text-[13px] leading-relaxed text-text-muted">
-          Every citation matches the text it quotes, and nothing in this scope is
-          outstanding.
+          <T
+            en="Every citation matches the text it quotes, and nothing in this scope is outstanding."
+            th="ทุกการอ้างอิงตรงกับข้อความที่อ้างถึง และไม่มีสิ่งใดในขอบเขตนี้ที่ค้างอยู่"
+          />
         </p>
       ) : null}
     </section>
@@ -210,7 +225,7 @@ function IssueList({
   issues,
   className,
 }: {
-  title: string;
+  title: React.ReactNode;
   issues: ReadinessIssue[];
   className: string;
 }) {
@@ -224,7 +239,14 @@ function IssueList({
             {issue.displayIds.length > 0 ? (
               <span className="font-mono text-xs text-text-faint">
                 {issue.displayIds.slice(0, 12).join(", ")}
-                {issue.displayIds.length > 12 ? ` +${issue.displayIds.length - 12} more` : ""}
+                {issue.displayIds.length > 12 ? (
+                  <>
+                    {" "}
+                    +{issue.displayIds.length - 12} <T en="more" th="เพิ่มเติม" />
+                  </>
+                ) : (
+                  ""
+                )}
               </span>
             ) : null}
           </li>
@@ -234,7 +256,7 @@ function IssueList({
   );
 }
 
-function Count({ label, value }: { label: string; value: number }) {
+function Count({ label, value }: { label: React.ReactNode; value: number }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
       <dt className="text-text-faint">{label}</dt>

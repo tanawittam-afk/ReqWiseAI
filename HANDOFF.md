@@ -3,6 +3,19 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
+> ⏸️ **Session paused here (2026-08-05, Rancandel orchestrator, near usage limit).** A
+> background build agent is **mid-task, right now**, finishing the i18n sweep on the
+> traceability surfaces — `git status` shows **uncommitted** changes to
+> `app/workspace/projects/[projectId]/traceability/{page.tsx,traceability-view.tsx,
+> _components/{coverage-row,inspector,map-view,matrix-view}.tsx}`. The commit history
+> already has three completed slices ahead of this (`5ff2af9` review/workflow/
+> change-request panels, `a8b1e4c` history panel, `7eac4ae` EmptyState primitive +
+> requirements view chrome gap) — **do not** `git reset`/`git checkout --`/`git clean` on
+> those traceability files, that discards live, in-progress, uncommitted work. If resuming
+> as a fresh session: check whether the agent finished (look for new commits past
+> `7eac4ae` and/or a fresh HANDOFF addendum below this notice) before doing anything else.
+> No dev server was left running (checked, none found) — nothing to kill on resume.
+
 Last updated: 2026-08-05 (**Phase 7 follow-up — i18n sweep continued + real browser
 verification.** Closes the two gaps Phase 7 explicitly disclosed as incomplete: the i18n
 sweep and a live keyboard/browser pass. Eight commits.

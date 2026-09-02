@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
 import { loadExportInput } from "@/lib/export/load";
@@ -65,7 +66,7 @@ export default async function ExportPreviewPage({
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
           className="inline-flex min-h-11 items-center gap-1 text-xs text-text-muted transition-colors hover:text-text lg:min-h-0"
         >
-          <Icon name="arrow-left" size={13} /> Export scope
+          <Icon name="arrow-left" size={13} /> <T en="Export scope" th="ขอบเขตการส่งออก" />
         </Link>
         <span className="text-xs text-text-faint">{READINESS_LABEL[readiness.level]}</span>
         <Link
@@ -74,7 +75,7 @@ export default async function ExportPreviewPage({
           rel="noopener"
           className="ml-auto inline-flex min-h-11 items-center gap-1 text-xs font-medium text-accent underline underline-offset-2 lg:min-h-0"
         >
-          Printable version <Icon name="external" size={13} />
+          <T en="Printable version" th="เวอร์ชันสำหรับพิมพ์" /> <Icon name="external" size={13} />
         </Link>
       </div>
 
