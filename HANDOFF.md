@@ -3,7 +3,21 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-09-02 (**Phase 8 — General Software domain, code shipped, DB seed
+Last updated: 2026-09-02 (**Phase 8 shipped end to end — the master plan is now
+complete.** The seed-apply blocker below was cleared: the owner resumed the paused
+Supabase project from the dashboard, and `npx supabase db query --linked -f
+supabase/seed.sql` applied cleanly. Confirmed live via `select key, name,
+jsonb_array_length(...) ... from domain_profiles`: `general_software` now shows
+**terminology_count: 4** (was 0), **business_rules_count: 4** (was 0),
+**workflows_count: 8** (was 4), `is_active: true` — matching the enriched TypeScript
+exactly, alongside `booking_smart_space`'s unchanged 4/3/8. **All 8 phases of the
+2026-08-03 UX/UI Master Plan are now shipped.** Not yet done, and not blocking: a live
+`claude-in-chrome` check that `/workspace/projects/new` actually renders General
+Software as selectable against a real signed-in session — the code wiring
+(`SUPPORTED_DOMAIN_PROFILE_KEYS`) is confirmed correct by direct read of both call
+sites, just not exercised live this round.)
+
+Earlier: 2026-09-02 (**Phase 8 — General Software domain, code shipped, DB seed
 apply blocked.** The master plan's last phase. `general-software.ts` enriched to
 booking's depth, `"general_software"` added to `SUPPORTED_DOMAIN_PROFILE_KEYS`,
 `supabase/seed.sql` regenerated. Verified offline with a throwaway mock-provider run
@@ -171,11 +185,10 @@ tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phases 1–7 done. Phase 8 code shipped 2026-09-02, DB seed apply blocked —
-see "Phase 8" below. This is the master plan's last phase — nothing is planned beyond
-it.**
+**Status: all 8 phases done as of 2026-09-02. This is the master plan's last phase —
+nothing is planned beyond it.**
 
-### Phase 8 — code shipped 2026-09-02, DB apply blocked on a paused project
+### Phase 8 — shipped 2026-09-02
 
 **Goal, per the plan:** prove the Domain Profile Layer boundary by shipping a second
 working domain, with zero engine or provider-prompt changes.
@@ -202,25 +215,25 @@ working domain, with zero engine or provider-prompt changes.
   identical spread to the booking profile on the same text. `npm run build`/`lint`/
   `typecheck`/`test` all clean, 800/800 (`tests/domain/seed-sync.test.ts` covers the
   regenerated seed).
-- **DB apply attempted, blocked**: `npx supabase db query --linked -f supabase/seed.sql`
-  failed — `Connection terminated due to connection timeout`. `npx supabase projects
-  list` confirms the linked project (`ReqWiseAI`, `rgfwtflsvnlgfiuoxowm`) is
-  **`INACTIVE`** (Supabase free-tier auto-pause), and the CLI has no `restore`/`resume`
-  subcommand — a paused project can only be woken from the Supabase dashboard, which
-  needs the account owner. **The `general_software` row in the live `domain_profiles`
-  table therefore still has the old thin content** (or may not exist as the enriched
-  version at all) until someone wakes the project and re-runs the apply command above.
-  Flagged here rather than claimed done — same standard as `supabase/README.md`'s own
-  "authored but not run" precedent for the original schema migrations.
-- **Not yet done, blocked on the same DB access**: confirming the live
-  `domain_profiles` row content, and a `claude-in-chrome` check that
-  `/workspace/projects/new` actually offers General Software end-to-end against a real
-  signed-in session (the code-level wiring — `SUPPORTED_DOMAIN_PROFILE_KEYS` — is
-  confirmed correct by reading the two call sites, just not exercised live).
-
-**To finish Phase 8**: wake the `ReqWiseAI` project from the Supabase dashboard, then
-run `npx supabase db query --linked -f supabase/seed.sql` and confirm with a `select
-key, name from domain_profiles;`.
+- **DB apply — first attempt blocked, second attempt succeeded.** The linked project
+  (`ReqWiseAI`, `rgfwtflsvnlgfiuoxowm`) was `INACTIVE` (Supabase free-tier auto-pause);
+  `npx supabase db query --linked -f supabase/seed.sql` failed with a connection
+  timeout, and the CLI has no `restore`/`resume` subcommand to wake it programmatically.
+  The owner resumed the project from the Supabase dashboard; a retry of the same
+  command then applied cleanly. Confirmed with a direct select
+  (`select key, name, jsonb_array_length(content->'terminology') as
+  terminology_count, jsonb_array_length(content->'commonBusinessRules') as
+  business_rules_count, jsonb_array_length(content->'commonWorkflows') as
+  workflows_count, is_active from domain_profiles order by key;`):
+  `general_software` → `terminology_count: 4` (was 0), `business_rules_count: 4`
+  (was 0), `workflows_count: 8` (was 4), `is_active: true` — exactly matching the
+  enriched TypeScript, next to `booking_smart_space`'s unchanged 4/3/8.
+- **Not yet done, and not blocking**: a live `claude-in-chrome` check that
+  `/workspace/projects/new` renders General Software as selectable against a real
+  signed-in session, and that Settings drops its unsupported-domain caveat for it.
+  The code-level wiring (`SUPPORTED_DOMAIN_PROFILE_KEYS`, both call sites) is confirmed
+  correct by direct read, and the database row backing it is now live and enriched —
+  this is a UI-rendering smoke check, not a question of whether the feature works.
 
 ### Phase 1 — shipped 2026-08-03
 
