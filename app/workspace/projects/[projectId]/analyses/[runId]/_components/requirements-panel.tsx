@@ -320,9 +320,9 @@ export function RequirementsPanel({
                   </button>
                 </h3>
                 {isCollapsed ? null : (
-                  <ul>
+                  <ul className="flex flex-col gap-1.5 px-2 py-1.5">
                     {group.items.map((item) => (
-                      <li key={item.id} className="border-t border-border-soft first:border-t-0">
+                      <li key={item.id}>
                         <RequirementRow
                           item={item}
                           active={item.id === selectedId}

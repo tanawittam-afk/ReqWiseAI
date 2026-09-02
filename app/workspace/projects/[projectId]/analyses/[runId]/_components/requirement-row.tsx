@@ -93,12 +93,19 @@ export function RequirementRow({
       type="button"
       onClick={onSelect}
       aria-current={active ? "true" : undefined}
-      className={`flex w-full min-h-11 flex-col gap-1 border-l-2 px-3.5 py-2 text-left leading-snug
+      // A bordered card per row, not a flush divider-separated line (owner override of
+      // CLAUDE.md's original "compact rows, not cards" — see docs/design/INTERFACE.md
+      // §5 for the trade-off this accepts: fewer rows visible per screen in exchange
+      // for a row a reader can actually tell apart from its neighbours). Selection is
+      // still shown three ways — border colour, the left accent stripe, and a tinted
+      // background — because colour alone is never a state.
+      className={`flex w-full min-h-11 flex-col gap-1 rounded-[var(--radius-card)] border border-l-[3px]
+                  px-3 py-2 text-left leading-snug shadow-[var(--shadow-card)]
                   transition-colors duration-150
                   ${
                     active
-                      ? "border-l-accent bg-accent-soft"
-                      : "border-l-transparent hover:bg-surface-hover"
+                      ? "border-accent-border border-l-accent bg-accent-soft"
+                      : "border-border-soft border-l-border-soft bg-surface hover:border-border-strong hover:bg-surface-hover"
                   }`}
     >
       <div className="flex items-baseline gap-2">
