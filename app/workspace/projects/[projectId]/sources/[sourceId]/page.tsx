@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
 import { ActionLink } from "@/app/_components/ui/action-link";
+import { SectionHeader } from "@/app/_components/ui/section-header";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -157,10 +158,8 @@ export default async function SourceDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
         {/* The document itself */}
-        <article className="flex flex-col rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
-          <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
-            <T en="Source text" th="ข้อความต้นฉบับ" />
-          </h2>
+        <article className="flex flex-col overflow-hidden rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
+          <SectionHeader icon="paste" title={<T en="Source text" th="ข้อความต้นฉบับ" />} />
           {/*
             whitespace-pre-wrap keeps every space, tab and blank line; break-words stops a
             pasted URL from widening the page. The value is a child text node — nothing on

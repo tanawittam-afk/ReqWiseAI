@@ -16,6 +16,7 @@ import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
 import { ActionLink } from "@/app/_components/ui/action-link";
+import { Panel, SectionHeader } from "@/app/_components/ui/section-header";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { listSources } from "@/lib/sources/queries";
@@ -173,10 +174,8 @@ export default async function ProjectOverviewPage({
             </div>
           ) : null}
 
-          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
-            <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
-              <T en="Project brief" th="ข้อมูลสรุปโปรเจกต์" />
-            </h2>
+          <Panel>
+            <SectionHeader icon="paste" title={<T en="Project brief" th="ข้อมูลสรุปโปรเจกต์" />} />
             <div className="flex flex-col gap-2 p-3">
               <Row label={<T en="Description" th="รายละเอียด" />} value={project.description} />
               <Row
@@ -192,7 +191,7 @@ export default async function ProjectOverviewPage({
                 }
               />
             </div>
-          </section>
+          </Panel>
 
           {recentSources.length === 0 ? (
             archived ? (
