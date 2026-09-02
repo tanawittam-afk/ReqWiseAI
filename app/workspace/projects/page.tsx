@@ -7,6 +7,7 @@
  */
 
 import Link from "next/link";
+import { T } from "@/app/_components/t";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { PROJECT_FILTERS, type ProjectFilter } from "@/lib/contracts/project";
@@ -40,13 +41,15 @@ export default async function ProjectsPage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-[var(--space-shell-gap)] px-[var(--space-shell-x)] py-[var(--space-shell-y)] sm:px-[var(--space-shell-x-lg)] sm:py-[var(--space-shell-y-lg)]">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Projects</h1>
+          <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
+            <T en="Projects" th="โปรเจกต์" />
+          </h1>
           <p className="text-sm text-text-muted">
-            {counts.active} active
+            <T en={`${counts.active} active`} th={`ใช้งานอยู่ ${counts.active}`} />
             <span aria-hidden="true" className="px-1.5 text-text-faint">
               ·
             </span>
-            {counts.archived} archived
+            <T en={`${counts.archived} archived`} th={`เก็บเข้าคลัง ${counts.archived}`} />
           </p>
         </div>
 
@@ -54,7 +57,7 @@ export default async function ProjectsPage({
           href="/workspace/projects/new"
           className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover lg:min-h-10"
         >
-          New project
+          <T en="New project" th="โปรเจกต์ใหม่" />
         </Link>
       </header>
 
@@ -63,8 +66,10 @@ export default async function ProjectsPage({
           role="alert"
           className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
         >
-          The example project could not be created. Nothing was saved — try again, or
-          start a project of your own.
+          <T
+            en="The example project could not be created. Nothing was saved — try again, or start a project of your own."
+            th="สร้างโปรเจกต์ตัวอย่างไม่สำเร็จ ไม่มีการบันทึกใดๆ — ลองใหม่ หรือเริ่มโปรเจกต์ของคุณเอง"
+          />
         </p>
       ) : null}
 
@@ -87,7 +92,13 @@ export default async function ProjectsPage({
                   : "text-text-muted hover:text-text"
               }`}
             >
-              {value}
+              {value === "active" ? (
+                <T en="active" th="ใช้งานอยู่" />
+              ) : value === "archived" ? (
+                <T en="archived" th="เก็บเข้าคลัง" />
+              ) : (
+                <T en="all" th="ทั้งหมด" />
+              )}
             </Link>
           );
         })}
@@ -119,17 +130,29 @@ export default async function ProjectsPage({
 
                 <dl className="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 border-t border-border-soft pt-3 text-xs">
                   <div className="flex items-center justify-between">
-                    <dt className="text-text-faint">Sources</dt>
+                    <dt className="text-text-faint">
+                      <T en="Sources" th="เอกสารต้นฉบับ" />
+                    </dt>
                     <dd className="font-medium text-text-muted">{project.sourceDocumentCount}</dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt className="text-text-faint">Requirements</dt>
+                    <dt className="text-text-faint">
+                      <T en="Requirements" th="ข้อกำหนด" />
+                    </dt>
                     <dd className="font-medium text-text-muted">{project.analysisItemCount}</dd>
                   </div>
                   <div className="col-span-2 pt-1 text-text-faint">
-                    {project.status === "archived" && project.archivedAt
-                      ? `Archived ${formatDate(project.archivedAt)}`
-                      : `Updated ${formatDate(project.updatedAt)}`}
+                    {project.status === "archived" && project.archivedAt ? (
+                      <T
+                        en={`Archived ${formatDate(project.archivedAt)}`}
+                        th={`เก็บเข้าคลังเมื่อ ${formatDate(project.archivedAt)}`}
+                      />
+                    ) : (
+                      <T
+                        en={`Updated ${formatDate(project.updatedAt)}`}
+                        th={`อัปเดตเมื่อ ${formatDate(project.updatedAt)}`}
+                      />
+                    )}
                   </div>
                 </dl>
               </Link>
@@ -145,15 +168,19 @@ function ProjectsEmptyState({ filter }: { filter: ProjectFilter }) {
   if (filter === "archived") {
     return (
       <EmptyState
-        title="Nothing archived"
-        body="Archived projects stay here in full — sources, runs and review history included.
-          Nothing is ever deleted."
+        title={<T en="Nothing archived" th="ยังไม่มีอะไรถูกเก็บเข้าคลัง" />}
+        body={
+          <T
+            en="Archived projects stay here in full — sources, runs and review history included. Nothing is ever deleted."
+            th="โปรเจกต์ที่เก็บเข้าคลังยังคงอยู่ครบถ้วน — รวมถึงเอกสารต้นฉบับ รอบการวิเคราะห์ และประวัติการรีวิว ไม่มีอะไรถูกลบ"
+          />
+        }
         action={
           <Link
             href="/workspace/projects?filter=active"
             className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft bg-surface px-4 text-sm font-medium text-text transition-colors hover:bg-surface-hover"
           >
-            Back to active projects
+            <T en="Back to active projects" th="กลับไปที่โปรเจกต์ที่ใช้งานอยู่" />
           </Link>
         }
       />
@@ -163,16 +190,19 @@ function ProjectsEmptyState({ filter }: { filter: ProjectFilter }) {
   return (
     <EmptyState
       icon="projects"
-      title="Start with the messy version"
-      body="A project holds one piece of business reality — meeting notes, an interview, a client
-        message — and turns it into requirements you can trace back to the sentence they came
-        from."
+      title={<T en="Start with the messy version" th="เริ่มจากข้อมูลที่ยังไม่เป็นระเบียบ" />}
+      body={
+        <T
+          en="A project holds one piece of business reality — meeting notes, an interview, a client message — and turns it into requirements you can trace back to the sentence they came from."
+          th="โปรเจกต์หนึ่งเก็บข้อมูลจริงทางธุรกิจหนึ่งชิ้น — บันทึกการประชุม บทสัมภาษณ์ หรือข้อความจากลูกค้า — แล้วแปลงเป็นข้อกำหนดที่สามารถอ้างอิงกลับไปยังประโยคต้นทางได้"
+        />
+      }
       action={
         <Link
           href="/workspace/projects/new"
           className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
         >
-          Create your first project
+          <T en="Create your first project" th="สร้างโปรเจกต์แรกของคุณ" />
         </Link>
       }
       // The zero-typing way in. Runs on the deterministic mock provider, always.
