@@ -19,8 +19,48 @@ import { T } from "@/app/_components/t";
 const NEUTRAL =
   "inline-flex items-center rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-1.5 py-0.5 text-[11px] font-medium text-text-muted";
 
+/**
+ * Soft per-type tints (`CLAUDE.md` → Visual character, `INTERFACE.md` §9), added
+ * 2026-09-02 alongside the tokens themselves — fourteen item types collapse into four
+ * content families, not fourteen colours, so this stays signal rather than noise:
+ * context (what the analysis is about) · requirement (what must be built) · spec (how
+ * it is expressed) · caveat (a condition on the above). Risk, open question and quality
+ * finding are deliberately excluded — they are states needing attention, so they keep
+ * the existing `--warn`/`--danger` tone `ItemStatusChip` already uses for the same kind
+ * of state, not a content-family tint.
+ */
+const TYPE_TINT: Partial<Record<ItemType, string>> = {
+  problem_statement: "border-tint-context-border bg-tint-context-soft text-tint-context",
+  business_objective: "border-tint-context-border bg-tint-context-soft text-tint-context",
+  stakeholder: "border-tint-context-border bg-tint-context-soft text-tint-context",
+  business_requirement:
+    "border-tint-requirement-border bg-tint-requirement-soft text-tint-requirement",
+  functional_requirement:
+    "border-tint-requirement-border bg-tint-requirement-soft text-tint-requirement",
+  non_functional_requirement:
+    "border-tint-requirement-border bg-tint-requirement-soft text-tint-requirement",
+  business_rule:
+    "border-tint-requirement-border bg-tint-requirement-soft text-tint-requirement",
+  user_story: "border-tint-spec-border bg-tint-spec-soft text-tint-spec",
+  acceptance_criterion: "border-tint-spec-border bg-tint-spec-soft text-tint-spec",
+  assumption: "border-tint-caveat-border bg-tint-caveat-soft text-tint-caveat",
+  constraint: "border-tint-caveat-border bg-tint-caveat-soft text-tint-caveat",
+  risk: "border-danger-border bg-danger-soft text-danger",
+  open_question: "border-warn-border bg-warn-soft text-warn",
+  quality_finding: "border-warn-border bg-warn-soft text-warn",
+};
+
 export function TypeChip({ type }: { type: ItemType }) {
-  return <span className={NEUTRAL}>{TYPE_SHORT_LABEL[type]}</span>;
+  const tint = TYPE_TINT[type];
+  return (
+    <span
+      className={`inline-flex items-center rounded-[var(--radius-card)] border px-1.5 py-0.5 text-[11px] font-medium ${
+        tint ?? "border-border-soft bg-surface-muted text-text-muted"
+      }`}
+    >
+      {TYPE_SHORT_LABEL[type]}
+    </span>
+  );
 }
 
 /**
