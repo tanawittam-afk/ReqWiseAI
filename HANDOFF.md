@@ -3,7 +3,19 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-09-02 (**i18n sweep closed out — exports, sources, project
+Last updated: 2026-09-02 (**Phase 8 — General Software domain, code shipped, DB seed
+apply blocked.** The master plan's last phase. `general-software.ts` enriched to
+booking's depth, `"general_software"` added to `SUPPORTED_DOMAIN_PROFILE_KEYS`,
+`supabase/seed.sql` regenerated. Verified offline with a throwaway mock-provider run
+(15 items, all 13 output types, matching the booking profile's spread on the same
+text) before flipping the flag — `build`/`lint`/`typecheck`/`test` clean, 800/800.
+Applying the regenerated seed to the live database is **blocked**: the linked Supabase
+project is `INACTIVE` (paused) and the CLI has no way to wake it — needs the account
+owner to resume it from the dashboard, then rerun `npx supabase db query --linked -f
+supabase/seed.sql`. See "Phase 8" below for the full writeup and the exact resume
+command. One commit: `1e034ad`.)
+
+Earlier: 2026-09-02 (**i18n sweep closed out — exports, sources, project
 overview.** Continuation of the round Phase 7 disclosed as incomplete. Six commits:
 exports (`eb0a8d6`), sources list + form (`5501df9`), source detail/edit/analyze flow
 (`e298eb3`), projects list (`58f9074`), project overview + archive controls
@@ -159,7 +171,56 @@ tuning" below.)
 **Full plan:** `C:\Users\User\.claude\plans\abundant-herding-ember.md`. Read it before
 starting any phase; this section is the index and the state pointer.
 
-**Status: Phases 1–7 done. Phase 8 not started.**
+**Status: Phases 1–7 done. Phase 8 code shipped 2026-09-02, DB seed apply blocked —
+see "Phase 8" below. This is the master plan's last phase — nothing is planned beyond
+it.**
+
+### Phase 8 — code shipped 2026-09-02, DB apply blocked on a paused project
+
+**Goal, per the plan:** prove the Domain Profile Layer boundary by shipping a second
+working domain, with zero engine or provider-prompt changes.
+
+- **`lib/domain/profiles/general-software.ts` enriched** to comparable depth with
+  `booking-smart-space.ts` — the plan's two named gaps (`terminology`,
+  `commonBusinessRules`, both previously empty) are filled, along with every other
+  field, all within `profile-schema.ts`'s length/count limits. Only `terminology`,
+  `commonWorkflows` and `requiredClarificationCategories` actually feed the mock
+  provider's `profileVocabulary()` (`lib/providers/mock/runtime/lexicon.ts`); the rest
+  exist for future real providers and for the Settings page's profile display, per
+  `DomainProfile`'s full shape (`lib/domain/types.ts`) — enriching them is correct for
+  parity, not for mock-output richness.
+- **`"general_software"` added to `SUPPORTED_DOMAIN_PROFILE_KEYS`**
+  (`lib/domain/availability.ts`) — the entire blast radius of this one line: it's now
+  selectable (not "Coming soon") on `/workspace/projects/new`, and Settings drops its
+  unsupported-domain caveat for it.
+- **`supabase/seed.sql` regenerated** via `npm run seed:profiles` (pure codegen, no DB
+  touched) — diff confirmed to only change the `general_software` row's content.
+- **Verified offline before flipping the flag** (the plan's trap #10 — "a domain that
+  yields 2 items looks broken"): a throwaway script (not committed, deleted after use)
+  ran the real mock provider directly against the enriched profile with realistic
+  admin-dashboard meeting-notes text and got **15 items across all 13 output types** —
+  identical spread to the booking profile on the same text. `npm run build`/`lint`/
+  `typecheck`/`test` all clean, 800/800 (`tests/domain/seed-sync.test.ts` covers the
+  regenerated seed).
+- **DB apply attempted, blocked**: `npx supabase db query --linked -f supabase/seed.sql`
+  failed — `Connection terminated due to connection timeout`. `npx supabase projects
+  list` confirms the linked project (`ReqWiseAI`, `rgfwtflsvnlgfiuoxowm`) is
+  **`INACTIVE`** (Supabase free-tier auto-pause), and the CLI has no `restore`/`resume`
+  subcommand — a paused project can only be woken from the Supabase dashboard, which
+  needs the account owner. **The `general_software` row in the live `domain_profiles`
+  table therefore still has the old thin content** (or may not exist as the enriched
+  version at all) until someone wakes the project and re-runs the apply command above.
+  Flagged here rather than claimed done — same standard as `supabase/README.md`'s own
+  "authored but not run" precedent for the original schema migrations.
+- **Not yet done, blocked on the same DB access**: confirming the live
+  `domain_profiles` row content, and a `claude-in-chrome` check that
+  `/workspace/projects/new` actually offers General Software end-to-end against a real
+  signed-in session (the code-level wiring — `SUPPORTED_DOMAIN_PROFILE_KEYS` — is
+  confirmed correct by reading the two call sites, just not exercised live).
+
+**To finish Phase 8**: wake the `ReqWiseAI` project from the Supabase dashboard, then
+run `npx supabase db query --linked -f supabase/seed.sql` and confirm with a `select
+key, name from domain_profiles;`.
 
 ### Phase 1 — shipped 2026-08-03
 
