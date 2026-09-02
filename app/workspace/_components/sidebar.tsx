@@ -177,10 +177,13 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
                 // Tapping a destination closes the menu — on mobile the panel covers the
                 // page it just navigated to, so leaving it open would hide the answer.
                 onClick={() => setMenuOpen(false)}
-                className={`flex min-h-11 items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-sm whitespace-nowrap transition-colors lg:min-h-0 md:py-2 ${
+                // Framed at rest, not only on hover/active. An audit found these read as
+                // bare text until you happened to point at them — the same "หาปุ่มไม่เจอ"
+                // problem as the text-link actions, in the one place a person looks first.
+                className={`flex min-h-11 items-center gap-2.5 rounded-[var(--radius-card)] border px-3 py-2 text-sm whitespace-nowrap transition-colors lg:min-h-0 md:py-2 ${
                   active
-                    ? "bg-accent-soft font-medium text-accent"
-                    : "text-text-muted hover:bg-chrome-hover hover:text-text"
+                    ? "border-accent-border bg-accent-soft font-medium text-accent"
+                    : "border-border-soft bg-surface text-text-muted hover:bg-chrome-hover hover:text-text"
                 }`}
               >
                 <span className="grid w-4 place-items-center">
