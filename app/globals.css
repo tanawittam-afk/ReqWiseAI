@@ -295,6 +295,14 @@ html:not([data-locale="th"]) .lang-toggle-option[data-locale-option="en"] {
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
+/* Same rule, landing page's own paint (app/_components/landing-lang-toggle.tsx) —
+   the landing page ignores [data-theme] but still reads [data-locale] normally. */
+[data-locale="th"] .landing-lang-option[data-locale-option="th"],
+html:not([data-locale="th"]) .landing-lang-option[data-locale-option="en"] {
+  background: rgba(245, 245, 242, 0.12);
+  color: var(--le-text);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -423,5 +431,155 @@ html:not([data-locale="th"]) .lang-toggle-option[data-locale-option="en"] {
   a {
     text-decoration: none;
     color: inherit;
+  }
+}
+
+/* ============================================================================
+ * Landing page — "Evidence Trail" (2026-09-03)
+ *
+ * The public marketing page at `/` was redesigned with full creative freedom, on the
+ * owner's explicit call: the app's restrained "tech workspace" language read as
+ * forgettable on a page meant to make a first impression. Everything below is scoped
+ * to `.landing-evidence` — it never touches `:root` or `[data-theme="dark"]`, ignores
+ * the light/dark toggle entirely (this page has one fixed look, not two), and has no
+ * effect on `/workspace` or `/demo`. Approved via a design canvas before any of this
+ * was written.
+ * ============================================================================ */
+
+.landing-evidence {
+  --le-bg: #08090b;
+  --le-text: #f5f5f2;
+  --le-text-muted: rgba(245, 245, 242, 0.62);
+  --le-text-faint: rgba(245, 245, 242, 0.55);
+  --le-border: rgba(255, 255, 255, 0.1);
+  --le-border-strong: rgba(255, 255, 255, 0.18);
+  --le-accent: #c8ff4d;
+  --le-accent-soft: rgba(200, 255, 77, 0.08);
+  --le-accent-border: rgba(200, 255, 77, 0.4);
+  background: var(--le-bg);
+  color: var(--le-text);
+}
+
+/* The evidence-trail scroll sequence — a raw source sentence connects to the
+ * requirement it produced. Base state below is the fully-evidenced end state, so the
+ * page is complete and readable with zero CSS support for scroll-driven animation;
+ * the @supports block layers a scroll-linked entrance on top for browsers that have it. */
+.et-highlight {
+  background-color: rgba(200, 255, 77, 0.18);
+  box-shadow: 0 0 0 1px var(--le-accent-border);
+  border-radius: 2px;
+}
+
+/* A growing dashed rule rather than an SVG path — a transform is trivially responsive
+ * across the row (desktop) / column (mobile) layout swap the section already does;
+ * an SVG path's geometry would need a second, hand-tuned shape per breakpoint. */
+.et-connector-line {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+@media (max-width: 1023.98px) {
+  .et-connector-line {
+    transform-origin: top center;
+  }
+}
+
+.et-req-card {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+@supports (animation-timeline: view()) {
+  /* Scroll room for the sticky pin below to travel through. Without this block (no
+     animation-timeline support) the section is just its own natural height — one
+     screen, not an empty scroll well with nothing animating inside it. */
+  .landing-evidence .et-trail-scroll {
+    min-height: 220vh;
+    /* Named view-timeline, tracked as THIS element scrolls through the viewport — not
+       each child's own view() timeline. The pin below holds its children at a fixed
+       screen position for the whole 220vh, so a child's own view() would read as
+       "constantly in view" and never progress; every child instead reads scroll
+       progress off this one shared timeline, which is what makes all three beats
+       actually scrub together against how far you've scrolled. */
+    view-timeline-name: --et-trail;
+    view-timeline-axis: block;
+  }
+
+  .landing-evidence .et-trail-pin {
+    position: sticky;
+    top: 0;
+  }
+
+  .et-highlight {
+    animation: et-draw-highlight linear both;
+    animation-timeline: --et-trail;
+    animation-range: cover 10% cover 35%;
+  }
+
+  .et-connector-line {
+    transform: scaleX(0);
+    animation: et-draw-line linear both;
+    animation-timeline: --et-trail;
+    animation-range: cover 30% cover 60%;
+  }
+  @media (max-width: 1023.98px) {
+    .et-connector-line {
+      transform: scaleY(0);
+      animation-name: et-draw-line-vertical;
+    }
+  }
+
+  .et-req-card {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+    animation: et-land-card linear both;
+    animation-timeline: --et-trail;
+    animation-range: cover 55% cover 85%;
+  }
+}
+
+@keyframes et-draw-highlight {
+  from {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+  to {
+    background-color: rgba(200, 255, 77, 0.18);
+    box-shadow: 0 0 0 1px var(--le-accent-border);
+  }
+}
+
+@keyframes et-draw-line {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes et-draw-line-vertical {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes et-land-card {
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Belt and braces on top of the global animation-duration override above: an
+ * animation-timeline-driven animation isn't reliably neutralised by forcing duration
+ * to ~0, since scroll position (not wall-clock time) drives it. Turn the timeline off
+ * outright so reduced-motion visitors get the static, already-evidenced end state. */
+@media (prefers-reduced-motion: reduce) {
+  .landing-evidence .et-trail-pin {
+    position: static;
+  }
+  .et-highlight,
+  .et-connector-line,
+  .et-req-card {
+    animation: none !important;
+    animation-timeline: none !important;
+    transform: none !important;
   }
 }
