@@ -184,7 +184,7 @@ function Total({ en, th, value }: { en: string; th: string; value: number }) {
 /** The first-run card. Offers the Phase 4 zero-typing path alongside the real one. */
 function StartHere() {
   return (
-    <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-6 py-10 text-center">
+    <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] px-6 py-10 text-center">
       <p aria-hidden="true" className="font-mono text-[13px] text-accent">
         notes → requirements → review
       </p>
@@ -234,7 +234,7 @@ function RecentProjects({
       </div>
 
       {projects.length === 0 ? (
-        <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-6 text-sm text-text-muted">
+        <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] px-4 py-6 text-sm text-text-muted">
           <T
             en="No active projects. Archived ones are still readable from the projects list."
             th="ไม่มีโปรเจกต์ที่ใช้งานอยู่ โปรเจกต์ที่เก็บถาวรยังคงอ่านได้จากรายการโปรเจกต์"
@@ -288,7 +288,7 @@ function RecentActivity({ activity }: { activity: WorkspaceActivityRow[] }) {
       </h2>
 
       {activity.length === 0 ? (
-        <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-6 text-sm text-text-muted">
+        <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] px-4 py-6 text-sm text-text-muted">
           <T
             en="Nothing reviewed yet. Every approval, rejection, answer and edit is recorded here
             once review starts."

@@ -144,7 +144,7 @@ export function SourceForm({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
         {/* Reading / writing column */}
         <div className="flex flex-col gap-4">
-          <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-5">
+          <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-5">
             <Field
               id={ids.title}
               label={pick(locale, "Title", "ชื่อเอกสาร")}
@@ -184,7 +184,7 @@ export function SourceForm({
             </Field>
           </section>
 
-          <section className="flex flex-col rounded-[var(--radius-panel)] border border-border-soft bg-surface">
+          <section className="flex flex-col rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
             <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border-soft px-5 py-3">
               <label htmlFor={ids.rawText} className="text-sm font-semibold text-text">
                 <T en="Source text" th="ข้อความต้นฉบับ" />
@@ -233,7 +233,7 @@ export function SourceForm({
 
         {/* Inspector — optional context, kept out of the writing column */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
-          <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+          <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
               <T en="Context" th="บริบท" /> <span className="font-normal normal-case">(<T en="optional" th="ไม่บังคับ" />)</span>
             </h2>
@@ -285,7 +285,7 @@ export function SourceForm({
             </Field>
           </section>
 
-          <div className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+          <div className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
             <p className="text-xs text-text-faint">
               <T
                 en={

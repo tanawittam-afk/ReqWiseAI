@@ -157,7 +157,7 @@ export default async function SourceDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
         {/* The document itself */}
-        <article className="flex flex-col rounded-[var(--radius-panel)] border border-border-soft bg-surface">
+        <article className="flex flex-col rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
           <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
             <T en="Source text" th="ข้อความต้นฉบับ" />
           </h2>
@@ -174,7 +174,7 @@ export default async function SourceDetailPage({
 
         {/* Inspector — provenance and actions */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
-          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
               <T en="Details" th="รายละเอียด" />
             </h2>
@@ -204,7 +204,7 @@ export default async function SourceDetailPage({
           </section>
 
           {source.supersedesId ? (
-            <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+            <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
                 <T en="Revision history" th="ประวัติฉบับ" />
               </h2>
@@ -257,7 +257,7 @@ export default async function SourceDetailPage({
           ) : null}
 
           {runs.length > 0 ? (
-            <section className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+            <section className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
                 <T en="Analysis history" th="ประวัติการวิเคราะห์" />
               </h2>
@@ -290,7 +290,7 @@ export default async function SourceDetailPage({
           ) : null}
 
           {canWrite ? (
-            <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+            <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
                 {source.locked ? (
                   <T en="Create a revision" th="สร้างฉบับใหม่" />

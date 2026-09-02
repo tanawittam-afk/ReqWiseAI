@@ -91,7 +91,7 @@ export function MatrixView({
       ) : null}
 
       {/* The table scrolls inside its own box; the page never scrolls sideways. */}
-      <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface">
+      <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
         <table className="w-full min-w-[900px] border-collapse text-left">
           <caption className="sr-only">
             <T

@@ -160,7 +160,7 @@ function Section({
       </div>
 
       {count === 0 ? (
-        <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-6 text-sm text-text-muted">
+        <p className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] px-4 py-6 text-sm text-text-muted">
           <T en={empty.en} th={empty.th} />
         </p>
       ) : (

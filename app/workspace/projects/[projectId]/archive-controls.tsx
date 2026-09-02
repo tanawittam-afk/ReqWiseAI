@@ -30,7 +30,7 @@ export function ArchiveControls({
 
   if (archived) {
     return (
-      <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+      <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
           <T en="Restore project" th="กู้คืนโปรเจกต์" />
         </h2>
@@ -53,7 +53,7 @@ export function ArchiveControls({
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+    <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
         <T en="Archive project" th="เก็บโปรเจกต์เข้าคลัง" />
       </h2>

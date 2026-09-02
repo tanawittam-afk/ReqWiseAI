@@ -254,7 +254,7 @@ function ProfileCard({ profile }: { profile: DomainProfile }) {
   const supported = isDomainSupported(profile.key);
 
   return (
-    <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+    <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-semibold text-text">{profile.name}</h3>
         <span

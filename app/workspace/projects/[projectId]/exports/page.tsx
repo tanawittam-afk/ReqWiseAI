@@ -121,7 +121,7 @@ export default async function ExportPage({
         <main className="mx-auto grid w-full max-w-[1400px] flex-1 gap-5 px-4 py-5 sm:px-6
                          lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-start">
           {/* Scope */}
-          <aside className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4 lg:sticky lg:top-4">
+          <aside className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4 lg:sticky lg:top-4">
             <h1 className="text-[17px] font-semibold text-text">
               <T en="Export" th="ส่งออก" />
             </h1>
@@ -142,7 +142,7 @@ export default async function ExportPage({
                 <T en="Open full-width preview" th="เปิดตัวอย่างแบบเต็มความกว้าง" />
               </ActionLink>
             </div>
-            <div className="min-w-0 rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-5 sm:px-6 sm:py-6">
+            <div className="min-w-0 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] px-4 py-5 sm:px-6 sm:py-6">
               <ExportDocument pkg={pkg} />
             </div>
           </section>
@@ -150,7 +150,7 @@ export default async function ExportPage({
           {/* Readiness and actions */}
           <aside className="flex flex-col gap-4 lg:sticky lg:top-4">
             <ReadinessCard readiness={readiness} />
-            <section className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+            <section className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
                 <T en="Download" th="ดาวน์โหลด" />
               </h2>
@@ -181,7 +181,7 @@ function ReadinessCard({
         : "border-ok-border bg-ok-soft text-ok";
 
   return (
-    <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+    <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
         <T en="Export readiness" th="ความพร้อมในการส่งออก" />
       </h2>

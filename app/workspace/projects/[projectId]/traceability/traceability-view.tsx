@@ -449,7 +449,7 @@ function PaneSwitcher({
     <div
       role="group"
       aria-label={pick(locale, "Traceability panes", "แผงการเชื่อมโยง")}
-      className="flex overflow-x-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface"
+      className="flex overflow-x-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]"
     >
       {tabs.map((tab) => (
         <button

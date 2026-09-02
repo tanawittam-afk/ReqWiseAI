@@ -173,7 +173,7 @@ export default async function ProjectOverviewPage({
             </div>
           ) : null}
 
-          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
+          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
             <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
               <T en="Project brief" th="ข้อมูลสรุปโปรเจกต์" />
             </h2>
@@ -228,7 +228,7 @@ export default async function ProjectOverviewPage({
               </section>
             )
           ) : (
-            <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface">
+            <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)]">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-soft px-5 py-3">
                 <h2 className="text-sm font-semibold text-text">
                   <T en="Recent sources" th="เอกสารต้นฉบับล่าสุด" />
@@ -266,7 +266,7 @@ export default async function ProjectOverviewPage({
 
         {/* Inspector — metadata and lifecycle, kept out of the reading column. */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
-          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
               <T en="Details" th="รายละเอียด" />
             </h2>

@@ -55,7 +55,7 @@ export function AnalyzeConfirmForm({
         </p>
       ) : null}
 
-      <ul className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-5 text-sm leading-relaxed text-text-muted">
+      <ul className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-5 text-sm leading-relaxed text-text-muted">
         <ConfirmPoint>
           <T
             en={

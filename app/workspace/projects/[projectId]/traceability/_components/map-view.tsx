@@ -62,7 +62,7 @@ export function MapView({
        * never scroll sideways.
        */}
       <div
-        className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4"
+        className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4"
         tabIndex={0}
         role="group"
         aria-label={pick(

@@ -43,7 +43,7 @@ export function TraceInspector({
   const locale = useLocale();
   if (item === null) {
     return (
-      <div className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+      <div className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
         <p className="text-sm text-text-muted">
           <T
             en="Select an item in the matrix or the map to see what it traces to."
@@ -61,7 +61,7 @@ export function TraceInspector({
   );
 
   return (
-    <div className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+    <div className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
       <header className="flex flex-col gap-1">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="font-mono text-xs font-semibold text-text-muted">{item.displayId}</span>

@@ -433,7 +433,7 @@ export function StartProjectForm({ domains }: { domains: DomainOption[] }) {
       {/* ---------------- right: what will be created ---------------- */}
       <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
         {selected ? (
-          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+          <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
               <T en="Domain preview" th="ตัวอย่างโดเมน" />
             </h2>
@@ -448,7 +448,7 @@ export function StartProjectForm({ domains }: { domains: DomainOption[] }) {
           </section>
         ) : null}
 
-        <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
+        <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-4">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
             <T en="Will be created" th="สิ่งที่จะถูกสร้าง" />
           </h2>
@@ -535,7 +535,7 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-5">
+    <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface shadow-[var(--shadow-panel)] p-5">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-sm font-semibold text-text">{title}</h2>
         <p className="text-xs text-text-muted">{hint}</p>
