@@ -7,6 +7,7 @@
  */
 
 import { useEffect } from "react";
+import { T } from "@/app/_components/t";
 
 export default function SourcesError({
   error,
@@ -21,17 +22,21 @@ export default function SourcesError({
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-start gap-4 px-6 py-16">
-      <h1 className="text-lg font-semibold text-text">Sources could not be loaded</h1>
+      <h1 className="text-lg font-semibold text-text">
+        <T en="Sources could not be loaded" th="โหลดเอกสารต้นฉบับไม่สำเร็จ" />
+      </h1>
       <p className="max-w-md text-sm text-text-muted">
-        Something went wrong reading this project&rsquo;s documents. Nothing was changed —
-        this is a display problem, not a data one.
+        <T
+          en="Something went wrong reading this project's documents. Nothing was changed — this is a display problem, not a data one."
+          th="เกิดข้อผิดพลาดขณะอ่านเอกสารของโปรเจกต์นี้ ไม่มีอะไรถูกเปลี่ยนแปลง — นี่เป็นปัญหาการแสดงผล ไม่ใช่ปัญหาข้อมูล"
+        />
       </p>
       <button
         type="button"
         onClick={reset}
         className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft px-3 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text lg:min-h-9"
       >
-        Try again
+        <T en="Try again" th="ลองอีกครั้ง" />
       </button>
     </main>
   );

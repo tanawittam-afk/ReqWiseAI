@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
@@ -53,12 +54,23 @@ export default async function SourcesPage({
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
-            <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">Sources</h1>
+            <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
+              <T en="Sources" th="เอกสารต้นฉบับ" />
+            </h1>
             <p className="text-sm text-text-muted">
-              {sources.length === 0
-                ? "No source documents yet"
-                : `${sources.length} document${sources.length === 1 ? "" : "s"}` +
-                  (locked > 0 ? ` · ${locked} analysed and locked` : "")}
+              {sources.length === 0 ? (
+                <T en="No source documents yet" th="ยังไม่มีเอกสารต้นฉบับ" />
+              ) : (
+                <>
+                  <T
+                    en={`${sources.length} document${sources.length === 1 ? "" : "s"}`}
+                    th={`${sources.length} เอกสาร`}
+                  />
+                  {locked > 0 ? (
+                    <T en={` · ${locked} analysed and locked`} th={` · วิเคราะห์และล็อกแล้ว ${locked} รายการ`} />
+                  ) : null}
+                </>
+              )}
             </p>
           </div>
           {archived ? null : (
@@ -67,7 +79,7 @@ export default async function SourcesPage({
               className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                          font-semibold text-on-accent transition-colors hover:bg-accent-hover"
             >
-              Add source
+              <T en="Add source" th="เพิ่มเอกสารต้นฉบับ" />
             </Link>
           )}
         </div>
@@ -79,18 +91,23 @@ export default async function SourcesPage({
           role="status"
           className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
         >
-          This project is archived — sources are read-only. Restore the project to add or
-          edit them.
+          <T
+            en="This project is archived — sources are read-only. Restore the project to add or edit them."
+            th="โปรเจกต์นี้ถูกเก็บเข้าคลังแล้ว — เอกสารต้นฉบับอ่านได้อย่างเดียว กู้คืนโปรเจกต์เพื่อเพิ่มหรือแก้ไข"
+          />
         </p>
       ) : null}
 
       {sources.length === 0 ? (
         <EmptyState
           icon="paste"
-          title="Nothing to analyse yet"
-          body="Requirements are only ever generated from text you supply. Paste the meeting
-            notes, interview or client message this project is about, and it becomes the
-            evidence every requirement is traced back to."
+          title={<T en="Nothing to analyse yet" th="ยังไม่มีอะไรให้วิเคราะห์" />}
+          body={
+            <T
+              en="Requirements are only ever generated from text you supply. Paste the meeting notes, interview or client message this project is about, and it becomes the evidence every requirement is traced back to."
+              th="ข้อกำหนดจะถูกสร้างจากข้อความที่คุณให้มาเท่านั้น วางบันทึกการประชุม บทสัมภาษณ์ หรือข้อความจากลูกค้าที่เกี่ยวกับโปรเจกต์นี้ แล้วมันจะกลายเป็นหลักฐานที่ทุกข้อกำหนดสามารถอ้างอิงกลับไปได้"
+            />
+          }
           action={
             archived ? undefined : (
               <Link
@@ -98,7 +115,7 @@ export default async function SourcesPage({
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                            font-semibold text-on-accent transition-colors hover:bg-accent-hover"
               >
-                Add the first source
+                <T en="Add the first source" th="เพิ่มเอกสารต้นฉบับแรก" />
               </Link>
             )
           }
@@ -127,12 +144,24 @@ export default async function SourcesPage({
                 </div>
 
                 <p className="text-xs text-text-faint">
-                  {source.sourceDate ? `Dated ${formatDate(source.sourceDate)} · ` : ""}
-                  Added {formatDate(source.createdAt)}
-                  {source.updatedAt !== source.createdAt
-                    ? ` · edited ${formatDate(source.updatedAt)}`
-                    : ""}
-                  {source.supersedesId ? " · supersedes an earlier revision" : ""}
+                  <T
+                    en={
+                      (source.sourceDate ? `Dated ${formatDate(source.sourceDate)} · ` : "") +
+                      `Added ${formatDate(source.createdAt)}` +
+                      (source.updatedAt !== source.createdAt
+                        ? ` · edited ${formatDate(source.updatedAt)}`
+                        : "") +
+                      (source.supersedesId ? " · supersedes an earlier revision" : "")
+                    }
+                    th={
+                      (source.sourceDate ? `ลงวันที่ ${formatDate(source.sourceDate)} · ` : "") +
+                      `เพิ่มเมื่อ ${formatDate(source.createdAt)}` +
+                      (source.updatedAt !== source.createdAt
+                        ? ` · แก้ไขเมื่อ ${formatDate(source.updatedAt)}`
+                        : "") +
+                      (source.supersedesId ? " · แทนที่ฉบับก่อนหน้า" : "")
+                    }
+                  />
                 </p>
               </Link>
             </li>

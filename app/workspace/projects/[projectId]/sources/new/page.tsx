@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { SourceForm } from "../source-form";
@@ -30,17 +31,21 @@ export default async function NewSourcePage({
   if (project.status === "archived") {
     return (
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-start gap-4 px-6 py-16">
-        <h1 className="text-lg font-semibold text-text">This project is archived</h1>
+        <h1 className="text-lg font-semibold text-text">
+          <T en="This project is archived" th="โปรเจกต์นี้ถูกเก็บเข้าคลังแล้ว" />
+        </h1>
         <p className="max-w-md text-sm leading-relaxed text-text-muted">
-          Archived projects are read-only. Restore {project.name} to add source documents
-          to it again.
+          <T
+            en={`Archived projects are read-only. Restore ${project.name} to add source documents to it again.`}
+            th={`โปรเจกต์ที่เก็บเข้าคลังจะอ่านได้อย่างเดียว กู้คืน ${project.name} เพื่อเพิ่มเอกสารต้นฉบับได้อีกครั้ง`}
+          />
         </p>
         <Link
           href={`/workspace/projects/${projectId}`}
           className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft px-4 text-sm
                      text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
-          Back to the project
+          <T en="Back to the project" th="กลับไปที่โปรเจกต์" />
         </Link>
       </main>
     );
@@ -52,7 +57,7 @@ export default async function NewSourcePage({
         href={`/workspace/projects/${projectId}/sources`}
         className="inline-flex min-h-11 w-fit items-center gap-1 text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
       >
-        <Icon name="arrow-left" size={13} /> Sources
+        <Icon name="arrow-left" size={13} /> <T en="Sources" th="เอกสารต้นฉบับ" />
       </Link>
       <SourceForm
         mode="create"

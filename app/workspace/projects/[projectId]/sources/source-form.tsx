@@ -29,6 +29,8 @@ import {
   SOURCE_TITLE_MAX,
 } from "@/lib/contracts/source";
 import { emptySourceFormState, type SourceFormState } from "./form-state";
+import { T } from "@/app/_components/t";
+import { useLocale, pick } from "@/lib/i18n";
 
 export type SourceFormMode = "create" | "edit" | "revise";
 
@@ -69,6 +71,7 @@ export function SourceForm({
   cancelHref: string;
 }) {
   const [state, formAction] = useActionState(action, emptySourceFormState);
+  const locale = useLocale();
   const seed = { ...EMPTY, ...initial, ...(state.values as Partial<SourceFormValues>) };
 
   const [rawText, setRawText] = useState(seed.rawText);
@@ -93,13 +96,17 @@ export function SourceForm({
 
   const heading =
     mode === "create"
-      ? "Add source information"
+      ? pick(locale, "Add source information", "เพิ่มข้อมูลเอกสารต้นฉบับ")
       : mode === "revise"
-        ? `New revision ${revisionNumber}`
-        : `Edit revision ${revisionNumber}`;
+        ? pick(locale, `New revision ${revisionNumber}`, `ฉบับใหม่ ${revisionNumber}`)
+        : pick(locale, `Edit revision ${revisionNumber}`, `แก้ไขฉบับ ${revisionNumber}`);
 
   const submitLabel =
-    mode === "create" ? "Save source" : mode === "revise" ? "Create revision" : "Save changes";
+    mode === "create"
+      ? pick(locale, "Save source", "บันทึกเอกสารต้นฉบับ")
+      : mode === "revise"
+        ? pick(locale, "Create revision", "สร้างฉบับใหม่")
+        : pick(locale, "Save changes", "บันทึกการเปลี่ยนแปลง");
 
   const overLimit = rawText.length > SOURCE_TEXT_MAX;
 
@@ -111,11 +118,17 @@ export function SourceForm({
       <header className="flex flex-col gap-1">
         <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">{heading}</h1>
         <p className="max-w-2xl text-sm leading-relaxed text-text-muted">
-          {mode === "revise"
-            ? "Revision " +
-              (revisionNumber - 1) +
-              " has been analysed and is now permanent. Your changes are saved as a new revision, and the earlier one stays exactly as it was cited."
-            : "Paste the notes, interview or message this project is about. The text is stored exactly as you enter it — every requirement is traced back to these characters."}
+          {mode === "revise" ? (
+            <T
+              en={`Revision ${revisionNumber - 1} has been analysed and is now permanent. Your changes are saved as a new revision, and the earlier one stays exactly as it was cited.`}
+              th={`ฉบับที่ ${revisionNumber - 1} ได้รับการวิเคราะห์แล้วและกลายเป็นข้อมูลถาวร การเปลี่ยนแปลงของคุณจะถูกบันทึกเป็นฉบับใหม่ ส่วนฉบับก่อนหน้ายังคงอยู่ตามที่ถูกอ้างอิงไว้เดิมทุกประการ`}
+            />
+          ) : (
+            <T
+              en="Paste the notes, interview or message this project is about. The text is stored exactly as you enter it — every requirement is traced back to these characters."
+              th="วางบันทึกการประชุม บทสัมภาษณ์ หรือข้อความที่เกี่ยวกับโปรเจกต์นี้ ข้อความจะถูกเก็บไว้ตามที่คุณป้อนทุกตัวอักษร — ทุกข้อกำหนดสามารถอ้างอิงกลับไปยังข้อความนี้ได้"
+            />
+          )}
         </p>
       </header>
 
@@ -134,8 +147,12 @@ export function SourceForm({
           <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-5">
             <Field
               id={ids.title}
-              label="Title"
-              hint="How you will recognise this document in the list"
+              label={pick(locale, "Title", "ชื่อเอกสาร")}
+              hint={pick(
+                locale,
+                "How you will recognise this document in the list",
+                "ชื่อที่คุณจะใช้จดจำเอกสารนี้ในรายการ",
+              )}
               error={state.fieldErrors.title}
             >
               <input
@@ -145,13 +162,13 @@ export function SourceForm({
                 required
                 maxLength={SOURCE_TITLE_MAX}
                 defaultValue={seed.title}
-                placeholder="Kick-off meeting with the front desk team"
+                placeholder={pick(locale, "Kick-off meeting with the front desk team", "การประชุมเริ่มต้นกับทีมต้อนรับ")}
                 aria-invalid={state.fieldErrors.title ? true : undefined}
                 className={inputClass(!!state.fieldErrors.title)}
               />
             </Field>
 
-            <Field id={ids.kind} label="Source type" error={state.fieldErrors.kind}>
+            <Field id={ids.kind} label={pick(locale, "Source type", "ประเภทเอกสาร")} error={state.fieldErrors.kind}>
               <select
                 id={ids.kind}
                 name="kind"
@@ -170,7 +187,7 @@ export function SourceForm({
           <section className="flex flex-col rounded-[var(--radius-panel)] border border-border-soft bg-surface">
             <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border-soft px-5 py-3">
               <label htmlFor={ids.rawText} className="text-sm font-semibold text-text">
-                Source text
+                <T en="Source text" th="ข้อความต้นฉบับ" />
               </label>
               <span
                 className={`font-mono text-xs ${overLimit ? "text-danger" : "text-text-faint"}`}
@@ -186,7 +203,11 @@ export function SourceForm({
               value={rawText}
               onChange={(event) => setRawText(event.target.value)}
               spellCheck={false}
-              placeholder={"Paste the raw notes here.\n\nLine breaks and spacing are preserved."}
+              placeholder={pick(
+                locale,
+                "Paste the raw notes here.\n\nLine breaks and spacing are preserved.",
+                "วางข้อความต้นฉบับที่นี่\n\nการขึ้นบรรทัดและการเว้นวรรคจะถูกเก็บไว้",
+              )}
               aria-invalid={state.fieldErrors.rawText ? true : undefined}
               aria-describedby={`${ids.rawText}-help`}
               className="min-h-[45vh] w-full resize-y rounded-b-[var(--radius-panel)] bg-surface px-5 py-4
@@ -197,8 +218,10 @@ export function SourceForm({
               id={`${ids.rawText}-help`}
               className="border-t border-border-soft px-5 py-2.5 text-xs text-text-faint"
             >
-              Stored verbatim — spacing, blank lines and bullet characters are kept as
-              typed. Nothing is reformatted.
+              <T
+                en="Stored verbatim — spacing, blank lines and bullet characters are kept as typed. Nothing is reformatted."
+                th="เก็บไว้เหมือนต้นฉบับทุกประการ — การเว้นวรรค บรรทัดว่าง และสัญลักษณ์หัวข้อจะถูกเก็บไว้ตามที่พิมพ์ ไม่มีการจัดรูปแบบใหม่"
+              />
             </p>
             {state.fieldErrors.rawText ? (
               <p role="alert" className="px-5 pb-3 text-xs text-danger">
@@ -212,10 +235,14 @@ export function SourceForm({
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
           <section className="flex flex-col gap-4 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-              Context <span className="font-normal normal-case">(optional)</span>
+              <T en="Context" th="บริบท" /> <span className="font-normal normal-case">(<T en="optional" th="ไม่บังคับ" />)</span>
             </h2>
 
-            <Field id={ids.sourceDate} label="Source date" error={state.fieldErrors.sourceDate}>
+            <Field
+              id={ids.sourceDate}
+              label={pick(locale, "Source date", "วันที่ของเอกสาร")}
+              error={state.fieldErrors.sourceDate}
+            >
               <input
                 id={ids.sourceDate}
                 name="sourceDate"
@@ -228,8 +255,8 @@ export function SourceForm({
 
             <Field
               id={ids.stakeholder}
-              label="Stakeholder"
-              hint="Who said it, if this came from a person"
+              label={pick(locale, "Stakeholder", "ผู้ให้ข้อมูล")}
+              hint={pick(locale, "Who said it, if this came from a person", "ใครเป็นผู้พูด หากข้อมูลนี้มาจากบุคคล")}
               error={state.fieldErrors.stakeholder}
             >
               <input
@@ -237,18 +264,22 @@ export function SourceForm({
                 name="stakeholder"
                 type="text"
                 defaultValue={seed.stakeholder}
-                placeholder="Front Desk Manager"
+                placeholder={pick(locale, "Front Desk Manager", "ผู้จัดการฝ่ายต้อนรับ")}
                 className={inputClass(!!state.fieldErrors.stakeholder)}
               />
             </Field>
 
-            <Field id={ids.notes} label="Notes" error={state.fieldErrors.notes}>
+            <Field id={ids.notes} label={pick(locale, "Notes", "หมายเหตุ")} error={state.fieldErrors.notes}>
               <textarea
                 id={ids.notes}
                 name="notes"
                 rows={4}
                 defaultValue={seed.notes}
-                placeholder="How this document was obtained, what to be careful about"
+                placeholder={pick(
+                  locale,
+                  "How this document was obtained, what to be careful about",
+                  "เอกสารนี้ได้มาอย่างไร มีอะไรที่ต้องระวังบ้าง",
+                )}
                 className={`${inputClass(!!state.fieldErrors.notes)} resize-y leading-relaxed`}
               />
             </Field>
@@ -256,8 +287,20 @@ export function SourceForm({
 
           <div className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
             <p className="text-xs text-text-faint">
-              Saves as <span className="font-medium text-text-muted">revision {revisionNumber}</span>
-              {mode === "revise" ? " — the previous revision stays untouched." : "."}
+              <T
+                en={
+                  <>
+                    Saves as <span className="font-medium text-text-muted">revision {revisionNumber}</span>
+                    {mode === "revise" ? " — the previous revision stays untouched." : "."}
+                  </>
+                }
+                th={
+                  <>
+                    บันทึกเป็น <span className="font-medium text-text-muted">ฉบับ {revisionNumber}</span>
+                    {mode === "revise" ? " — ฉบับก่อนหน้าจะไม่ถูกแก้ไข" : ""}
+                  </>
+                }
+              />
             </p>
             <SubmitButton label={submitLabel} disabled={overLimit} />
             <Link
@@ -265,7 +308,7 @@ export function SourceForm({
               className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-border-soft
                          px-4 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
             >
-              Cancel
+              <T en="Cancel" th="ยกเลิก" />
             </Link>
           </div>
         </aside>
@@ -313,6 +356,7 @@ function Field({
 /** Disabled while the action is in flight — the one honest way to stop a double post. */
 function SubmitButton({ label, disabled }: { label: string; disabled: boolean }) {
   const { pending } = useFormStatus();
+  const locale = useLocale();
   return (
     <button
       type="submit"
@@ -322,7 +366,7 @@ function SubmitButton({ label, disabled }: { label: string; disabled: boolean })
                  font-semibold text-on-accent transition-colors hover:bg-accent-hover
                  disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Saving…" : label}
+      {pending ? pick(locale, "Saving…", "กำลังบันทึก…") : label}
     </button>
   );
 }
