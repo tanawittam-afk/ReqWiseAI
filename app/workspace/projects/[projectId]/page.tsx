@@ -177,7 +177,7 @@ export default async function ProjectOverviewPage({
             <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
               <T en="Project brief" th="ข้อมูลสรุปโปรเจกต์" />
             </h2>
-            <div className="flex flex-col divide-y divide-[var(--border)]">
+            <div className="flex flex-col gap-2 p-3">
               <Row label={<T en="Description" th="รายละเอียด" />} value={project.description} />
               <Row
                 label={<T en="Business objective" th="วัตถุประสงค์ทางธุรกิจ" />}
@@ -359,24 +359,34 @@ function Stat({ label, value }: { label: React.ReactNode; value: number }) {
   );
 }
 
+/**
+ * A labelled field, boxed rather than divider-separated. The audit that drove this
+ * redesign found this exact shape — a `divide-y` list of label/value text — as one of
+ * the "มีแต่ Text ไม่มีกรอบ" spots: a hairline between rows reads as one continuous
+ * block, not as distinct facts. The label keeps its own muted cell so it never blurs
+ * into the value next to it.
+ */
 function Row({ label, value }: { label: React.ReactNode; value: string | null }) {
   return (
-    <div className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:gap-6">
-      <span className="w-44 shrink-0 text-xs font-medium uppercase tracking-wide text-text-faint">
+    <div className="flex flex-col gap-1.5 rounded-[var(--radius-card)] border border-border-soft sm:flex-row sm:items-stretch">
+      <span className="shrink-0 rounded-t-[var(--radius-card)] border-b border-border-soft bg-surface-muted px-2.5 py-1.5 text-xs font-medium uppercase tracking-wide text-text-faint sm:w-40 sm:rounded-l-[var(--radius-card)] sm:rounded-tr-none sm:border-r sm:border-b-0">
         {label}
       </span>
-      <span className={`text-sm leading-relaxed ${value ? "text-text" : "text-text-faint"}`}>
+      <span
+        className={`flex-1 px-2.5 py-1.5 text-sm leading-relaxed ${value ? "text-text" : "text-text-faint"}`}
+      >
         {value ?? <T en="Not provided" th="ไม่มีข้อมูล" />}
       </span>
     </div>
   );
 }
 
+/** The same boxed treatment, for the tighter key:value pairs in the Details inspector. */
 function Meta({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
+    <div className="flex items-baseline justify-between gap-3 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 py-1.5">
       <dt className="text-xs text-text-faint">{label}</dt>
-      <dd className="truncate text-right text-sm text-text">{value}</dd>
+      <dd className="truncate text-right text-sm font-medium text-text">{value}</dd>
     </div>
   );
 }
