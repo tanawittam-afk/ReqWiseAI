@@ -3,7 +3,57 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-Last updated: 2026-09-02 (**Phase 8 shipped end to end — the master plan is now
+Last updated: 2026-09-03 (**UI redesign — ERP-clarity app pass + a new landing
+direction, both shipped.** Not part of the numbered 2026-08-03 UX/UI Master Plan below
+(that closed out at Phase 8) — a separate owner-requested pass after using the app
+live and finding it hard to parse ("หาปุ่มไม่เจอ · ไม่รู้อะไรเป็นอะไร · มีแต่ Text").
+
+**App (`/workspace`), 10 commits (`cad0519`…`9ec4523`):** light-mode-only card/panel
+shadows and four per-item-type colour tints added to `app/globals.css`
+(`--shadow-card`/`--shadow-panel`, `--tint-context`/`-requirement`/`-spec`/`-caveat`,
+each measured against its own background before commit — 5.22–9.44:1, clearing WCAG
+AA); a shared 3-tier action definition (`app/_components/ui/action-styles.ts`) consumed
+by `Button` and the new server-renderable `ActionLink`/`ActionAnchor`, replacing 13
+bare-underlined-text actions and the sidebar's borderless rest state; requirement rows
+became bordered cards (owner override of the original "compact rows, not cards" rule);
+project-overview's label/value rows boxed; a `SectionHeader`/`Panel` primitive rolled
+into the two exact-shape matches. Two design-rule reversals recorded in `CLAUDE.md` and
+`docs/design/INTERFACE.md` §3/§9 in the same round, so a future session doesn't read
+the old rule and revert working code. Verified live via `claude-in-chrome` on `/demo`
+(light + dark): requirement-card selection and citation highlighting still work, zero
+console errors. **Not verified live**: the several screens that need an authenticated
+session (`/workspace/projects/[id]`, source detail) — flagged rather than silently
+skipped, same standard as the rest of this file.
+
+**Landing page (`/`), 1 commit (`3975dea`):** the app-language landing page from Phase 3
+was replaced — "Evidence Trail," full creative freedom, drafted as a design canvas and
+approved before any code was written. Near-black canvas, one signature acid-lime accent
+(`#c8ff4d`), scoped entirely to a new `.landing-evidence` block in `globals.css` that
+never touches `:root`/`[data-theme]` and has no effect on `/workspace` or `/demo`. New
+signature moment: a scroll-pinned section connects a raw source sentence to the
+requirement it produced, CSS-only (a named `view-timeline` on the scroll wrapper so all
+three animated beats scrub against one shared scroll position, not each element's own —
+constant once pinned — `view()` timeline; no new dependency). Grounded in real data:
+ran the actual mock engine against the actual `/demo` source text before writing any
+copy (FR-001, 84% confidence, the exact excerpt shown) and confirmed live that
+`/demo?item=FR-001` shows the identical numbers. Progressive enhancement — base CSS is
+the fully-evidenced end state with zero `animation-timeline` support;
+`prefers-reduced-motion` explicitly disables the timeline (forcing
+`animation-duration` alone doesn't reliably stop a scroll-driven animation). All other
+landing copy carried over verbatim — only the visual language changed; `/` still
+compiles static (`○`). Caught and fixed one real bug live in the browser before
+shipping: the connector line's mobile/desktop dimensions were inverted from what the
+animation math assumed, so it wasn't visibly drawing — confirmed fixed by re-checking
+in `claude-in-chrome` after the fix. build/lint/typecheck/test clean throughout both
+tracks, 800/800.
+
+**Not done, not blocking:** the app's "remaining screens for consistency" sweep
+(phase C5–C7 of the app pass) intentionally stopped short of a full mass migration of
+every hand-written panel header onto `SectionHeader` — CLAUDE.md's own precedent
+("convert opportunistically as a phase already touches that file") governs, per the
+owner's earlier acceptance of the same precedent for icons/primitives in Phase 7.)
+
+Earlier: 2026-09-02 (**Phase 8 shipped end to end — the master plan is now
 complete.** The seed-apply blocker below was cleared: the owner resumed the paused
 Supabase project from the dashboard, and `npx supabase db query --linked -f
 supabase/seed.sql` applied cleanly. Confirmed live via `select key, name,
