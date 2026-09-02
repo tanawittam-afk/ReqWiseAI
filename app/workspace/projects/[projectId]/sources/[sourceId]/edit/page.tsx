@@ -14,6 +14,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -41,17 +42,21 @@ export default async function EditSourcePage({
   if (project.status === "archived") {
     return (
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-start gap-4 px-6 py-16">
-        <h1 className="text-lg font-semibold text-text">This project is archived</h1>
+        <h1 className="text-lg font-semibold text-text">
+          <T en="This project is archived" th="โปรเจกต์นี้ถูกเก็บเข้าคลังแล้ว" />
+        </h1>
         <p className="max-w-md text-sm leading-relaxed text-text-muted">
-          Archived projects are read-only. Restore {project.name} to edit its source
-          documents.
+          <T
+            en={`Archived projects are read-only. Restore ${project.name} to edit its source documents.`}
+            th={`โปรเจกต์ที่เก็บเข้าคลังจะอ่านได้อย่างเดียว กู้คืน ${project.name} เพื่อแก้ไขเอกสารต้นฉบับได้อีกครั้ง`}
+          />
         </p>
         <Link
           href={detail}
           className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] border border-border-soft px-4 text-sm
                      text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
         >
-          Back to the document
+          <T en="Back to the document" th="กลับไปที่เอกสาร" />
         </Link>
       </main>
     );
@@ -63,18 +68,26 @@ export default async function EditSourcePage({
     return (
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-start gap-4 px-6 py-16">
         <h1 className="text-lg font-semibold text-text">
-          Revision {source.revisionNumber} has been superseded
+          <T
+            en={`Revision ${source.revisionNumber} has been superseded`}
+            th={`ฉบับที่ ${source.revisionNumber} ถูกแทนที่แล้ว`}
+          />
         </h1>
         <p className="max-w-md text-sm leading-relaxed text-text-muted">
-          A newer revision of this document already exists. Edit that one instead — this
-          revision stays as it was cited.
+          <T
+            en="A newer revision of this document already exists. Edit that one instead — this revision stays as it was cited."
+            th="เอกสารนี้มีฉบับใหม่กว่าอยู่แล้ว ให้แก้ไขฉบับนั้นแทน — ฉบับนี้จะคงอยู่ตามที่ถูกอ้างอิงไว้เดิม"
+          />
         </p>
         <Link
           href={`/workspace/projects/${projectId}/sources/${source.supersededById}`}
           className="inline-flex min-h-11 items-center rounded-[var(--radius-card)] bg-accent px-4 text-sm font-semibold
                      text-on-accent transition-colors hover:bg-accent-hover"
         >
-          Open revision {source.supersededByRevision}
+          <T
+            en={`Open revision ${source.supersededByRevision}`}
+            th={`เปิดฉบับที่ ${source.supersededByRevision}`}
+          />
         </Link>
       </main>
     );

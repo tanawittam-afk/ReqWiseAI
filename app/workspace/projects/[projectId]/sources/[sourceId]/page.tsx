@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -29,11 +30,18 @@ import {
 
 export const metadata = { title: "Source — ReqWise AI" };
 
-const STATUS_LABEL: Record<string, string> = {
-  valid: "Completed",
-  invalid: "Invalid output",
-  provider_error: "Provider error",
-};
+function runStatusLabel(status: string) {
+  switch (status) {
+    case "valid":
+      return <T en="Completed" th="เสร็จสมบูรณ์" />;
+    case "invalid":
+      return <T en="Invalid output" th="ผลลัพธ์ไม่ถูกต้อง" />;
+    case "provider_error":
+      return <T en="Provider error" th="ข้อผิดพลาดจากผู้ให้บริการ" />;
+    default:
+      return status;
+  }
+}
 
 export default async function SourceDetailPage({
   params,
@@ -65,7 +73,7 @@ export default async function SourceDetailPage({
           href={base}
           className="inline-flex min-h-11 w-fit items-center gap-1 text-xs text-text-faint transition-colors hover:text-text-muted lg:min-h-0"
         >
-          <Icon name="arrow-left" size={13} /> Sources
+          <Icon name="arrow-left" size={13} /> <T en="Sources" th="เอกสารต้นฉบับ" />
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
@@ -79,7 +87,10 @@ export default async function SourceDetailPage({
         <div className="flex flex-wrap items-center gap-1.5">
           <SourceKindBadge kind={source.kind} />
           <span className="font-mono text-[11px] text-text-faint">
-            {source.characterCount.toLocaleString()} characters
+            <T
+              en={`${source.characterCount.toLocaleString()} characters`}
+              th={`${source.characterCount.toLocaleString()} ตัวอักษร`}
+            />
           </span>
         </div>
       </header>
@@ -91,8 +102,10 @@ export default async function SourceDetailPage({
           role="alert"
           className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger"
         >
-          The source was saved, but the analysis did not complete. Nothing was lost — run
-          it again below.
+          <T
+            en="The source was saved, but the analysis did not complete. Nothing was lost — run it again below."
+            th="บันทึกเอกสารต้นฉบับแล้ว แต่การวิเคราะห์ไม่สำเร็จ ไม่มีอะไรสูญหาย — รันใหม่อีกครั้งด้านล่าง"
+          />
         </p>
       ) : null}
 
@@ -101,8 +114,10 @@ export default async function SourceDetailPage({
           role="status"
           className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
         >
-          This project is archived — this document is read-only. Restore the project to
-          edit it.
+          <T
+            en="This project is archived — this document is read-only. Restore the project to edit it."
+            th="โปรเจกต์นี้ถูกเก็บเข้าคลังแล้ว — เอกสารนี้อ่านได้อย่างเดียว กู้คืนโปรเจกต์เพื่อแก้ไข"
+          />
         </p>
       ) : source.locked ? (
         <section
@@ -110,25 +125,31 @@ export default async function SourceDetailPage({
           className="flex flex-col gap-1 rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-4 py-3"
         >
           <p className="text-sm font-semibold text-signal">
-            Revision {source.revisionNumber} has been analysed and is now permanent
+            <T
+              en={`Revision ${source.revisionNumber} has been analysed and is now permanent`}
+              th={`ฉบับที่ ${source.revisionNumber} ได้รับการวิเคราะห์แล้วและกลายเป็นข้อมูลถาวร`}
+            />
           </p>
           <p className="text-xs leading-relaxed text-text-muted">
-            {source.analysisRunCount} analysis{" "}
-            {source.analysisRunCount === 1 ? "run cites" : "runs cite"} this exact text, so
-            it can no longer change — a requirement that points at it must keep pointing at
-            what it actually said. Edits are saved as revision {source.revisionNumber + 1}.
+            <T
+              en={`${source.analysisRunCount} analysis ${source.analysisRunCount === 1 ? "run cites" : "runs cite"} this exact text, so it can no longer change — a requirement that points at it must keep pointing at what it actually said. Edits are saved as revision ${source.revisionNumber + 1}.`}
+              th={`มีการวิเคราะห์ ${source.analysisRunCount} ครั้งอ้างอิงข้อความนี้อยู่ จึงไม่สามารถแก้ไขได้อีก — ข้อกำหนดที่อ้างอิงมันต้องชี้ไปยังสิ่งที่มันเคยระบุไว้จริง การแก้ไขจะถูกบันทึกเป็นฉบับที่ ${source.revisionNumber + 1}`}
+            />
           </p>
         </section>
       ) : null}
 
       {source.supersededById ? (
         <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-4 py-3 text-sm text-text-muted">
-          A newer revision of this document exists.{" "}
+          <T en="A newer revision of this document exists." th="เอกสารนี้มีฉบับใหม่กว่าอยู่" />{" "}
           <Link
             href={`${base}/${source.supersededById}`}
             className="font-medium text-accent underline underline-offset-2"
           >
-            Open revision {source.supersededByRevision}
+            <T
+              en={`Open revision ${source.supersededByRevision}`}
+              th={`เปิดฉบับที่ ${source.supersededByRevision}`}
+            />
           </Link>
         </p>
       ) : null}
@@ -137,7 +158,7 @@ export default async function SourceDetailPage({
         {/* The document itself */}
         <article className="flex flex-col rounded-[var(--radius-panel)] border border-border-soft bg-surface">
           <h2 className="border-b border-border-soft px-5 py-3 text-sm font-semibold text-text">
-            Source text
+            <T en="Source text" th="ข้อความต้นฉบับ" />
           </h2>
           {/*
             whitespace-pre-wrap keeps every space, tab and blank line; break-words stops a
@@ -154,21 +175,24 @@ export default async function SourceDetailPage({
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
           <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-              Details
+              <T en="Details" th="รายละเอียด" />
             </h2>
             <dl className="mt-3 flex flex-col gap-2 text-sm">
-              <Meta label="Revision" value={String(source.revisionNumber)} />
-              <Meta label="State" value={source.locked ? "Locked" : "Editable"} />
+              <Meta label={<T en="Revision" th="ฉบับ" />} value={String(source.revisionNumber)} />
               <Meta
-                label="Source date"
+                label={<T en="State" th="สถานะ" />}
+                value={source.locked ? <T en="Locked" th="ล็อกแล้ว" /> : <T en="Editable" th="แก้ไขได้" />}
+              />
+              <Meta
+                label={<T en="Source date" th="วันที่ของเอกสาร" />}
                 value={source.metadata.sourceDate ? formatDate(source.metadata.sourceDate) : "—"}
               />
-              <Meta label="Stakeholder" value={source.metadata.stakeholder ?? "—"} />
-              <Meta label="Added" value={formatDate(source.createdAt)} />
+              <Meta label={<T en="Stakeholder" th="ผู้ให้ข้อมูล" />} value={source.metadata.stakeholder ?? "—"} />
+              <Meta label={<T en="Added" th="เพิ่มเมื่อ" />} value={formatDate(source.createdAt)} />
               {source.updatedAt !== source.createdAt ? (
-                <Meta label="Edited" value={formatDate(source.updatedAt)} />
+                <Meta label={<T en="Edited" th="แก้ไขเมื่อ" />} value={formatDate(source.updatedAt)} />
               ) : null}
-              <Meta label="Analysis runs" value={String(source.analysisRunCount)} />
+              <Meta label={<T en="Analysis runs" th="รอบการวิเคราะห์" />} value={String(source.analysisRunCount)} />
             </dl>
 
             {source.metadata.notes ? (
@@ -181,17 +205,22 @@ export default async function SourceDetailPage({
           {source.supersedesId ? (
             <section className="rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Revision history
+                <T en="Revision history" th="ประวัติฉบับ" />
               </h2>
               <p className="mt-2 text-xs leading-relaxed text-text-muted">
-                This revision replaces revision {source.revisionNumber - 1}, which stays
-                exactly as it was analysed.
+                <T
+                  en={`This revision replaces revision ${source.revisionNumber - 1}, which stays exactly as it was analysed.`}
+                  th={`ฉบับนี้แทนที่ฉบับที่ ${source.revisionNumber - 1} ซึ่งยังคงอยู่ตามที่เคยถูกวิเคราะห์ไว้ทุกประการ`}
+                />
               </p>
               <Link
                 href={`${base}/${source.supersedesId}`}
                 className="mt-2 inline-flex text-xs font-medium text-accent underline underline-offset-2"
               >
-                Open revision {source.revisionNumber - 1}
+                <T
+                  en={`Open revision ${source.revisionNumber - 1}`}
+                  th={`เปิดฉบับที่ ${source.revisionNumber - 1}`}
+                />
               </Link>
             </section>
           ) : null}
@@ -199,19 +228,27 @@ export default async function SourceDetailPage({
           {canWrite ? (
             <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-accent-border bg-accent-soft p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-accent">
-                Analysis
+                <T en="Analysis" th="การวิเคราะห์" />
               </h2>
               <p className="text-xs leading-relaxed text-text-muted">
-                {source.locked
-                  ? "You can run this again — each run is kept separately."
-                  : "This will lock revision " + source.revisionNumber + " once the run is created."}
+                {source.locked ? (
+                  <T
+                    en="You can run this again — each run is kept separately."
+                    th="คุณสามารถรันการวิเคราะห์นี้อีกครั้งได้ — แต่ละรอบจะถูกเก็บแยกจากกัน"
+                  />
+                ) : (
+                  <T
+                    en={`This will lock revision ${source.revisionNumber} once the run is created.`}
+                    th={`การดำเนินการนี้จะล็อกฉบับที่ ${source.revisionNumber} ทันทีที่สร้างรอบการวิเคราะห์`}
+                  />
+                )}
               </p>
               <Link
                 href={`${base}/${source.id}/analyze`}
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                            font-semibold text-on-accent transition-colors hover:bg-accent-hover"
               >
-                Analyze requirements
+                <T en="Analyze requirements" th="วิเคราะห์ข้อกำหนด" />
               </Link>
             </section>
           ) : null}
@@ -219,7 +256,7 @@ export default async function SourceDetailPage({
           {runs.length > 0 ? (
             <section className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Analysis history
+                <T en="Analysis history" th="ประวัติการวิเคราะห์" />
               </h2>
               <ul className="flex flex-col gap-2">
                 {runs.map((run) => (
@@ -230,9 +267,12 @@ export default async function SourceDetailPage({
                                  transition-colors hover:border-accent-border hover:bg-accent-soft"
                     >
                       <span className="flex items-center justify-between gap-2 font-medium text-text">
-                        {STATUS_LABEL[run.validationStatus] ?? run.validationStatus}
+                        {runStatusLabel(run.validationStatus)}
                         <span className="font-mono text-[11px] text-text-muted">
-                          {run.itemCount} item{run.itemCount === 1 ? "" : "s"}
+                          <T
+                            en={`${run.itemCount} item${run.itemCount === 1 ? "" : "s"}`}
+                            th={`${run.itemCount} รายการ`}
+                          />
                         </span>
                       </span>
                       <span className="flex items-center justify-between gap-2 text-text-muted">
@@ -249,21 +289,38 @@ export default async function SourceDetailPage({
           {canWrite ? (
             <section className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-border-soft bg-surface p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-                {source.locked ? "Create a revision" : "Edit source"}
+                {source.locked ? (
+                  <T en="Create a revision" th="สร้างฉบับใหม่" />
+                ) : (
+                  <T en="Edit source" th="แก้ไขเอกสารต้นฉบับ" />
+                )}
               </h2>
               <p className="text-xs leading-relaxed text-text-muted">
-                {source.locked
-                  ? "The analysed text stays as it is. Your changes become the next revision."
-                  : "Nothing has been analysed yet, so this document can still be corrected in place."}
+                {source.locked ? (
+                  <T
+                    en="The analysed text stays as it is. Your changes become the next revision."
+                    th="ข้อความที่วิเคราะห์แล้วจะคงอยู่ตามเดิม การเปลี่ยนแปลงของคุณจะกลายเป็นฉบับถัดไป"
+                  />
+                ) : (
+                  <T
+                    en="Nothing has been analysed yet, so this document can still be corrected in place."
+                    th="ยังไม่มีการวิเคราะห์ จึงยังสามารถแก้ไขเอกสารนี้ได้โดยตรง"
+                  />
+                )}
               </p>
               <Link
                 href={`${base}/${source.id}/edit`}
                 className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] bg-accent px-4 text-sm
                            font-semibold text-on-accent transition-colors hover:bg-accent-hover"
               >
-                {source.locked
-                  ? `Create revision ${source.revisionNumber + 1}`
-                  : "Edit this source"}
+                {source.locked ? (
+                  <T
+                    en={`Create revision ${source.revisionNumber + 1}`}
+                    th={`สร้างฉบับที่ ${source.revisionNumber + 1}`}
+                  />
+                ) : (
+                  <T en="Edit this source" th="แก้ไขเอกสารนี้" />
+                )}
               </Link>
             </section>
           ) : null}
@@ -273,7 +330,7 @@ export default async function SourceDetailPage({
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Meta({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="text-xs text-text-faint">{label}</dt>

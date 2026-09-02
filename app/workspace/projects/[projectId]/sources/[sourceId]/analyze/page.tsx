@@ -16,6 +16,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
+import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -51,13 +52,16 @@ export default async function AnalyzeSourcePage({
           href={base}
           className="inline-flex w-fit items-center gap-1 text-xs text-text-faint hover:text-text-muted"
         >
-          <Icon name="arrow-left" size={13} /> Back to source
+          <Icon name="arrow-left" size={13} /> <T en="Back to source" th="กลับไปที่เอกสารต้นฉบับ" />
         </Link>
         <p
           role="alert"
           className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-4 py-3 text-sm text-warn"
         >
-          This project is archived and read-only. Restore it before running an analysis.
+          <T
+            en="This project is archived and read-only. Restore it before running an analysis."
+            th="โปรเจกต์นี้ถูกเก็บเข้าคลังแล้วและอ่านได้อย่างเดียว กู้คืนก่อนรันการวิเคราะห์"
+          />
         </p>
       </main>
     );
@@ -74,14 +78,19 @@ export default async function AnalyzeSourcePage({
           href={base}
           className="inline-flex w-fit items-center gap-1 text-xs text-text-faint hover:text-text-muted"
         >
-          <Icon name="arrow-left" size={13} /> Back to source
+          <Icon name="arrow-left" size={13} /> <T en="Back to source" th="กลับไปที่เอกสารต้นฉบับ" />
         </Link>
         <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-text">
-          Analyze &ldquo;{source.title}&rdquo;
+          <T
+            en={<>Analyze &ldquo;{source.title}&rdquo;</>}
+            th={<>วิเคราะห์ &ldquo;{source.title}&rdquo;</>}
+          />
         </h1>
         <p className="text-sm text-text-muted">
-          Runs the analysis again on this source. Every run is kept — a new one never
-          replaces an earlier one.
+          <T
+            en="Runs the analysis again on this source. Every run is kept — a new one never replaces an earlier one."
+            th="รันการวิเคราะห์นี้อีกครั้งบนเอกสารต้นฉบับนี้ ทุกรอบจะถูกเก็บไว้ — รอบใหม่จะไม่แทนที่รอบก่อนหน้า"
+          />
         </p>
       </div>
 

@@ -1,5 +1,7 @@
 import type { ProviderOption } from "@/lib/config/env";
 import type { ProviderKey } from "@/lib/providers/types";
+import { T } from "@/app/_components/t";
+import { useLocale, pick } from "@/lib/i18n";
 
 export function AnalysisProviderControls({
   providerOptions,
@@ -10,10 +12,13 @@ export function AnalysisProviderControls({
   defaultProvider: ProviderKey;
   pending: boolean;
 }) {
+  const locale = useLocale();
   return (
     <>
       <fieldset disabled={pending} className="flex flex-col gap-3">
-        <legend className="text-sm font-semibold text-text">Analysis provider</legend>
+        <legend className="text-sm font-semibold text-text">
+          <T en="Analysis provider" th="ผู้ให้บริการวิเคราะห์" />
+        </legend>
         <div className="mt-1 flex flex-col gap-2">
           {providerOptions.map((option) => {
             const explanationId =
@@ -46,8 +51,10 @@ export function AnalysisProviderControls({
                       id={explanationId}
                       className="mt-0.5 block text-xs leading-relaxed text-text-muted"
                     >
-                      Gemini is not available in this workspace. Choose Deterministic
-                      Mock or try again later.
+                      <T
+                        en="Gemini is not available in this workspace. Choose Deterministic Mock or try again later."
+                        th="ไม่สามารถใช้ Gemini ในพื้นที่ทำงานนี้ได้ เลือก Deterministic Mock หรือลองใหม่ภายหลัง"
+                      />
                     </span>
                   ) : null}
                 </span>
@@ -66,7 +73,9 @@ export function AnalysisProviderControls({
                      font-semibold text-on-accent transition-colors hover:bg-accent-hover
                      disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {pending ? "Analysing…" : "Analyze requirements"}
+          {pending
+            ? pick(locale, "Analysing…", "กำลังวิเคราะห์…")
+            : pick(locale, "Analyze requirements", "วิเคราะห์ข้อกำหนด")}
         </button>
         <p
           role="status"
@@ -74,7 +83,7 @@ export function AnalysisProviderControls({
           aria-atomic="true"
           className="text-xs text-text-muted"
         >
-          {pending ? "Analysis in progress. Keep this page open." : ""}
+          {pending ? pick(locale, "Analysis in progress. Keep this page open.", "กำลังวิเคราะห์อยู่ กรุณาอย่าปิดหน้านี้") : ""}
         </p>
       </div>
     </>
