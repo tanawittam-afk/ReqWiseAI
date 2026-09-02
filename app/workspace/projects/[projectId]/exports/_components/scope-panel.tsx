@@ -16,6 +16,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { T } from "@/app/_components/t";
+import { Button } from "@/app/_components/ui/button";
 import {
   EXPORT_PRESETS,
   EXPORT_PRESET_LABEL,
@@ -245,14 +246,9 @@ function SectionGroup({
           {title}
         </legend>
         {onAll ? (
-          <button
-            type="button"
-            onClick={() => onAll(!allOn)}
-            disabled={pending}
-            className="text-xs font-medium text-accent underline underline-offset-2 disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" onClick={() => onAll(!allOn)} disabled={pending}>
             {allOn ? <T en="Clear all" th="ล้างทั้งหมด" /> : <T en="Select all" th="เลือกทั้งหมด" />}
-          </button>
+          </Button>
         ) : null}
       </div>
       {sections.map((section) => (

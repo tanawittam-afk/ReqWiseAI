@@ -33,6 +33,7 @@ import type { WorkspaceActivityRow } from "@/lib/workspace/types";
 import { DomainBadge, LangBadge, formatDate } from "../_components/badges";
 import { TryExampleButton } from "../projects/example-button";
 import { T } from "../../_components/t";
+import { ActionLink } from "../../_components/ui/action-link";
 
 export const metadata = { title: "Dashboard — ReqWise AI" };
 
@@ -227,12 +228,9 @@ function RecentProjects({
         <h2 id="recent-projects-heading" className="text-sm font-semibold text-text">
           <T en="Recent projects" th="โปรเจกต์ล่าสุด" />
         </h2>
-        <Link
-          href="/workspace/projects"
-          className="inline-flex min-h-11 items-center text-xs font-medium text-accent underline underline-offset-2 lg:min-h-0"
-        >
+        <ActionLink href="/workspace/projects" variant="ghost" size="sm">
           <T en="All projects" th="โปรเจกต์ทั้งหมด" />
-        </Link>
+        </ActionLink>
       </div>
 
       {projects.length === 0 ? (

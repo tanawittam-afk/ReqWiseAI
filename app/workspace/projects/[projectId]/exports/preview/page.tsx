@@ -14,6 +14,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
+import { ActionLink } from "@/app/_components/ui/action-link";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
 import { loadExportInput } from "@/lib/export/load";
@@ -69,14 +70,16 @@ export default async function ExportPreviewPage({
           <Icon name="arrow-left" size={13} /> <T en="Export scope" th="ขอบเขตการส่งออก" />
         </Link>
         <span className="text-xs text-text-faint">{READINESS_LABEL[readiness.level]}</span>
-        <Link
+        <ActionLink
           href={`/workspace/projects/${projectId}/exports/print?${serialised}`}
           target="_blank"
           rel="noopener"
-          className="ml-auto inline-flex min-h-11 items-center gap-1 text-xs font-medium text-accent underline underline-offset-2 lg:min-h-0"
+          variant="ghost"
+          size="sm"
+          className="ml-auto"
         >
           <T en="Printable version" th="เวอร์ชันสำหรับพิมพ์" /> <Icon name="external" size={13} />
-        </Link>
+        </ActionLink>
       </div>
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:px-8 sm:py-8">

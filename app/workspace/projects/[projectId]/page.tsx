@@ -15,6 +15,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
+import { ActionLink } from "@/app/_components/ui/action-link";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { listSources } from "@/lib/sources/queries";
@@ -233,15 +234,16 @@ export default async function ProjectOverviewPage({
                   <T en="Recent sources" th="เอกสารต้นฉบับล่าสุด" />
                 </h2>
                 <div className="flex items-center gap-3">
-                  <Link
+                  <ActionLink
                     href={`/workspace/projects/${projectId}/sources`}
-                    className="text-xs font-medium text-accent underline underline-offset-2"
+                    variant="ghost"
+                    size="sm"
                   >
                     <T
                       en={`View all ${project.sourceDocumentCount}`}
                       th={`ดูทั้งหมด ${project.sourceDocumentCount}`}
                     />
-                  </Link>
+                  </ActionLink>
                   {archived ? null : (
                     <Link
                       href={`/workspace/projects/${projectId}/sources/new`}

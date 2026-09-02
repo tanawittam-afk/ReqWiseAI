@@ -13,6 +13,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { T } from "@/app/_components/t";
+import { Button } from "@/app/_components/ui/button";
 import { FacetSelect } from "@/app/_components/ui/select";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import {
@@ -154,13 +155,9 @@ export function RequirementsView({
           </label>
 
           {active ? (
-            <button
-              type="button"
-              onClick={() => setFilters(EMPTY_WORKSPACE_FILTERS)}
-              className="min-h-11 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2 lg:min-h-9"
-            >
+            <Button variant="ghost" size="sm" onClick={() => setFilters(EMPTY_WORKSPACE_FILTERS)}>
               <T en="Clear filters" th="ล้างตัวกรอง" />
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>

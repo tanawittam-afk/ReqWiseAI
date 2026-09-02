@@ -16,6 +16,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
+import { ActionLink } from "@/app/_components/ui/action-link";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
@@ -133,12 +134,13 @@ export default async function ExportPage({
               <h2 className="text-sm font-semibold text-text">
                 <T en="Document preview" th="ตัวอย่างเอกสาร" />
               </h2>
-              <Link
+              <ActionLink
                 href={`/workspace/projects/${projectId}/exports/preview?${serialised}`}
-                className="text-xs font-medium text-accent underline underline-offset-2"
+                variant="ghost"
+                size="sm"
               >
                 <T en="Open full-width preview" th="เปิดตัวอย่างแบบเต็มความกว้าง" />
-              </Link>
+              </ActionLink>
             </div>
             <div className="min-w-0 rounded-[var(--radius-panel)] border border-border-soft bg-surface px-4 py-5 sm:px-6 sm:py-6">
               <ExportDocument pkg={pkg} />

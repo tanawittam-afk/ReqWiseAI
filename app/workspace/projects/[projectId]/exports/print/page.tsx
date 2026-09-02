@@ -21,6 +21,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
+import { ActionLink } from "@/app/_components/ui/action-link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { buildExportPackage } from "@/lib/export/build";
@@ -97,12 +98,13 @@ export default async function ExportPrintPage({
             </li>
           ))}
         </ul>
-        <Link
+        <ActionLink
           href={`/workspace/projects/${projectId}/exports?${serialised}`}
-          className="screen-only inline-flex min-h-11 w-fit items-center gap-1 text-sm font-medium text-accent underline underline-offset-2 lg:min-h-0"
+          variant="ghost"
+          className="screen-only w-fit"
         >
           <Icon name="arrow-left" size={14} /> <T en="Back to export scope" th="กลับไปที่ขอบเขตการส่งออก" />
-        </Link>
+        </ActionLink>
       </main>
     );
   }

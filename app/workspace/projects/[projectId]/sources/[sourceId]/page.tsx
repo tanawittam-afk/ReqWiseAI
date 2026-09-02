@@ -16,6 +16,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
+import { ActionLink } from "@/app/_components/ui/action-link";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
@@ -213,15 +214,17 @@ export default async function SourceDetailPage({
                   th={`ฉบับนี้แทนที่ฉบับที่ ${source.revisionNumber - 1} ซึ่งยังคงอยู่ตามที่เคยถูกวิเคราะห์ไว้ทุกประการ`}
                 />
               </p>
-              <Link
+              <ActionLink
                 href={`${base}/${source.supersedesId}`}
-                className="mt-2 inline-flex text-xs font-medium text-accent underline underline-offset-2"
+                variant="ghost"
+                size="sm"
+                className="mt-2 w-fit"
               >
                 <T
                   en={`Open revision ${source.revisionNumber - 1}`}
                   th={`เปิดฉบับที่ ${source.revisionNumber - 1}`}
                 />
-              </Link>
+              </ActionLink>
             </section>
           ) : null}
 

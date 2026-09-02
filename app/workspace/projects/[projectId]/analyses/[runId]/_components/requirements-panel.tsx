@@ -31,6 +31,7 @@ import { WORKFLOW_STATE_LABEL, type WorkflowState } from "@/lib/contracts/workfl
 import { EVIDENCE_LABEL, PRIORITY_LABEL, STATUS_LABEL, TYPE_LABEL, confidencePercent, labelFor } from "@/app/workspace/_components/item-labels";
 import { RequirementRow } from "./requirement-row";
 import { T } from "@/app/_components/t";
+import { Button } from "@/app/_components/ui/button";
 import { pick, useLocale } from "@/lib/i18n";
 
 const GROUP_MODE_LABEL: Record<GroupMode, { en: string; th: string }> = {
@@ -245,15 +246,15 @@ export function RequirementsPanel({
             ))}
           </FacetSelect>
           {hasActiveFilter(filters) ? (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() =>
                 set({ type: "all", priority: "all", status: "all", evidenceClass: "all", workflowState: "all" })
               }
-              className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] px-2 text-xs font-medium text-accent underline underline-offset-2"
             >
               <T en="Clear filters" th="ล้างตัวกรอง" />
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}
