@@ -3,20 +3,39 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
-> ⏸️ **Session paused here (2026-08-05, Rancandel orchestrator, near usage limit).** A
-> background build agent is **mid-task, right now**, finishing the i18n sweep on the
-> traceability surfaces — `git status` shows **uncommitted** changes to
-> `app/workspace/projects/[projectId]/traceability/{page.tsx,traceability-view.tsx,
-> _components/{coverage-row,inspector,map-view,matrix-view}.tsx}`. The commit history
-> already has three completed slices ahead of this (`5ff2af9` review/workflow/
-> change-request panels, `a8b1e4c` history panel, `7eac4ae` EmptyState primitive +
-> requirements view chrome gap) — **do not** `git reset`/`git checkout --`/`git clean` on
-> those traceability files, that discards live, in-progress, uncommitted work. If resuming
-> as a fresh session: check whether the agent finished (look for new commits past
-> `7eac4ae` and/or a fresh HANDOFF addendum below this notice) before doing anything else.
-> No dev server was left running (checked, none found) — nothing to kill on resume.
+Last updated: 2026-09-02 (**i18n sweep closed out — exports, sources, project
+overview.** Continuation of the round Phase 7 disclosed as incomplete. Six commits:
+exports (`eb0a8d6`), sources list + form (`5501df9`), source detail/edit/analyze flow
+(`e298eb3`), projects list (`58f9074`), project overview + archive controls
+(`23bea60`), and this HANDOFF update. **Grep count: 67 of 83 `.tsx` files now use
+`<T>`/`useLocale`, up from 33 at the start of this round** (`grep -rl "<T \|useLocale"
+app --include=*.tsx | wc -l`). Every file named as a gap in the Phase 7 follow-up entry
+below is now swept. The 16 remaining files are audited, not skipped — each is one of:
+a UI primitive with no hardcoded strings (`button`/`chip`/`empty-state`/`notice`/
+`tabs.tsx`), infra (`icon.tsx`, `t.tsx`), a pure structural component with no literal
+text (`workspace-item-row.tsx`, `analyses/[runId]/_components/panel.tsx`), a metadata-
+only file with nothing rendered (`app/layout.tsx`, `demo/layout.tsx`, `demo/page.tsx`),
+a pure redirect (`app/workspace/page.tsx`), or `exports/_components/document.tsx` —
+deliberately excluded per CLAUDE.md: export output is a document governed by
+`analysis_runs.output_lang`, not chrome. Two shared-vocabulary label maps remain the
+same deliberate, permanent scope boundary Phase 7 already recorded — `SOURCE_KIND_LABELS`
+(`lib/contracts/source.ts`) joins `STATUS_LABEL`/`PRIORITY_LABEL`/`TYPE_LABEL`/
+`TYPE_SHORT_LABEL`/`EVIDENCE_LABEL` (`item-labels.ts`) and the review-activity label
+maps as the same kind of gap: localizing them means threading a `locale` argument
+through a lib layer that returns plain strings today, consumed by multiple call sites
+outside any one page's file list. Provider labels (`providerLabel()`) are also
+untranslated by design — the master plan's trap #2: the run header must always
+disclose which real provider produced a run, in the terms it actually ran under.
+`npm run build`/`lint`/`typecheck`/`test` clean after every slice (800/800 throughout).
+`vitest.config.ts` gained a `resolve.alias` for `@/` (mirroring `tsconfig.json`, no new
+dependency) — `tests/providers/selection.test.ts` directly renders
+`AnalysisProviderControls`, which now imports `app/_components/t` the same way every
+other swept component does; Vitest doesn't share Next.js's path-alias resolution, so
+this was the one place the gap was actually exercised by a test. No browser
+verification pass this round — same disclosed limitation as the entry below;
+build/lint/typecheck/test plus direct diff review were the verification method.)
 
-Last updated: 2026-08-05 (**Phase 7 follow-up — i18n sweep continued + real browser
+Earlier: 2026-08-05 (**Phase 7 follow-up — i18n sweep continued + real browser
 verification.** Closes the two gaps Phase 7 explicitly disclosed as incomplete: the i18n
 sweep and a live keyboard/browser pass. Eight commits.
 
