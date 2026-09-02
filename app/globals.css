@@ -67,6 +67,47 @@
   --radius-card: 4px;
 
   /*
+   * Elevation. The original direction forbade a shadow on any resting panel — depth
+   * came from hairlines alone. The owner reversed that on 2026-09-02 after finding the
+   * interface hard to parse ("มองยากมาก ไม่รู้อะไรเป็นอะไร"): a soft shadow is what
+   * separates one card from the next at a glance. Kept deliberately shallow — this is
+   * separation, not the floating-card look CLAUDE.md still rules out.
+   *
+   * Light mode only. In dark mode a black shadow on a near-black ground is invisible,
+   * so the dark block below sets both to `none` and pays for separation with a lighter
+   * surface and a stronger border instead. See docs/design/INTERFACE.md §9.
+   */
+  --shadow-card: 0 1px 2px rgba(11, 14, 20, 0.06);
+  --shadow-panel: 0 1px 3px rgba(11, 14, 20, 0.06);
+
+  /*
+   * Item-type tints. Fourteen item types would be fourteen colours — noise, not signal —
+   * so they collapse into the four families a reviewer actually scans for. Every chip
+   * still carries its word: colour is the second channel, never the only one
+   * (CLAUDE.md → Accessibility). Measured against their own soft background before
+   * being committed: 5.22–6.40:1 light, 8.06–9.44:1 dark, all clearing WCAG AA.
+   *
+   * context     — problem statement, business objective, stakeholder
+   * requirement — business / functional / non-functional requirement, business rule
+   * spec        — user story, acceptance criterion
+   * caveat      — assumption, constraint
+   * Risk, open question and quality finding keep the existing danger/warn tokens: they
+   * are states that need attention, not a category of content.
+   */
+  --tint-context: #5b3fb8;
+  --tint-context-soft: #f0edfd;
+  --tint-context-border: #d9d0f7;
+  --tint-requirement: #17636f;
+  --tint-requirement-soft: #e6f4f6;
+  --tint-requirement-border: #bfe0e6;
+  --tint-spec: #9b2f52;
+  --tint-spec-soft: #fceef2;
+  --tint-spec-border: #f2ccd8;
+  --tint-caveat: #8a5a1c;
+  --tint-caveat-soft: #f8f0e6;
+  --tint-caveat-border: #e8d5bd;
+
+  /*
    * Page-shell spacing rhythm. Radius and colour already had a token layer here;
    * density did not, and an audit found it drifting page to page with no scale to
    * check it against — the outer wrapper on ~19 pages carried the same shape
@@ -122,6 +163,24 @@
   --danger: #f0553f;
   --danger-soft: #3a1c19;
   --danger-border: #5c2b26;
+
+  /* A shadow cast on a near-black ground is invisible; dark mode buys its separation
+     with the lighter --surface/--surface-muted step and --border-strong instead. */
+  --shadow-card: none;
+  --shadow-panel: none;
+
+  --tint-context: #b9a6f5;
+  --tint-context-soft: #1c1733;
+  --tint-context-border: #382d63;
+  --tint-requirement: #7fd3e0;
+  --tint-requirement-soft: #0e2429;
+  --tint-requirement-border: #1d4a52;
+  --tint-spec: #f0a0bd;
+  --tint-spec-soft: #2a1119;
+  --tint-spec-border: #55253a;
+  --tint-caveat: #e2b878;
+  --tint-caveat-soft: #241c0f;
+  --tint-caveat-border: #4d3a1c;
 }
 
 @theme inline {
@@ -153,6 +212,23 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-border: var(--danger-border);
+
+  --color-tint-context: var(--tint-context);
+  --color-tint-context-soft: var(--tint-context-soft);
+  --color-tint-context-border: var(--tint-context-border);
+  --color-tint-requirement: var(--tint-requirement);
+  --color-tint-requirement-soft: var(--tint-requirement-soft);
+  --color-tint-requirement-border: var(--tint-requirement-border);
+  --color-tint-spec: var(--tint-spec);
+  --color-tint-spec-soft: var(--tint-spec-soft);
+  --color-tint-spec-border: var(--tint-spec-border);
+  --color-tint-caveat: var(--tint-caveat);
+  --color-tint-caveat-soft: var(--tint-caveat-soft);
+  --color-tint-caveat-border: var(--tint-caveat-border);
+
+  /* --shadow-card/--shadow-panel are deliberately NOT registered here: mapping a theme
+     key onto a custom property of the same name is circular. They are consumed the way
+     --radius-card and --space-shell-* already are — `shadow-[var(--shadow-card)]`. */
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

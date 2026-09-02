@@ -10,27 +10,24 @@
  */
 
 import { useFormStatus } from "react-dom";
+import { actionClass, type ActionSize, type ActionVariant } from "./action-styles";
 
-const VARIANT_CLASS: Record<"primary" | "secondary" | "danger" | "ghost", string> = {
-  primary: "bg-accent text-on-accent hover:bg-accent-hover",
-  secondary: "border border-border-soft bg-surface text-text transition-colors hover:bg-surface-hover",
-  danger: "border border-danger-border bg-danger-soft text-danger hover:border-danger",
-  ghost: "text-text-muted transition-colors hover:text-text",
-};
-
-type Variant = keyof typeof VARIANT_CLASS;
+type Variant = ActionVariant;
 
 export function Button({
   variant = "secondary",
+  size = "md",
   className = "",
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+  size?: ActionSize;
+}) {
   return (
     <button
       type={props.type ?? "button"}
       {...props}
-      className={`min-h-11 rounded-[var(--radius-card)] px-3.5 text-[13px] font-medium transition-colors duration-150
-                  disabled:cursor-not-allowed disabled:opacity-60 ${VARIANT_CLASS[variant]} ${className}`}
+      className={actionClass(variant, size, className)}
     />
   );
 }
