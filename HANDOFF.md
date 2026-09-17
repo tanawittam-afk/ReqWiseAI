@@ -3,6 +3,25 @@
 **Read `CLAUDE.md` first.** It holds the stack lock, the project rules, and the
 definition of done. This file holds *state*: where the build actually is right now.
 
+## ▶ RESUME HERE — "Usable Product" Master Plan (active since 2026-09-17)
+
+The active body of work is
+[`docs/superpowers/plans/2026-09-17-usable-product-master-plan.md`](docs/superpowers/plans/2026-09-17-usable-product-master-plan.md).
+It covers daily limits, own Gemini keys, `/admin`, a quality score, a gap check, shared
+projects and a readability pass. All of it was agreed with the owner; read it before
+any work.
+
+- **Current position:** no phase started. **Next step: Phase 0**, where the owner runs
+  2–3 real meeting notes through the live app and hands over a pain-point list.
+  Phase 1 (Protection) follows.
+- **Owner rule:** at the end of every phase, update this block and the plan's
+  phase-status table before starting the next phase or pausing.
+- **Conflict note:** this plan approves the quality-score panel. The "never invent a
+  metric / quality score deferred" rule below and in `ARCHITECTURE.md` §A.4 is updated
+  in the Phase 2 commit, not before.
+
+---
+
 Last updated: 2026-09-03 (**UI redesign — ERP-clarity app pass + a new landing
 direction, both shipped.** Not part of the numbered 2026-08-03 UX/UI Master Plan below
 (that closed out at Phase 8) — a separate owner-requested pass after using the app
