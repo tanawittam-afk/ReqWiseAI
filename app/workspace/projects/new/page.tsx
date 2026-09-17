@@ -17,6 +17,8 @@ import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { listDomainProfileOptions } from "@/lib/domain/load-profile";
 import { CUSTOM_DOMAIN_PLACEHOLDER, isDomainSupported } from "@/lib/domain/availability";
+import { getDailyUsageToday } from "@/lib/analysis/daily-usage";
+import { DAILY_ANALYSIS_LIMIT } from "@/lib/config/limits";
 import { TryExampleButton } from "../example-button";
 import { StartProjectForm, type DomainOption } from "./start-form";
 
@@ -29,7 +31,10 @@ export default async function NewProjectPage({
 }) {
   const { error } = await searchParams;
   const supabase = await createClient();
-  const profiles = await listDomainProfileOptions(supabase);
+  const [profiles, dailyUsage] = await Promise.all([
+    listDomainProfileOptions(supabase),
+    getDailyUsageToday(supabase, DAILY_ANALYSIS_LIMIT),
+  ]);
 
   const domains: DomainOption[] = [
     ...profiles.map((profile) => ({
@@ -92,7 +97,7 @@ export default async function NewProjectPage({
         </div>
       </header>
 
-      <StartProjectForm domains={domains} />
+      <StartProjectForm domains={domains} dailyUsage={dailyUsage} />
     </main>
   );
 }

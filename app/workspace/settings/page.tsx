@@ -2,10 +2,10 @@
  * Settings — what this workspace is configured with, and what each domain profile
  * contributes to an analysis.
  *
- * **Read-only, deliberately.** The UX/UI plan's Phase 5 said Settings would "hold the
- * provider choice", and that turned out to need a preference to store and nowhere to
- * store it: there is no user- or organization-settings table, and adding a migration
- * to a live database to persist a dropdown is a schema change bought for a
+ * **Read-only, deliberately — except one thing.** The UX/UI plan's Phase 5 said Settings
+ * would "hold the provider choice", and that turned out to need a preference to store
+ * and nowhere to store it: there is no user- or organization-settings table, and adding
+ * a migration to a live database to persist a dropdown is a schema change bought for a
  * convenience. Two things follow, and both are stated on the page rather than hidden:
  *
  *   1. **The provider is disclosed, not chosen, here.** Which provider is configured
@@ -18,19 +18,29 @@
  *      (`lib/domain/types.ts`): showing what it contributes is the useful thing; an
  *      editor for it is a different feature nobody has asked for.
  *
- * The API key itself is never read into this page, never rendered and never sent to
- * the browser — only the boolean `available`, which `readServerEnvironment()` already
+ * The server's own API key is never read into this page, never rendered and never sent
+ * to the browser — only the boolean `available`, which `readServerEnvironment()` already
  * derives. That rule is absolute (CLAUDE.md → Stack).
+ *
+ * **The one write this page owns (Phase 1, Slice 3):** a user's own Gemini key
+ * (`GeminiKeySection`, `./gemini-key`). That genuinely IS a per-user preference with
+ * somewhere real to store it — `user_gemini_keys`
+ * (`supabase/migrations/20260918000025_user_gemini_keys.sql`), accessed only through
+ * SECURITY DEFINER RPCs. Once saved, the decrypted key is never read back into any page
+ * or response body either — only `has_key`/`last_four`/`updated_at`
+ * (`get_my_gemini_key_status()`).
  */
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { readServerEnvironment, toProviderOptions } from "@/lib/config/env";
+import { getGeminiKeyStatus } from "@/lib/analysis/own-gemini-key";
 import { ALL_PROFILES } from "@/lib/domain/profiles";
 import { isDomainSupported } from "@/lib/domain/availability";
 import type { DomainProfile } from "@/lib/domain/types";
 import { T } from "../../_components/t";
+import { GeminiKeySection } from "./gemini-key/gemini-key-section";
 
 export const metadata = { title: "Settings — ReqWise AI" };
 
@@ -44,6 +54,7 @@ export default async function SettingsPage() {
   const env = readServerEnvironment();
   const providers = toProviderOptions(env);
   const effective = env.defaultProvider === "gemini" && !env.gemini.available;
+  const geminiKeyStatus = await getGeminiKeyStatus(supabase);
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-[var(--space-shell-gap)] px-[var(--space-shell-x)] py-[var(--space-shell-y)] sm:px-[var(--space-shell-x-lg)] sm:py-[var(--space-shell-y-lg)]">
@@ -54,9 +65,9 @@ export default async function SettingsPage() {
         <p className="text-sm text-text-muted">
           <T
             en="What this workspace runs on, and what each domain profile contributes to an
-            analysis. Everything here is read-only."
+            analysis. Everything here is read-only, except your own Gemini key below."
             th="เวิร์กสเปซนี้ทำงานด้วยอะไร และแต่ละโปรไฟล์โดเมนมีส่วนช่วยการวิเคราะห์อย่างไร
-            ทุกอย่างในหน้านี้เป็นแบบอ่านอย่างเดียว"
+            ทุกอย่างในหน้านี้เป็นแบบอ่านอย่างเดียว ยกเว้น Gemini key ของคุณเองด้านล่าง"
           />
         </p>
       </header>
@@ -178,6 +189,12 @@ export default async function SettingsPage() {
           />
         </p>
       </section>
+
+      <GeminiKeySection
+        hasKey={geminiKeyStatus.hasKey}
+        lastFour={geminiKeyStatus.lastFour}
+        updatedAt={geminiKeyStatus.updatedAt}
+      />
 
       <section aria-labelledby="profiles-heading" className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">

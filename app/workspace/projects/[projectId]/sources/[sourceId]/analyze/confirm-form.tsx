@@ -15,6 +15,7 @@ import { Icon } from "@/app/_components/icon";
 import { T } from "@/app/_components/t";
 import type { ProviderOption } from "@/lib/config/env";
 import type { ProviderKey } from "@/lib/providers/types";
+import type { DailyUsageToday } from "@/lib/analysis/daily-usage";
 import { analyzeSourceAction } from "./actions";
 import { emptyAnalyzeFormState } from "./form-state";
 import { AnalysisProviderControls } from "./provider-controls";
@@ -26,6 +27,7 @@ export function AnalyzeConfirmForm({
   alreadyLocked,
   providerOptions,
   defaultProvider,
+  dailyUsage,
 }: {
   projectId: string;
   sourceId: string;
@@ -33,6 +35,7 @@ export function AnalyzeConfirmForm({
   alreadyLocked: boolean;
   providerOptions: ProviderOption[];
   defaultProvider: ProviderKey;
+  dailyUsage: DailyUsageToday;
 }) {
   const [state, formAction, pending] = useActionState(
     analyzeSourceAction,
@@ -119,6 +122,7 @@ export function AnalyzeConfirmForm({
         providerOptions={providerOptions}
         defaultProvider={defaultProvider}
         pending={pending}
+        dailyUsage={dailyUsage}
       />
     </form>
   );

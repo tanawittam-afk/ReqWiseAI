@@ -108,4 +108,33 @@ describe("server environment", () => {
   ])("rejects an invalid %s", (variable, override) => {
     expect(() => readServerEnvironment({ ...requiredSource, ...override })).toThrow(variable);
   });
+
+  describe("geminiKeyEncryption (Phase 1, Slice 3)", () => {
+    it("is unavailable, not a throw, when the secret is entirely unset", () => {
+      const env = readServerEnvironment(requiredSource);
+
+      expect(env.geminiKeyEncryption).toEqual({ available: false, secret: null });
+    });
+
+    it("is available once a valid 32-byte base64 secret is set", () => {
+      const secret = Buffer.alloc(32, 3).toString("base64");
+      const env = readServerEnvironment({ ...requiredSource, GEMINI_KEY_ENCRYPTION_SECRET: secret });
+
+      expect(env.geminiKeyEncryption).toEqual({ available: true, secret });
+    });
+
+    it("throws loudly when the secret is present but the wrong length", () => {
+      const tooShort = Buffer.alloc(16, 3).toString("base64");
+
+      expect(() =>
+        readServerEnvironment({ ...requiredSource, GEMINI_KEY_ENCRYPTION_SECRET: tooShort }),
+      ).toThrow(/32 bytes/);
+    });
+
+    it("treats a whitespace-only secret the same as unset", () => {
+      const env = readServerEnvironment({ ...requiredSource, GEMINI_KEY_ENCRYPTION_SECRET: "   " });
+
+      expect(env.geminiKeyEncryption).toEqual({ available: false, secret: null });
+    });
+  });
 });

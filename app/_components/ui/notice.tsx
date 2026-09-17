@@ -11,7 +11,7 @@ export function Notice({
   tone = "muted",
   children,
 }: {
-  tone?: "muted" | "danger" | "success";
+  tone?: "muted" | "warn" | "danger" | "success";
   children: React.ReactNode;
 }) {
   if (tone === "danger") {
@@ -19,6 +19,16 @@ export function Notice({
       <p
         role="alert"
         className="rounded-[var(--radius-card)] border border-danger-border bg-danger-soft px-3 py-2 text-[12.5px] leading-relaxed text-danger"
+      >
+        {children}
+      </p>
+    );
+  }
+  if (tone === "warn") {
+    return (
+      <p
+        role="status"
+        className="rounded-[var(--radius-card)] border border-warn-border bg-warn-soft px-3 py-2 text-[12.5px] leading-relaxed text-warn"
       >
         {children}
       </p>

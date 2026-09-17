@@ -17,6 +17,9 @@ import { buildAnalysisInput } from "@/lib/analysis/input";
 import { productionPorts } from "@/lib/analysis/production-ports";
 import { persistAnalysisResult } from "@/lib/analysis/persist";
 import { runAnalysis } from "@/lib/analysis/run-analysis";
+import { decrementDailyUsage, incrementDailyUsage } from "@/lib/analysis/daily-usage";
+import { getOwnGeminiApiKey, OWN_KEY_UNUSABLE_MESSAGE } from "@/lib/analysis/own-gemini-key";
+import { DAILY_ANALYSIS_LIMIT } from "@/lib/config/limits";
 import { readServerEnvironment } from "@/lib/config/env";
 import { unavailableProviderMessage } from "@/lib/providers/errors";
 import { createProvider } from "@/lib/providers/factory";
@@ -44,11 +47,39 @@ export async function analyzeSourceAction(
   if (!built.ok) return { error: built.error };
 
   const environment = readServerEnvironment();
+
+  // Own-key bypass (Phase 1, Slice 3). Only looked up for a Gemini run — bringing your
+  // own key bypasses the *Gemini* metering it corresponds to, never a free mock run's
+  // limit; that would be a loophole, not a feature.
+  let ownApiKey: string | undefined;
+  if (providerKey === "gemini") {
+    const ownKey = await getOwnGeminiApiKey(supabase, environment.geminiKeyEncryption.secret);
+    if (!ownKey.ok) return { error: ownKey.error };
+    ownApiKey = ownKey.apiKey ?? undefined;
+  }
+  const usingOwnKey = ownApiKey !== undefined;
+
+  // Checked (and spent, atomically) only once the project/source are known valid, and
+  // only when this run is not already paid for by the caller's own key — no point
+  // spending a shared slot on a request that never touches the shared limit.
+  if (!usingOwnKey) {
+    const usage = await incrementDailyUsage(supabase, DAILY_ANALYSIS_LIMIT);
+    if (!usage.ok) return { error: usage.error };
+    if (!usage.data.allowed) {
+      return {
+        error:
+          `You have reached today's limit of ${DAILY_ANALYSIS_LIMIT} analyses ` +
+          `(${DAILY_ANALYSIS_LIMIT}/${DAILY_ANALYSIS_LIMIT} used). It resets at midnight, Bangkok time.`,
+      };
+    }
+  }
+
   let provider: AiProvider;
   try {
-    provider = createProvider(providerKey, environment);
+    provider = createProvider(providerKey, environment, undefined, ownApiKey);
   } catch (error) {
-    return { error: unavailableProviderMessage(error) };
+    if (!usingOwnKey) await decrementDailyUsage(supabase);
+    return { error: usingOwnKey ? OWN_KEY_UNUSABLE_MESSAGE : unavailableProviderMessage(error) };
   }
   const result = await runAnalysis(provider, built.input, productionPorts());
 
@@ -60,7 +91,10 @@ export async function analyzeSourceAction(
     built.input,
     result,
   );
-  if (!outcome.ok) return { error: outcome.error };
+  if (!outcome.ok) {
+    if (!usingOwnKey) await decrementDailyUsage(supabase);
+    return { error: outcome.error };
+  }
 
   revalidatePath(`/workspace/projects/${projectId}/sources/${sourceId}`);
   revalidatePath(`/workspace/projects/${projectId}`);

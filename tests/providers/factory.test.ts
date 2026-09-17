@@ -13,6 +13,7 @@ const noGeminiEnv: ServerEnvironment = {
   runtimeEnvironment: "test",
   defaultProvider: "mock",
   gemini: { available: false, apiKey: null, models: [] },
+  geminiKeyEncryption: { available: false, secret: null },
 };
 
 const geminiEnv: ServerEnvironment = {
@@ -78,5 +79,58 @@ describe("provider factory", () => {
 
   it("rejects every unknown selection", () => {
     expect(providerSelectionSchema.safeParse("other").success).toBe(false);
+  });
+
+  describe("apiKeyOverride (Phase 1, Slice 3 — own-Gemini-key bypass)", () => {
+    it("uses the override key instead of the env-sourced one, even when the server has no key at all", async () => {
+      const fetchImpl = vi.fn(
+        async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+          void input;
+          expect((init?.headers as Record<string, string>)["x-goog-api-key"]).toBe("own-key");
+          return new Response(
+            JSON.stringify({
+              candidates: [{ content: { parts: [{ text: JSON.stringify(bookingValidOutput) }] } }],
+            }),
+            { status: 200 },
+          );
+        },
+      );
+      // env.gemini has a model chain but no server-wide key/availability — only a
+      // model chain is a server-config fact; an own key never needs to bring its own.
+      const envWithModelsOnly: ServerEnvironment = {
+        ...noGeminiEnv,
+        gemini: { available: false, apiKey: null, models: ["configured-model-a"] },
+      };
+
+      const provider = createProvider(
+        "gemini",
+        envWithModelsOnly,
+        fetchImpl as typeof fetch,
+        "own-key",
+      );
+      await provider.generate(bookingInput());
+
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+
+    it("still refuses when the model chain is empty, even with an override key", () => {
+      let error: unknown;
+      try {
+        createProvider("gemini", noGeminiEnv, undefined, "own-key");
+      } catch (caught) {
+        error = caught;
+      }
+
+      expect(error).toBeInstanceOf(ProviderExecutionError);
+      expect(JSON.stringify(error)).not.toMatch(/own-key/);
+    });
+
+    it("refuses an empty-string override the same as a missing key", () => {
+      expect(() => createProvider("gemini", geminiEnv, undefined, "")).toThrow(ProviderExecutionError);
+    });
+
+    it("leaves 3-arg call sites unaffected — the override is fully optional and backward compatible", () => {
+      expect(createProvider("mock", noGeminiEnv).name).toBe("mock");
+    });
   });
 });

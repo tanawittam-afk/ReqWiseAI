@@ -136,6 +136,7 @@ describe("analysis provider selection", () => {
         providerOptions: toProviderOptions(environment),
         defaultProvider: availableDefaultProvider(environment),
         pending: false,
+        dailyUsage: { used: 0, remaining: 10, limit: 10 },
       }),
     );
 
@@ -151,6 +152,8 @@ describe("analysis provider selection", () => {
     expect(html).toContain(
       "Gemini is not available in this workspace. Choose Deterministic Mock or try again later.",
     );
+    expect(html).toContain('role="status"');
+    expect(html).toContain("Remove names and confidential details before analysing");
   });
 
   it("disables every provider and submit control with a polite pending status", () => {
@@ -165,6 +168,7 @@ describe("analysis provider selection", () => {
         providerOptions: toProviderOptions(environment),
         defaultProvider: "gemini",
         pending: true,
+        dailyUsage: { used: 3, remaining: 7, limit: 10 },
       }),
     );
 

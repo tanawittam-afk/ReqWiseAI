@@ -20,6 +20,8 @@ import { T } from "@/app/_components/t";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/queries";
 import { getSource } from "@/lib/sources/queries";
+import { getDailyUsageToday } from "@/lib/analysis/daily-usage";
+import { DAILY_ANALYSIS_LIMIT } from "@/lib/config/limits";
 import {
   availableDefaultProvider,
   readServerEnvironment,
@@ -37,9 +39,10 @@ export default async function AnalyzeSourcePage({
   const { projectId, sourceId } = await params;
 
   const supabase = await createClient();
-  const [project, source] = await Promise.all([
+  const [project, source, dailyUsage] = await Promise.all([
     getProject(supabase, projectId),
     getSource(supabase, projectId, sourceId),
+    getDailyUsageToday(supabase, DAILY_ANALYSIS_LIMIT),
   ]);
   if (!project || !source) notFound();
 
@@ -101,6 +104,7 @@ export default async function AnalyzeSourcePage({
         alreadyLocked={source.locked}
         providerOptions={providerOptions}
         defaultProvider={defaultProvider}
+        dailyUsage={dailyUsage}
       />
     </main>
   );

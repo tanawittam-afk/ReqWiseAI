@@ -23,6 +23,9 @@ import { buildAnalysisInput } from "@/lib/analysis/input";
 import { productionPorts } from "@/lib/analysis/production-ports";
 import { persistAnalysisResult } from "@/lib/analysis/persist";
 import { runAnalysis } from "@/lib/analysis/run-analysis";
+import { decrementDailyUsage, incrementDailyUsage } from "@/lib/analysis/daily-usage";
+import { getOwnGeminiApiKey, OWN_KEY_UNUSABLE_MESSAGE } from "@/lib/analysis/own-gemini-key";
+import { DAILY_ANALYSIS_LIMIT } from "@/lib/config/limits";
 import { availableDefaultProvider, readServerEnvironment } from "@/lib/config/env";
 import { unavailableProviderMessage } from "@/lib/providers/errors";
 import { createProvider } from "@/lib/providers/factory";
@@ -117,8 +120,45 @@ export async function startProjectAction(
   }
 
   const supabase = await createClient();
+  const environment = readServerEnvironment();
+  const providerKey = availableDefaultProvider(environment);
+
+  // Own-key bypass (Phase 1, Slice 3) — same gate as `analyze/actions.ts`: only looked
+  // up when this run would actually use Gemini, so a saved key never also grants
+  // unlimited free mock runs.
+  let ownApiKey: string | undefined;
+  if (providerKey === "gemini") {
+    const ownKey = await getOwnGeminiApiKey(supabase, environment.geminiKeyEncryption.secret);
+    if (!ownKey.ok) return { error: ownKey.error, fieldErrors: {}, values };
+    ownApiKey = ownKey.apiKey ?? undefined;
+  }
+  const usingOwnKey = ownApiKey !== undefined;
+
+  // Checked (and spent, atomically) *before* the project exists — the combined intake
+  // screen has no "create, then re-run" fallback like `.../analyze` does, so a blocked
+  // user must never end up with an orphaned empty project. Same RPC, same limit as the
+  // re-run screen (`analyze/actions.ts`); this closes the second entry point that used
+  // to skip the daily cap entirely. Skipped altogether when the caller's own key is
+  // paying for this run instead — there is no shared slot to spend or refund.
+  if (!usingOwnKey) {
+    const usage = await incrementDailyUsage(supabase, DAILY_ANALYSIS_LIMIT);
+    if (!usage.ok) return { error: usage.error, fieldErrors: {}, values };
+    if (!usage.data.allowed) {
+      return {
+        error:
+          `You have reached today's limit of ${DAILY_ANALYSIS_LIMIT} analyses ` +
+          `(${DAILY_ANALYSIS_LIMIT}/${DAILY_ANALYSIS_LIMIT} used). It resets at midnight, Bangkok time.`,
+        fieldErrors: {},
+        values,
+      };
+    }
+  }
+
   const created = await createProject(supabase, parsed.project);
   if (!created.ok) {
+    // The slot was spent but nothing was created — refund it so the failed attempt
+    // doesn't cost the user a real analysis. Nothing to refund when an own key paid.
+    if (!usingOwnKey) await decrementDailyUsage(supabase);
     return { error: created.error, fieldErrors: created.fieldErrors ?? {}, values };
   }
 
@@ -128,7 +168,9 @@ export async function startProjectAction(
     created.data.projectId,
     parsed.source,
     requestKey,
-    availableDefaultProvider(readServerEnvironment()),
+    providerKey,
+    usingOwnKey ? undefined : () => decrementDailyUsage(supabase),
+    ownApiKey,
   );
   redirect(destination);
 }
@@ -181,6 +223,17 @@ export async function startExampleAction(): Promise<void> {
  * with the URL to send the user to. Returns a destination rather than redirecting itself
  * — `redirect()` throws, and a throw from inside a helper is far easier to catch by
  * accident than one at the top of an action.
+ *
+ * `refundOnFailure`, when given, is called on every failure branch below — it exists so
+ * a caller that already spent a daily-usage slot before calling this helper (currently
+ * only `startProjectAction`) can get it back the moment the analysis doesn't actually
+ * happen. `startExampleAction` passes nothing: it never spends a slot in the first
+ * place (see its own comment for why), so there is nothing to refund. `startProjectAction`
+ * also passes nothing when its own-key bypass (Phase 1, Slice 3) is in play, for the
+ * same reason: no slot was spent, so there is nothing to refund.
+ *
+ * `apiKeyOverride`, when given, is the caller's own decrypted Gemini key
+ * (`getOwnGeminiApiKey`) — threaded straight into `createProvider`'s override param.
  */
 async function createSourceAndAnalyse(
   supabase: SupabaseClient,
@@ -188,32 +241,44 @@ async function createSourceAndAnalyse(
   source: SourceContentInput,
   requestKey: string,
   providerKey: "mock" | "gemini",
+  refundOnFailure?: () => Promise<void>,
+  apiKeyOverride?: string,
 ): Promise<string> {
   const projectHref = `/workspace/projects/${projectId}`;
 
   const attached = await createSource(supabase, projectId, source);
-  if (!attached.ok) return `${projectHref}?error=source`;
+  if (!attached.ok) {
+    await refundOnFailure?.();
+    return `${projectHref}?error=source`;
+  }
   const sourceHref = `${projectHref}/sources/${attached.data.sourceId}`;
 
   const built = await buildAnalysisInput(supabase, projectId, attached.data.sourceId);
-  if (!built.ok) return `${sourceHref}?error=analysis`;
+  if (!built.ok) {
+    await refundOnFailure?.();
+    return `${sourceHref}?error=analysis`;
+  }
 
   let result;
   try {
     result = await runAnalysis(
-      createProvider(providerKey, readServerEnvironment()),
+      createProvider(providerKey, readServerEnvironment(), undefined, apiKeyOverride),
       built.input,
       productionPorts(),
     );
   } catch (error) {
     // An unavailable provider is a configuration fact, not something the user typed.
     // The source is saved; the re-run screen is where it can be tried again.
-    console.error(`[projects] analyse: ${unavailableProviderMessage(error)}`);
+    const message = apiKeyOverride ? OWN_KEY_UNUSABLE_MESSAGE : unavailableProviderMessage(error);
+    console.error(`[projects] analyse: ${message}`);
+    await refundOnFailure?.();
     return `${sourceHref}?error=analysis`;
   }
 
   // An `invalid` or `provider_error` run is persisted with a run id and shown honestly —
-  // that is designed behaviour, not a failure path.
+  // that is designed behaviour, not a failure path, so the slot is *not* refunded past
+  // this point: a run happened and was recorded, even though its content reports a
+  // failure.
   const outcome = await persistAnalysisResult(
     supabase,
     projectId,
@@ -222,7 +287,10 @@ async function createSourceAndAnalyse(
     built.input,
     result,
   );
-  if (!outcome.ok) return `${sourceHref}?error=analysis`;
+  if (!outcome.ok) {
+    await refundOnFailure?.();
+    return `${sourceHref}?error=analysis`;
+  }
 
   revalidatePath("/workspace/projects");
   revalidatePath(projectHref);

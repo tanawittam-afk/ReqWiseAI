@@ -22,7 +22,10 @@
 import { useActionState, useId, useState } from "react";
 import Link from "next/link";
 import { T } from "@/app/_components/t";
+import { Icon } from "@/app/_components/icon";
+import { Notice } from "@/app/_components/ui/notice";
 import { pick, useLocale } from "@/lib/i18n";
+import type { DailyUsageToday } from "@/lib/analysis/daily-usage";
 import {
   PROJECT_NAME_MAX,
   PROJECT_TEXT_MAX,
@@ -57,7 +60,13 @@ function countStakeholders(value: string): number {
   return value.split(/\r?\n/).filter((line) => line.trim() !== "").length;
 }
 
-export function StartProjectForm({ domains }: { domains: DomainOption[] }) {
+export function StartProjectForm({
+  domains,
+  dailyUsage,
+}: {
+  domains: DomainOption[];
+  dailyUsage: DailyUsageToday;
+}) {
   const [state, formAction, pending] = useActionState(startProjectAction, emptyProjectFormState);
   const locale = useLocale();
   const firstSupported = domains.find((d) => d.supported);
@@ -500,6 +509,15 @@ export function StartProjectForm({ domains }: { domains: DomainOption[] }) {
           ) : null}
 
           <div className="mt-4 flex flex-col gap-2">
+            <Notice tone="warn">
+              <span className="flex items-start gap-2">
+                <Icon name="warning" size={14} className="mt-0.5 shrink-0" />
+                <T
+                  en="Privacy: Gemini's free tier may use submitted text to improve Google's products. Remove names and confidential details before analysing — for anything truly confidential, use a paid key instead."
+                  th="ความเป็นส่วนตัว: Gemini รุ่นฟรีอาจนำข้อความที่ส่งไปใช้พัฒนาโปรดักต์ของ Google ควรลบชื่อบุคคลและรายละเอียดที่เป็นความลับออกก่อนวิเคราะห์ — หากเป็นข้อมูลที่เป็นความลับจริง ควรใช้ API key แบบชำระเงินแทน"
+                />
+              </span>
+            </Notice>
             <button
               type="submit"
               disabled={pending || overLimit}
@@ -512,6 +530,14 @@ export function StartProjectForm({ domains }: { domains: DomainOption[] }) {
                 <T en="Create and analyse" th="สร้างและวิเคราะห์" />
               )}
             </button>
+            <p
+              className={`text-center text-xs ${dailyUsage.remaining === 0 ? "font-medium text-warn" : "text-text-faint"}`}
+            >
+              <T
+                en={`${dailyUsage.remaining} of ${dailyUsage.limit} analyses left today`}
+                th={`เหลือ ${dailyUsage.remaining} จาก ${dailyUsage.limit} ครั้งวันนี้`}
+              />
+            </p>
             <Link
               href="/workspace/projects"
               className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-card)] border border-border-soft px-4 text-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text"

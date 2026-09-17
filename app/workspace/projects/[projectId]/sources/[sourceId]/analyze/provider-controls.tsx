@@ -1,16 +1,21 @@
 import type { ProviderOption } from "@/lib/config/env";
 import type { ProviderKey } from "@/lib/providers/types";
+import type { DailyUsageToday } from "@/lib/analysis/daily-usage";
 import { T } from "@/app/_components/t";
+import { Icon } from "@/app/_components/icon";
+import { Notice } from "@/app/_components/ui/notice";
 import { useLocale, pick } from "@/lib/i18n";
 
 export function AnalysisProviderControls({
   providerOptions,
   defaultProvider,
   pending,
+  dailyUsage,
 }: {
   providerOptions: ProviderOption[];
   defaultProvider: ProviderKey;
   pending: boolean;
+  dailyUsage: DailyUsageToday;
 }) {
   const locale = useLocale();
   return (
@@ -64,6 +69,16 @@ export function AnalysisProviderControls({
         </div>
       </fieldset>
 
+      <Notice tone="warn">
+        <span className="flex items-start gap-2">
+          <Icon name="warning" size={14} className="mt-0.5 shrink-0" />
+          <T
+            en="Privacy: Gemini's free tier may use submitted text to improve Google's products. Remove names and confidential details before analysing — for anything truly confidential, use a paid key instead."
+            th="ความเป็นส่วนตัว: Gemini รุ่นฟรีอาจนำข้อความที่ส่งไปใช้พัฒนาโปรดักต์ของ Google ควรลบชื่อบุคคลและรายละเอียดที่เป็นความลับออกก่อนวิเคราะห์ — หากเป็นข้อมูลที่เป็นความลับจริง ควรใช้ API key แบบชำระเงินแทน"
+          />
+        </span>
+      </Notice>
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
@@ -77,6 +92,14 @@ export function AnalysisProviderControls({
             ? pick(locale, "Analysing…", "กำลังวิเคราะห์…")
             : pick(locale, "Analyze requirements", "วิเคราะห์ข้อกำหนด")}
         </button>
+        <span
+          className={`text-xs ${dailyUsage.remaining === 0 ? "font-medium text-warn" : "text-text-muted"}`}
+        >
+          <T
+            en={`${dailyUsage.remaining} of ${dailyUsage.limit} left today`}
+            th={`เหลือ ${dailyUsage.remaining} จาก ${dailyUsage.limit} ครั้งวันนี้`}
+          />
+        </span>
         <p
           role="status"
           aria-live="polite"

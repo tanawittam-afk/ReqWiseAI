@@ -11,9 +11,42 @@ It covers daily limits, own Gemini keys, `/admin`, a quality score, a gap check,
 projects and a readability pass. All of it was agreed with the owner; read it before
 any work.
 
-- **Current position:** no phase started. **Next step: Phase 0**, where the owner runs
-  2–3 real meeting notes through the live app and hands over a pain-point list.
-  Phase 1 (Protection) follows.
+- **Current position (2026-09-18):** Phase 0 was skipped for now (it only feeds Phase
+  5). **Phase 1 (Protection) is in progress — Slices 1–3 of 4 are built, live, and
+  verified; Slice 4 is next.**
+  - **Slice 1 — daily limit + counter:** done. Migration `20260917000024_daily_usage.sql`
+    applied to the live Supabase project and verified there directly (11-call probe
+    inside a rolled-back transaction: calls 1–10 allowed, call 11 blocked, refund
+    confirmed). Covers **both** analysis entry points — `analyze/actions.ts` and
+    `projects/actions.ts`'s `startProjectAction` (a real gap found and closed this
+    round; `startExampleAction`/"Try example" was deliberately left uncapped since it
+    costs no Gemini quota — owner-confirmed).
+  - **Slice 2 — privacy notice:** done. Non-blocking bilingual notice via the `Notice`
+    component (`warn` tone, newly added), next to the submit button on both entry
+    points.
+  - **Slice 3 — own Gemini key:** done. Migration `20260918000025_user_gemini_keys.sql`
+    applied and verified live (functions are `SECURITY DEFINER`, RLS on, zero
+    client-facing policies on `user_gemini_keys`). AES-256-GCM via Node's built-in
+    `crypto`, Settings UI to save/replace/delete, bypasses the daily limit on both entry
+    points when `providerKey === "gemini"`. Meejai QA verdict: **CLEAR TO APPLY
+    MIGRATION** (read the real code, not just the report — encryption round-trip,
+    tamper detection, auth checks in all 4 RPCs, no npm dependency added, decrypted key
+    never in a response body).
+  - **⚠️ Action needed from the owner before Slice 3 works in production:** add
+    `GEMINI_KEY_ENCRYPTION_SECRET` to Vercel (Production + Preview). A value was
+    generated during the session and given to the owner directly — **also save a copy
+    in a password manager**; if it's ever lost or rotated, every saved key becomes
+    permanently undecryptable. Not yet added as of this handoff.
+  - **Next step: Slice 4 — the `/admin` page** (`app_settings` table, sign-up on/off
+    toggle, per-user usage view, counter reset). Design for this was already produced
+    and Meejai-verified as part of the original Phase 1 design brief — no new design
+    round needed, go straight to DevBAmooTam.
+  - All Phase 1 code is **uncommitted** in the working tree as of this handoff (owner
+    paused before deciding whether to commit yet — ask, don't assume, next session).
+  - Uses the lighter process the owner chose: ArchitectTam+DataTam short design →
+    DevBAmooTam vertical slice → Meejai Double Check (with direct code inspection, not
+    just reading the report) → owner approves any migration/env var → apply → verify
+    live with a real (rolled-back) probe query, not just unit tests.
 - **Owner rule:** at the end of every phase, update this block and the plan's
   phase-status table before starting the next phase or pausing.
 - **Conflict note:** this plan approves the quality-score panel. The "never invent a
