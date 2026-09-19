@@ -17,7 +17,7 @@ any work.
   live, and verified (2026-09-21) — all 7 slices done.** Full slice plan:
   `C:\Users\User\.claude\plans\rancandel-reqwise-ai-squishy-blanket.md`.
   - **Slice 7 — output-language: settings UI + export fix + doc updates: done, applied,
-    live-verified end to end, not yet committed.** Closes Phase 2.
+    live-verified end to end, committed (`6decd48`).** Closes Phase 2.
     - **Creation form** (`app/workspace/projects/new/start-form.tsx`) — the two-radio
       Output language group extended to three: Thai, English, **Match source**.
     - **New post-creation settings surface** — no edit path existed for a project's
@@ -102,7 +102,7 @@ any work.
       slice ("Slice 7 verify - match source EN", and Slice 6's pre-existing "Output
       language A ..."), same immutability-trigger reason as every prior slice's residue.
   - **Slice 6 — output-language: Thai-ratio detector + schema/RPC: done, applied,
-    live-verified end to end, not yet committed.** New `lib/analysis/language-detect.ts`
+    live-verified end to end, committed (`6decd48`).** New `lib/analysis/language-detect.ts`
     (`detectDominantLanguage()`) — pure, counts Thai-script characters
     (`\u0E00`–`\u0E7F`) over all Unicode letters (not all characters — digits/
     punctuation don't dilute the ratio), Thai if >30% (the master plan's own threshold),
@@ -151,8 +151,8 @@ any work.
     - **Residue, by design:** `reqwise-output-lang-a-*`/`-b-*@example.com` and their
       seeded project (now holding two real analysis runs), same immutability-trigger
       reason as every prior slice's residue.
-  - **Slice 5 — manual "add requirement", app layer + UI: done, live-verified, not yet
-    committed.** New `lib/contracts/manual-item.ts` (Zod, `strictObject`, reuses
+  - **Slice 5 — manual "add requirement", app layer + UI: done, live-verified, committed
+    (`6decd48`).** New `lib/contracts/manual-item.ts` (Zod, `strictObject`, reuses
     `REVIEWABLE_ITEM_TYPES`/`ITEM_TITLE_MAX`/`ITEM_DESCRIPTION_MAX`/`reviewFieldErrors`
     from `contracts/review.ts` rather than re-deriving them) and
     `lib/review/manual-item-service.ts` (`addManualRequirement()`, same
@@ -197,7 +197,7 @@ any work.
       (`reqwise-slice5-check-*`, `reqwise-outsider-*@example.com`) are left in the live
       database, same immutability-trigger reason as every prior slice's residue.
   - **Slice 4 — manual "add requirement", schema + RPC half: done, applied,
-    live-verified, not yet committed.** Two migrations, in order (Postgres requires a
+    live-verified, committed (`6decd48`).** Two migrations, in order (Postgres requires a
     freshly-added enum value to commit before it's referenced):
     `20260920000028_manual_item_origin.sql` (`alter type item_origin add value
     'manual'`) and `20260920000029_manual_requirement.sql`
@@ -243,8 +243,8 @@ any work.
     - **Not done in this slice, and not blocking:** any UI or Server Action calling this
       RPC — that's Slice 5. The Quality tab's "Add requirement from this" button
       (Slice 2) stays disabled until then.
-  - **Slice 3 — project-card quality-score badge: done, applied, live-verified, not yet
-    committed.** New view `project_quality_scores` (migration
+  - **Slice 3 — project-card quality-score badge: done, applied, live-verified, committed
+    (`6decd48`).** New view `project_quality_scores` (migration
     `20260920000027_project_quality_scores.sql`, applied via `npx supabase db push
     --linked`), `with (security_invoker = true)` — **load-bearing**: without it the
     view runs as its owner and leaks every tenant's score to every other tenant.
@@ -269,7 +269,7 @@ any work.
     - **Residue, by design, not cleaned up:** throwaway verification projects/users
       under `reqwise-qsv-a-*`/`reqwise-qsv-b-*@example.com` — same immutability-trigger
       reason as Slice 2's residue below. Harmless; delete by hand if unwanted.
-  - **Slice 2 — Quality tab: done, live-verified, not yet committed.** New 4th workspace
+  - **Slice 2 — Quality tab: done, live-verified, committed (`6decd48`).** New 4th workspace
     tab (`quality-panel.tsx`) showing the score, its per-kind breakdown, and the run's
     open findings (each with a disabled "Add requirement from this" — wired in Slice 5)
     plus a stated "coming in Phase 3" placeholder for the gap lists, never fabricated
@@ -305,8 +305,7 @@ any work.
     `attributes.finding_kind` that `lib/export/build.ts:391` has had bugged for a while —
     flagged, not fixed, since it's out of this slice's scope). 8 new unit tests in
     `tests/analysis/workspace-view.test.ts`.
-  - **Not yet decided: whether to commit Slices 1–7.** Same rule as every prior slice —
-    ask the owner, don't assume.
+  - **Slices 1–7 committed as `6decd48`**, owner-approved.
   - **Slice 4 — the `/admin` page: done, live, verified, committed.** No design brief actually
     existed in the repo before this round (the earlier claim below that one was
     "already produced and Meejai-verified" could not be found anywhere in writing — the
