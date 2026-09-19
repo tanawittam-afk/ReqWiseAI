@@ -15,12 +15,12 @@ any work.
   5). **Phase 1 (Protection) is complete** — all 4 slices built, applied, live-verified,
   and committed (`23452e2`). **Phase 2 (Forecast: quality score) is fully shipped,
   live, verified, and committed (`6decd48`) — all 7 slices done.** **Phase 3 (Gap
-  check) is fully shipped, live, and verified end to end — all 6 slices done, not yet
-  committed.** Full slice plan for both phases:
+  check) is fully shipped, live, verified end to end, and committed (`b3eabae`) — all 6
+  slices done.** Full slice plan for both phases:
   `C:\Users\User\.claude\plans\rancandel-reqwise-ai-squishy-blanket.md` (Phase 3's own
   plan now lives at that same path, overwriting Phase 2's — Phase 2's own record stays
   here in HANDOFF.md).
-  - **Slice 1 (Phase 3) — weakly supported: done, live-verified, not yet committed.**
+  - **Slice 1 (Phase 3) — weakly supported: done, live-verified, committed (`b3eabae`).**
     New `weaklySupportedItems()` in `lib/analysis/workspace-view.ts`, beside
     `qualityScore()`, same pure/DB-free convention. Requirements only
     (business/functional/non-functional) — mirrors `lib/traceability/coverage.ts`'s
@@ -51,8 +51,8 @@ any work.
       citation-based reasoning matches what the inspector itself shows.
     - `npm run build && npm run lint && npm run typecheck && npm test` all clean
       (945/945, up from 939).
-  - **Slice 2 (Phase 3) — excerpt-location + statement segmentation: done, not yet
-    committed.** New `lib/analysis/coverage-gaps.ts` — pure, no AI/DB, no UI (by design,
+  - **Slice 2 (Phase 3) — excerpt-location + statement segmentation: done, committed
+    (`b3eabae`).** New `lib/analysis/coverage-gaps.ts` — pure, no AI/DB, no UI (by design,
     same as Phase 2 Slice 1's own groundwork slice):
     - `locateExcerpt(excerpt, rawText)` — every occurrence via repeated `indexOf`, not
       just the first (the master plan's own "an excerpt found in several places counts
@@ -78,7 +78,7 @@ any work.
     - `npm run build && npm run lint && npm run typecheck && npm test` all clean
       (961/961, up from 945).
   - **Slice 3 (Phase 3) — `coverage_gap` schema: done, applied, live-verified end to
-    end, not yet committed.** Four migrations in the end, not the three planned —
+    end, committed (`b3eabae`).** Four migrations in the end, not the three planned —
     two real gaps were found live and fixed in a follow-up migration rather than by
     editing an already-applied one (see below).
     - `20260921000031_coverage_gap_item_type.sql` — `alter type item_type add value
@@ -147,8 +147,8 @@ any work.
     - **Residue, by design:** `reqwise-coverage-gap-a-*`/`-b-*@example.com` and their
       seeded project/items, same immutability-trigger reason as every prior slice's
       residue.
-  - **Slice 4 (Phase 3) — AI provider gap-filter capability (mock + Gemini): done, not
-    yet committed.** No migration, no live UI check (mirrors how Phase 1/2 unit-test
+  - **Slice 4 (Phase 3) — AI provider gap-filter capability (mock + Gemini): done,
+    committed (`b3eabae`).** No migration, no live UI check (mirrors how Phase 1/2 unit-test
     the Gemini adapter's schema/prompt shape without spending a real quota call).
     - **`lib/providers/types.ts`** — `AiProvider` gains `filterCoverageGaps(candidates,
       input)`, a genuinely separate call from `generate()` (never a field bolted onto
@@ -189,7 +189,7 @@ any work.
     - `npm run build && npm run lint && npm run typecheck && npm test` all clean
       (979/979, up from 962).
   - **Slice 5 (Phase 3) — orchestration: done, live-verified end to end against the
-    real database, not yet committed.** No migration.
+    real database, committed (`b3eabae`).** No migration.
     - **`lib/analysis/persist.ts`** — `ItemPayload` type exported (`ReturnType<typeof
       toItemPayload>`); `persistAnalysisResult()` gains an optional `gapItems:
       ItemPayload[] = []` parameter, spread into the **same** `p_items` array as the
@@ -273,7 +273,7 @@ any work.
       declarative gap"`, plus one "Try an example" project), same
       immutability-trigger reason as every prior slice's residue.
   - **Slice 6 (Phase 3) — UI: Quality tab gap list, workflow, "Add requirement from
-    this", doc updates: done, live-verified end to end, not yet committed. Closes
+    this", doc updates: done, live-verified end to end, committed (`b3eabae`). Closes
     Phase 3.** No migration.
     - **`quality-panel.tsx`** — "Discussed but not written" now renders open
       `coverage_gap` items, same row shape as "Open findings": displayId, title,
@@ -363,11 +363,10 @@ any work.
       integration script.
     - `npm run build && npm run lint && npm run typecheck && npm test` all clean
       (993/993, up from 986).
-  - **Phase 3 (Gap check) — all 6 slices done, live-verified end to end, not yet
-    committed.** Every migration applied to the live Supabase project; nothing left
+  - **Phase 3 (Gap check) — all 6 slices done, live-verified end to end, committed
+    (`b3eabae`).** Every migration applied to the live Supabase project; nothing left
     to build against this master-plan phase.
-  - **Not yet decided: whether to commit Phase 3's Slices 1–6.** Same rule as every
-    prior slice — ask the owner, don't assume.
+  - **Slices 1–6 committed as `b3eabae`**, owner-approved.
   - **Slice 7 (Phase 2) — output-language: settings UI + export fix + doc updates: done, applied,
     live-verified end to end, committed (`6decd48`).** Closes Phase 2.
     - **Creation form** (`app/workspace/projects/new/start-form.tsx`) — the two-radio
