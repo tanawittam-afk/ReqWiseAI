@@ -17,6 +17,7 @@ function project(overrides: Partial<Row> = {}): Row {
     name: "Smart Space rollout",
     status: "active",
     output_lang: "th",
+    output_lang_mode: "fixed",
     domain_profiles: { key: "booking_smart_space", name: "Booking and Smart Space" },
     created_at: "2026-07-20T00:00:00.000Z",
     updated_at: "2026-07-20T00:00:00.000Z",
@@ -124,5 +125,51 @@ describe("buildAnalysisInput", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toMatch(/no text/i);
+  });
+
+  describe("output language (Phase 2, Slice 6)", () => {
+    it("uses the project's fixed language, ignoring the source's actual content", async () => {
+      const result = await buildAnalysisInput(
+        client({
+          projects: [project({ output_lang: "en", output_lang_mode: "fixed" })],
+          source_documents: [source({ id: "src-1", raw_text: "ลูกค้าต้องจองห้องได้จากมือถือ" })],
+        }),
+        PROJECT,
+        "src-1",
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.input.outputLang).toBe("en");
+    });
+
+    it("resolves 'match_source' to 'th' for a Thai-heavy note", async () => {
+      const result = await buildAnalysisInput(
+        client({
+          projects: [project({ output_lang: "en", output_lang_mode: "match_source" })],
+          source_documents: [source({ id: "src-1", raw_text: "ลูกค้าต้องจองห้องได้จากมือถือ" })],
+        }),
+        PROJECT,
+        "src-1",
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.input.outputLang).toBe("th");
+    });
+
+    it("resolves 'match_source' to 'en' for an English-heavy note", async () => {
+      const result = await buildAnalysisInput(
+        client({
+          projects: [project({ output_lang: "th", output_lang_mode: "match_source" })],
+          source_documents: [
+            source({ id: "src-1", raw_text: "Customers must be able to book a room from their phone." }),
+          ],
+        }),
+        PROJECT,
+        "src-1",
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.input.outputLang).toBe("en");
+    });
   });
 });

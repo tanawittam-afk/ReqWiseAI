@@ -23,7 +23,9 @@
     "verify:export": "node scripts/verify-export.mts",
     "verify:change-requests": "node scripts/verify-change-requests.mts",
     "verify:workspace": "node scripts/verify-workspace.mts",
-    "verify:admin": "node scripts/verify-admin.mts"
+    "verify:admin": "node scripts/verify-admin.mts",
+    "verify:manual-add": "node scripts/verify-manual-add.mts",
+    "verify:output-language": "node scripts/verify-output-language.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

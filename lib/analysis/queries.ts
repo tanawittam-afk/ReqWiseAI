@@ -219,6 +219,11 @@ export async function getAnalysisRun(
     error: unknown;
   };
 
+  // A manually-added item (Phase 2, Slice 4 — `add_manual_requirement()`) belongs to no
+  // one run (`analysis_run_id is null`), because it was not produced by one — it
+  // belongs to the *project*. It is unioned into every run's workspace view here, so it
+  // reads alongside whichever analysis produced the rest of the list, and so the
+  // Quality tab's score (computed from this same `items` array) accounts for it.
   const { data: itemRows, error: itemError } = await client
     .from("analysis_items")
     .select(
@@ -226,7 +231,8 @@ export async function getAnalysisRun(
         "evidence_class, origin, confidence, rationale, attributes, version_no, updated_at, " +
         "workflow_state, resolution_text, resolved_at, resolved_by, follow_up_on",
     )
-    .eq("analysis_run_id", runId)
+    .eq("project_id", storedRun.project_id)
+    .or(`analysis_run_id.eq.${runId},analysis_run_id.is.null`)
     .is("deleted_at", null)
     .order("display_id", { ascending: true });
 

@@ -25,14 +25,21 @@ import {
   hasActiveFilter,
   type GroupMode,
   type ItemFilters,
+  type QualityScoreBreakdown,
   type WorkspaceTab,
 } from "@/lib/analysis/workspace-view";
 import { WORKFLOW_STATE_LABEL, type WorkflowState } from "@/lib/contracts/workflow";
 import { EVIDENCE_LABEL, PRIORITY_LABEL, STATUS_LABEL, TYPE_LABEL, confidencePercent, labelFor } from "@/app/workspace/_components/item-labels";
+import { AddRequirementForm } from "./add-requirement-form";
+import { QualityPanel } from "./quality-panel";
 import { RequirementRow } from "./requirement-row";
 import { T } from "@/app/_components/t";
 import { Button } from "@/app/_components/ui/button";
 import { pick, useLocale } from "@/lib/i18n";
+
+/** Stable reference for the quality tab, which renders no item list — a fresh `[]`
+ * literal on every render would defeat the memos below that depend on `items`. */
+const NO_ITEMS: AnalysisItemView[] = [];
 
 const GROUP_MODE_LABEL: Record<GroupMode, { en: string; th: string }> = {
   type: { en: "Type", th: "ประเภท" },
@@ -56,6 +63,7 @@ export function RequirementsPanel({
   requirements,
   questions,
   findings,
+  quality,
   tab,
   onTabChange,
   groupBy,
@@ -64,11 +72,20 @@ export function RequirementsPanel({
   onFiltersChange,
   selectedId,
   onSelect,
+  onSelectDisplayId,
+  projectId,
+  runId,
+  sourceId,
+  addingRequirement,
+  addPrefillExcerpt,
+  onOpenAddRequirement,
+  onCloseAddRequirement,
   className = "",
 }: {
   requirements: AnalysisItemView[];
   questions: AnalysisItemView[];
   findings: AnalysisItemView[];
+  quality: QualityScoreBreakdown;
   tab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
   groupBy: GroupMode;
@@ -77,14 +94,23 @@ export function RequirementsPanel({
   onFiltersChange: (filters: ItemFilters) => void;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onSelectDisplayId: (displayId: string) => void;
+  projectId: string;
+  runId: string;
+  sourceId: string;
+  addingRequirement: boolean;
+  addPrefillExcerpt: string | null;
+  onOpenAddRequirement: (prefillExcerpt?: string | null) => void;
+  onCloseAddRequirement: () => void;
   className?: string;
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const locale = useLocale();
 
-  const items = tab === "questions" ? questions : tab === "findings" ? findings : requirements;
-  const workflowTab = tab !== "requirements";
+  const items =
+    tab === "questions" ? questions : tab === "findings" ? findings : tab === "quality" ? NO_ITEMS : requirements;
+  const workflowTab = tab === "questions" || tab === "findings";
   const visible = useMemo(() => filterItems(items, filters), [items, filters]);
   const groups = useMemo(() => groupItems(visible, groupBy), [visible, groupBy]);
 
@@ -119,71 +145,102 @@ export function RequirementsPanel({
         <Tab active={tab === "findings"} count={findings.length} onClick={() => onTabChange("findings")}>
           <T en="Quality findings" th="ข้อค้นพบด้านคุณภาพ" />
         </Tab>
+        <Tab active={tab === "quality"} count={quality.score} onClick={() => onTabChange("quality")}>
+          <T en="Quality" th="คุณภาพ" />
+        </Tab>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-border-soft px-3 py-2">
-        <label className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
-          <span className="text-text-faint">
-            <Icon name="search" size={14} />
-          </span>
-          <span className="sr-only">
-            <T en="Search requirements" th="ค้นหาข้อกำหนด" />
-          </span>
-          <input
-            type="search"
-            value={filters.query}
-            onChange={(event) => set({ query: event.target.value })}
-            placeholder={pick(locale, "Search", "ค้นหา")}
-            className="min-h-11 lg:min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
-          />
-        </label>
-
-        <label className="flex items-center gap-1.5 text-xs text-text-faint">
-          <span>
-            <T en="Group" th="จัดกลุ่ม" />
-          </span>
-          <Select value={groupBy} onChange={(value) => onGroupByChange(value as GroupMode)}>
-            {groupModesFor(tab).map((mode) => (
-              <option key={mode} value={mode}>
-                {pick(locale, GROUP_MODE_LABEL[mode].en, GROUP_MODE_LABEL[mode].th)}
-              </option>
-            ))}
-          </Select>
-        </label>
-
-        <button
-          type="button"
-          onClick={() => setFiltersOpen((open) => !open)}
-          aria-expanded={filtersOpen}
-          className={`min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border px-2.5 text-xs font-medium transition-colors duration-150 ${
-            hasActiveFilter(filters)
-              ? "border-accent-border bg-accent-soft text-accent"
-              : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"
-          }`}
-        >
-          {hasActiveFilter(filters) ? (
-            <T en="Filter · on" th="ตัวกรอง · เปิดอยู่" />
-          ) : (
-            <T en="Filter" th="ตัวกรอง" />
-          )}
-        </button>
-
-        <span className="ml-auto shrink-0 text-xs tabular-nums text-text-faint">
-          {visible.length === items.length ? (
-            <T
-              en={`${items.length} item${items.length === 1 ? "" : "s"}`}
-              th={`${items.length} รายการ`}
+      {tab === "quality" ? (
+        <QualityPanel
+          breakdown={quality}
+          findings={findings}
+          onSelectDisplayId={onSelectDisplayId}
+          onAddFromFinding={(excerpt) => onOpenAddRequirement(excerpt)}
+        />
+      ) : (
+        <>
+          {tab === "requirements" && addingRequirement ? (
+            <AddRequirementForm
+              projectId={projectId}
+              runId={runId}
+              sourceId={sourceId}
+              prefillExcerpt={addPrefillExcerpt}
+              onDone={onCloseAddRequirement}
             />
-          ) : (
-            <T
-              en={`${visible.length} of ${items.length}`}
-              th={`${visible.length} จาก ${items.length}`}
-            />
-          )}
-        </span>
-      </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2 border-b border-border-soft px-3 py-2">
+            {tab === "requirements" && !addingRequirement ? (
+              <button
+                type="button"
+                onClick={() => onOpenAddRequirement()}
+                className="min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border border-border-soft bg-surface px-2.5 text-xs font-medium
+                           text-text-muted transition-colors duration-150 hover:bg-surface-hover"
+              >
+                <T en="+ Add requirement" th="+ เพิ่มข้อกำหนด" />
+              </button>
+            ) : null}
+            <label className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-2.5 focus-within:border-accent-border">
+              <span className="text-text-faint">
+                <Icon name="search" size={14} />
+              </span>
+              <span className="sr-only">
+                <T en="Search requirements" th="ค้นหาข้อกำหนด" />
+              </span>
+              <input
+                type="search"
+                value={filters.query}
+                onChange={(event) => set({ query: event.target.value })}
+                placeholder={pick(locale, "Search", "ค้นหา")}
+                className="min-h-11 lg:min-h-9 w-full min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-text-faint"
+              />
+            </label>
 
-      {filtersOpen ? (
+            <label className="flex items-center gap-1.5 text-xs text-text-faint">
+              <span>
+                <T en="Group" th="จัดกลุ่ม" />
+              </span>
+              <Select value={groupBy} onChange={(value) => onGroupByChange(value as GroupMode)}>
+                {groupModesFor(tab).map((mode) => (
+                  <option key={mode} value={mode}>
+                    {pick(locale, GROUP_MODE_LABEL[mode].en, GROUP_MODE_LABEL[mode].th)}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((open) => !open)}
+              aria-expanded={filtersOpen}
+              className={`min-h-11 lg:min-h-9 rounded-[var(--radius-card)] border px-2.5 text-xs font-medium transition-colors duration-150 ${
+                hasActiveFilter(filters)
+                  ? "border-accent-border bg-accent-soft text-accent"
+                  : "border-border-soft bg-surface text-text-muted hover:bg-surface-hover"
+              }`}
+            >
+              {hasActiveFilter(filters) ? (
+                <T en="Filter · on" th="ตัวกรอง · เปิดอยู่" />
+              ) : (
+                <T en="Filter" th="ตัวกรอง" />
+              )}
+            </button>
+
+            <span className="ml-auto shrink-0 text-xs tabular-nums text-text-faint">
+              {visible.length === items.length ? (
+                <T
+                  en={`${items.length} item${items.length === 1 ? "" : "s"}`}
+                  th={`${items.length} รายการ`}
+                />
+              ) : (
+                <T
+                  en={`${visible.length} of ${items.length}`}
+                  th={`${visible.length} จาก ${items.length}`}
+                />
+              )}
+            </span>
+          </div>
+
+          {filtersOpen ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-border-soft bg-surface-muted px-3 py-2">
           {workflowTab ? (
             <FacetSelect
@@ -336,7 +393,9 @@ export function RequirementsPanel({
             );
           })
         )}
-      </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }

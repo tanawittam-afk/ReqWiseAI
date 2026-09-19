@@ -23,6 +23,9 @@ type Sort = { column: string; ascending: boolean };
 
 class FakeQuery implements PromiseLike<Result> {
   private filters: Array<[string, unknown]> = [];
+  /** Each entry is one `.or(...)` call's comma-separated conditions, ANDed with every
+   * other filter/or-group; a row must match at least one condition within each group. */
+  private orGroups: Array<Array<[string, unknown]>> = [];
   private sort: Sort | null = null;
   private max: number | null = null;
   private wantsCount = false;
@@ -59,6 +62,18 @@ class FakeQuery implements PromiseLike<Result> {
     return this;
   }
 
+  /** Only the subset of PostgREST's `.or()` syntax this codebase actually uses:
+   * comma-separated `column.eq.value` / `column.is.null` conditions, OR'd together. */
+  or(filterString: string) {
+    const conditions = filterString.split(",").map((raw): [string, unknown] => {
+      const [column, , ...rest] = raw.split(".");
+      const rawValue = rest.join(".");
+      return [column, rawValue === "null" ? null : rawValue];
+    });
+    this.orGroups.push(conditions);
+    return this;
+  }
+
   order(column: string, options?: { ascending?: boolean }) {
     this.sort = { column, ascending: options?.ascending ?? true };
     return this;
@@ -90,13 +105,14 @@ class FakeQuery implements PromiseLike<Result> {
   }
 
   private matched(): Row[] {
-    let rows = this.rows.filter((row) =>
-      this.filters.every(([col, value]) => {
-        if (value && typeof value === "object" && "__in" in (value as object)) {
-          return (value as { __in: unknown[] }).__in.includes(row[col]);
-        }
-        return row[col] === value;
-      }),
+    let rows = this.rows.filter(
+      (row) =>
+        this.filters.every(([col, value]) => {
+          if (value && typeof value === "object" && "__in" in (value as object)) {
+            return (value as { __in: unknown[] }).__in.includes(row[col]);
+          }
+          return row[col] === value;
+        }) && this.orGroups.every((group) => group.some(([col, value]) => row[col] === value)),
     );
 
     if (this.sort) {

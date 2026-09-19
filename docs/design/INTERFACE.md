@@ -17,12 +17,15 @@ points here.
 
 **Reference image:** [`preview-2.png`](./preview-2.png) — Preview 2, the structural
 reference the three-panel layout below was built from. Note that the render contains
-elements the product has no data for (quality score, per-group coverage percentages,
-sparklines, notifications, a ⌘K command bar) **and shows the superseded off-white/indigo
-colour scheme, not the shipped one.** Use it for panel proportions and layout only — for
-colour, radius, and type, follow §9 below and `app/globals.css`. The invented-metric
+elements the product still has no data for (per-group coverage percentages, sparklines,
+notifications, a ⌘K command bar) **and shows the superseded off-white/indigo colour
+scheme, not the shipped one.** Use it for panel proportions and layout only — for colour,
+radius, and type, follow §9 below and `app/globals.css`. Those still-invented-metric
 elements are not part of the direction and are not to be reproduced; see `ARCHITECTURE.md`
-§A.4, where the quality-score panel is explicitly deferred.
+§A.4. **The one exception, shipped in Phase 2 of the 2026-09-17 "Usable Product" plan: a
+real quality score**, on the analysis workspace's own Quality tab (not the render's
+group-header placement) — a fixed, documented formula over real `quality_finding` data,
+never a number the render merely implies exists.
 
 ---
 
@@ -575,7 +578,7 @@ Where the direction leaves room, these are the choices this codebase has already
 | §3 review status | Read-only until slice 5. The row and inspector *display* status; nothing changes it yet |
 | §4 group headers | Item count, average confidence, cited share. **No coverage percentage** — no such metric is defined |
 | §5 tabs | Details · Evidence · Relations. History and Notes arrive with slice 5, when `item_versions` and `review_activities` first hold rows |
-| §6 summary | Run status, items, open questions, risks, quality findings, source count. **No quality score** |
+| §6 summary | Run status, items, open questions, risks, quality findings, source count. **Still no quality score here** — it moved to its own tab (see below), not the one-row summary, on purpose |
 | §7 sidebar | Five entries, all of them working routes — Dashboard · Projects · Requirements · Reviews · Settings (`app/workspace/_components/sidebar.tsx`). The disabled-entry convention was retired in Phase 5; see §7 for what was cut and why. Active state is `isActiveNav` (`lib/workspace/nav.ts`), exact-match unless an entry declares `ownsSubtree` |
 | §7 project sub-nav | `projects/[projectId]/_components/project-nav.tsx` — Overview · Sources · Requirements · Traceability · Export, rendered by the four project browsing pages rather than by a layout, so it never sits above the full-height analysis workspace or inside a printable export |
 | §9 tokens | `--accent` (electric blue, interactive/selection), `--signal` (green, citation/liveness only), `--radius-card: 4px`, `--radius-panel: 6px`, `--border`/`--border-strong`, `--text`/`--text-muted`/`--text-faint` — all in `app/globals.css` under `:root` and `[data-theme="dark"]`; do not introduce a new colour literal or a Tailwind `dark:` class in a component |
@@ -585,4 +588,6 @@ Where the direction leaves room, these are the choices this codebase has already
 | Spacing scale (Phase 7) | `app/globals.css`'s `--space-shell-*` tokens (same plain-custom-property convention as `--radius-*`), scoped to the outer page wrapper only — two tiers (a wide list/dashboard shell and a narrower single-column detail shell), not a general 1–12 ramp. Everything inside a page keeps using Tailwind's own spacing scale |
 | Tab-pattern decision (Phase 7) | Every `aria-pressed` toggle group in the app (workspace panel switcher, inspector's own Details/Evidence/… strip, project/traceability filters and view switches) stays `aria-pressed`/`aria-current`, not `role="tablist"` — see the code comment at `workspace.tsx`'s `Segment` component for the full reasoning: a real tablist's roving-tabindex contract would only be honest below `lg`, where the same three views stop being mutually exclusive |
 | Accessibility (Phase 7) | Skip link (`app/_components/skip-link.tsx`) targets `#main-content` everywhere — a `<div id="main-content">` in `app/workspace/layout.tsx` (pages under it already render their own `<main>`), a real `<main id="main-content">` in `app/page.tsx` and `app/demo/layout.tsx`. The `lg`-breakpoint inspector drawer (§9's shadow exception) carries `role="dialog"`/`aria-modal="true"` and an Escape handler only while it is actually rendered as that floating overlay (tracked via `useSyncExternalStore` + `matchMedia`, not a `useEffect`+`setState` pair) |
+| Quality tab (Phase 2, 2026-09-17 plan) | A 4th workspace tab, `quality-panel.tsx`, additive to §5's Details·Evidence·Relations set — score (`qualityScore()`, `lib/analysis/workspace-view.ts`) + per-kind breakdown + the run's open findings, each linking back into the Findings tab. No single item maps to this tab (`tabForType()` stays exhaustive over the other three), so `?item=` deep links never target it. Coverage-gap lists ("discussed but not written", "weakly supported") are a stated placeholder — that machinery is Phase 3 |
+| Output-language settings (Phase 2, 2026-09-17 plan) | The project overview page's inspector column (`app/workspace/projects/[projectId]/page.tsx`) gained a boxed `OutputLanguageControl` section, same visual contract as the existing `ArchiveControls` beside it — a select (Thai / English / Match source) plus an explicit Save button, disabled until the value actually changes. Read-only, with an explanatory line, on an archived project (the RPC would refuse it anyway). The static "Output" row this replaced in the Details `<dl>` is gone — the editable control is now the one place this value is shown |
 | ERP-clarity pass (2026-09-02) | Owner-driven redesign after an audit found the app hard to parse. Shadows: `--shadow-card`/`--shadow-panel` in `app/globals.css`, light-mode only (`none` under `[data-theme="dark"]`) — §9's original no-shadow rule reversed, narrowly. Type tints: `--tint-context`/`-requirement`/`-spec`/`-caveat`, four families not fourteen colours, each measured against its own soft background before commit (5.22–9.44:1, all clearing WCAG AA). Actions: `app/_components/ui/action-styles.ts` is the one definition of the 3-tier button look, drawn on by `button.tsx` (client) and `action-link.tsx` (server-renderable `ActionLink`/`ActionAnchor`) — replaced 13 bare-text actions app-wide and the sidebar's rest-state (`app/workspace/_components/sidebar.tsx`). Requirement rows: §3's "compact rows, not cards" narrowed to "compact **bordered** cards" — `requirement-row.tsx` + `requirements-panel.tsx`'s list wrapper (gap-separated, not `divide-y`). `SectionHeader`/`Panel` primitives in `app/_components/ui/section-header.tsx` give every panel an icon+title header band; rolled out to `projects/[projectId]/page.tsx`'s `Row`/`Meta` first (a `divide-y` label/value list becoming individually bordered fields), the rest of the app to follow incrementally as later phases touch those files (§7's own "convert opportunistically" precedent) |

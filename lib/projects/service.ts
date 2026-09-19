@@ -17,6 +17,7 @@ import {
   createProjectInputSchema,
   type ArchiveProjectInput,
   type CreateProjectInput,
+  type SetOutputLanguageInput,
 } from "../contracts/project";
 
 export type ServiceResult<T> =
@@ -78,6 +79,14 @@ export async function createProject(
     };
   }
 
+  // `output_lang` (the column) stays binary; `"match_source"` is a *preference*
+  // (Phase 2, Slice 6/7) split into `output_lang_mode` here. The `output_lang` value
+  // written for a match_source project is a placeholder — `output_lang` is only ever
+  // the *last resolved* language once `output_lang_mode` is `'match_source'`, and no
+  // run has resolved anything yet at creation time.
+  const outputLang = input.outputLang === "match_source" ? "th" : input.outputLang;
+  const outputLangMode = input.outputLang === "match_source" ? "match_source" : "fixed";
+
   const { data, error } = await client
     .from("projects")
     .insert({
@@ -87,7 +96,8 @@ export async function createProject(
       description: input.description,
       business_objective: input.businessObjective,
       known_stakeholders: input.knownStakeholders,
-      output_lang: input.outputLang,
+      output_lang: outputLang,
+      output_lang_mode: outputLangMode,
       created_by: user.id,
       // status is omitted on purpose — the column default is the only thing that
       // may set it, so no code path can create a project in any other state.
@@ -124,6 +134,36 @@ export async function restoreProject(
 
   if (error) {
     return failure("restore", error.message, "The project could not be restored.");
+  }
+  return { ok: true, data: null };
+}
+
+/**
+ * Change a project's output-language preference after creation (Phase 2, Slice 7) —
+ * the first, and so far only, project field with a real post-creation edit path. One
+ * RPC call, `set_project_output_language()`, `security invoker`: RLS's own
+ * `is_org_member` update policy on `projects` is the whole access check, and an
+ * archived project is refused for free by `guard_project_update()`'s existing
+ * "read-only" rule — no privilege escape needed here, same reasoning as
+ * `archive_project()`/`restore_project()` above.
+ */
+export async function setOutputLanguage(
+  client: SupabaseClient,
+  input: SetOutputLanguageInput,
+): Promise<ServiceResult<null>> {
+  const { error } = await client.rpc("set_project_output_language", {
+    p_project: input.projectId,
+    p_mode: input.outputLang,
+  });
+
+  if (error) {
+    if (/archived/i.test(error.message)) {
+      return { ok: false, error: "This project is archived and read-only. Restore it to make changes." };
+    }
+    if (/not found|not visible/i.test(error.message)) {
+      return { ok: false, error: "This project is unavailable." };
+    }
+    return failure("set-output-language", error.message, "The output language could not be changed.");
   }
   return { ok: true, data: null };
 }

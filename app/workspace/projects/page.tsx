@@ -12,7 +12,7 @@ import { EmptyState } from "@/app/_components/ui/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { PROJECT_FILTERS, type ProjectFilter } from "@/lib/contracts/project";
 import { countProjects, listProjects } from "@/lib/projects/queries";
-import { DomainBadge, LangBadge, StatusBadge, formatDate } from "../_components/badges";
+import { DomainBadge, LangBadge, QualityScoreBadge, StatusBadge, formatDate } from "../_components/badges";
 import { TryExampleButton } from "./example-button";
 
 export const metadata = { title: "Projects — ReqWise AI" };
@@ -120,12 +120,15 @@ export default async function ProjectsPage({
                   <h2 className="text-[15px] font-semibold leading-snug text-text group-hover:text-accent">
                     {project.name}
                   </h2>
-                  <LangBadge lang={project.outputLang} />
+                  <LangBadge lang={project.outputLang} mode={project.outputLangMode} />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                   {project.domain ? <DomainBadge name={project.domain.name} /> : null}
                   <StatusBadge status={project.status} />
+                  {project.qualityScore !== null ? (
+                    <QualityScoreBadge score={project.qualityScore} />
+                  ) : null}
                 </div>
 
                 <dl className="mt-auto grid grid-cols-2 gap-x-4 gap-y-1 border-t border-border-soft pt-3 text-xs">

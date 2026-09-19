@@ -14,10 +14,12 @@ import {
   createProjectInputSchema,
   fieldErrors,
   readCreateProjectForm,
+  readSetOutputLanguageForm,
+  setOutputLanguageInputSchema,
 } from "@/lib/contracts/project";
 import type { SourceContentInput } from "@/lib/contracts/source";
 import { readStartForm } from "@/lib/contracts/start";
-import { archiveProject, createProject, restoreProject } from "@/lib/projects/service";
+import { archiveProject, createProject, restoreProject, setOutputLanguage } from "@/lib/projects/service";
 import { createSource } from "@/lib/sources/service";
 import { buildAnalysisInput } from "@/lib/analysis/input";
 import { productionPorts } from "@/lib/analysis/production-ports";
@@ -330,5 +332,21 @@ export async function restoreProjectAction(formData: FormData): Promise<void> {
     result.ok
       ? `/workspace/projects/${projectId}`
       : `/workspace/projects/${projectId}?error=restore`,
+  );
+}
+
+/** Changes a project's output-language preference after creation (Phase 2, Slice 7). */
+export async function setOutputLanguageAction(formData: FormData): Promise<void> {
+  const parsed = setOutputLanguageInputSchema.safeParse(readSetOutputLanguageForm(formData));
+  if (!parsed.success) redirect("/workspace/projects");
+
+  const supabase = await createClient();
+  const result = await setOutputLanguage(supabase, parsed.data);
+
+  revalidatePath(`/workspace/projects/${parsed.data.projectId}`);
+  redirect(
+    result.ok
+      ? `/workspace/projects/${parsed.data.projectId}`
+      : `/workspace/projects/${parsed.data.projectId}?error=output-language`,
   );
 }

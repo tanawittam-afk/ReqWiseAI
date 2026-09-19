@@ -11,10 +11,303 @@ It covers daily limits, own Gemini keys, `/admin`, a quality score, a gap check,
 projects and a readability pass. All of it was agreed with the owner; read it before
 any work.
 
-- **Current position (2026-09-19):** Phase 0 was skipped for now (it only feeds Phase
-  5). **Phase 1 (Protection) is now complete — all 4 slices are built, live, and
-  verified against the real Supabase project and the running app.**
-  - **Slice 4 — the `/admin` page: done, live, verified.** No design brief actually
+- **Current position (2026-09-21):** Phase 0 was skipped for now (it only feeds Phase
+  5). **Phase 1 (Protection) is complete** — all 4 slices built, applied, live-verified,
+  and committed (`23452e2`). **Phase 2 (Forecast: quality score) is now fully shipped,
+  live, and verified (2026-09-21) — all 7 slices done.** Full slice plan:
+  `C:\Users\User\.claude\plans\rancandel-reqwise-ai-squishy-blanket.md`.
+  - **Slice 7 — output-language: settings UI + export fix + doc updates: done, applied,
+    live-verified end to end, not yet committed.** Closes Phase 2.
+    - **Creation form** (`app/workspace/projects/new/start-form.tsx`) — the two-radio
+      Output language group extended to three: Thai, English, **Match source**.
+    - **New post-creation settings surface** — no edit path existed for a project's
+      output-language preference before this slice (only archive/restore mutated a
+      project after creation). New `app/workspace/projects/[projectId]/
+      output-language-control.tsx` (client component, mirrors `ArchiveControls`'s
+      shape exactly: local `useActionState`, a `<select>` of the three preferences, a
+      Save button disabled until the value actually changes). New
+      `setOutputLanguageAction` in `app/workspace/projects/actions.ts` — void,
+      redirect-based, same shape as `archiveProjectAction`/`restoreProjectAction`: parses
+      via `setOutputLanguageInputSchema`/`readSetOutputLanguageForm`
+      (`lib/contracts/project.ts`), calls the new `setOutputLanguage()` service
+      (`lib/projects/service.ts`, straight `client.rpc("set_project_output_language",
+      ...)` on the **user-scoped** client — no service-role client anywhere in this
+      path), redirects to `?error=output-language` on failure. `app/workspace/projects/
+      [projectId]/page.tsx` renders the control and a matching error banner.
+    - **The latent export bug this slice exists to fix**: `projects.output_lang` is now
+      editable and, for a `match_source` project, is only ever a **frozen creation-time
+      placeholder** — no code path ever writes a run's actually-resolved language back
+      into it (confirmed by grepping every migration and `lib/analysis/persist.ts`: the
+      resolved language only ever lands in that run's own `analysis_runs.output_lang`).
+      Before this slice, the export's "Output language" line read the live
+      `projects.output_lang` directly — so editing a project's *current* setting could
+      silently rewrite what an **older, already-written** export claims it said.
+      Fixed in `lib/export/load.ts`: added `output_lang, created_at` to the existing
+      `analysis_runs` query, picked the latest row by `created_at`, and sourced the
+      export's language from **that run's** `output_lang`, falling back to the
+      project's current setting only when no run exists yet.
+    - **A second, related bug found during this slice's own live regression check, not
+      left latent:** `LangBadge` (`app/workspace/_components/badges.tsx`), used on both
+      the project list cards and the project detail header, rendered `project.
+      output_lang` directly with no notion of `output_lang_mode` — so a `match_source`
+      project always showed a stale/meaningless "TH" or "EN" pill, exactly the same
+      class of bug the export fix above addresses, just in a different reader. Root
+      cause traced the same way: no migration/trigger/persist path ever updates
+      `projects.output_lang` for a `match_source` project, so treating it as "the
+      current language" is always wrong once that mode is on. Fixed by giving
+      `LangBadge` an optional `mode` prop: when `mode === "match_source"` it renders a
+      bilingual "Match source" pill instead of guessing TH/EN; both call sites
+      (`app/workspace/projects/page.tsx`, `app/workspace/projects/[projectId]/page.tsx`)
+      now pass `project.outputLangMode` through. Also corrected the doc comment on
+      `ProjectSummary.outputLangMode` (`lib/projects/types.ts`), which had asserted
+      `outputLang` becomes "the last resolved value" for `match_source` — untrue; it
+      never updates post-creation.
+    - `docs/architecture/ARCHITECTURE.md:69` — rewrote the stale "TH/EN model-output
+      switching ... UI control deferred" Deferred-table row to describe the shipped,
+      resolved-at-run-time `match_source` design. `docs/design/INTERFACE.md` — added an
+      implementation-notes row for the output-language settings surface.
+      `app/workspace/settings/page.tsx` — fixed the now-false "fixed when the project is
+      created" claim to describe the editable behavior and where to change it.
+    - **Live-verified in the running app** (`npm run dev`, `claude-in-chrome`): (1) the
+      three-option radio group renders correctly on the creation form; (2) created a
+      fresh project with **Match source** and an English-heavy note — the analysis
+      correctly ran in English (all 15 items), confirming `match_source` resolves
+      correctly end to end through the real creation flow, not just the RPC; (3) **the
+      concrete export-fix regression test**: on an existing project with a locked
+      English run, changed the live setting to a fixed "Thai", confirmed the project's
+      header badge updated, then re-opened the *same run's* export preview and
+      confirmed it still correctly read **"English"** — the historical, already-written
+      value — never silently overwritten by the later setting change; reverted the
+      setting back to Match source afterward. (4) confirmed the `LangBadge` fix live:
+      both the newly created project's detail header and its list card now show
+      "MATCH SOURCE" instead of the previous misleading "TH".
+    - **Second-user proof:** the RPC-level refusal for `set_project_output_language()`
+      was already live-verified in Slice 6 (check 3: a non-member gets the generic "not
+      found" message). `setOutputLanguageAction`/`setOutputLanguage()` add nothing
+      between the action and that RPC — confirmed by reading `lib/supabase/server.ts`'s
+      `createClient()`: anon-key, session-cookie-scoped, RLS-enforced, the exact same
+      client every other project action already uses (no service-role client anywhere
+      in this path) — so the Slice 6 RPC proof already covers the action's behavior;
+      re-deriving it via a raw-script import of `lib/projects/service.ts` was attempted
+      and abandoned for the same reason Slice 6 abandoned the equivalent attempt:
+      `lib/contracts/project.ts`'s own relative imports lack the `.ts` extension Node's
+      native TypeScript stripping needs outside a bundler, and fixing that is out of
+      this slice's scope.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (939/939, up from 927 — the count grew from Slice 6's own tests, no new tests
+      added this slice; the badge fix is presentational and covered by the existing
+      live-app check above rather than a new unit test).
+    - **Residue, by design:** `reqwise-output-lang-a-*`/`-b-*@example.com` (Slice 6's
+      seeded accounts, reused) plus the two new throwaway projects created live this
+      slice ("Slice 7 verify - match source EN", and Slice 6's pre-existing "Output
+      language A ..."), same immutability-trigger reason as every prior slice's residue.
+  - **Slice 6 — output-language: Thai-ratio detector + schema/RPC: done, applied,
+    live-verified end to end, not yet committed.** New `lib/analysis/language-detect.ts`
+    (`detectDominantLanguage()`) — pure, counts Thai-script characters
+    (`\u0E00`–`\u0E7F`) over all Unicode letters (not all characters — digits/
+    punctuation don't dilute the ratio), Thai if >30% (the master plan's own threshold),
+    English for empty/symbol-only text. 9 unit tests including 4 realistic mixed TH/EN
+    snippets, not just synthetic 50/50 strings.
+    - Migration `20260921000030_output_language_mode.sql`: new
+      `projects.output_lang_mode` column (`'fixed' | 'match_source'`, default `'fixed'`)
+      — kept **separate** from the existing `output_lang` enum rather than widening it,
+      since that enum is shared with `profiles.ui_locale`/`source_documents.input_lang`
+      and widening it would have widened those two unrelated columns too. New RPC
+      `set_project_output_language()`, `security invoker` (same reasoning as
+      `archive_project()` — RLS's plain `is_org_member` update policy already gates it,
+      and `guard_project_update()`'s existing "archived project is read-only" check
+      refuses this for free, no lifecycle-flag escape needed).
+    - `buildAnalysisInput()` (`lib/analysis/input.ts`) is the resolution point: when
+      `output_lang_mode === 'match_source'`, it calls the detector on the source's raw
+      text right before a run executes; `AnalysisInput.outputLang` is always a concrete
+      `'th'`/`'en'` — the literal `'match_source'` never reaches it (enforced by
+      `OUTPUT_LANGS`'s own type, unchanged and still binary). `analysis_runs.output_lang`
+      stays exactly what it always was: a plain, factual, historical record.
+      `ProjectSummary.outputLangMode` added (`lib/projects/types.ts`,
+      `lib/projects/queries.ts`) so this reads through the existing project-loading path.
+    - **`npm run verify:output-language` (new) — 8/8 passed live**: fixed-language set,
+      match_source toggle (leaves the last-resolved `output_lang` untouched), a
+      non-member refused with the generic "not found" message, an invalid mode value
+      refused, an archived project refused, the detector confirmed on both note texts,
+      and a `match_source` project + two ready-made sources seeded for the follow-up
+      browser check. **Deliberately does not import `lib/analysis/input.ts` /
+      `run-analysis.ts` / `persist.ts` to drive a mock-provider run from a raw script** —
+      those files' own internal relative imports lack the `.ts` extension Node's native
+      TypeScript stripping needs outside a bundler (Vitest/Next.js both resolve them
+      fine; a plain `node script.mts` does not) — fixing that would mean adding
+      extensions across files this slice has no other reason to touch, so the full
+      pipeline proof was done live in the browser instead (below), which is more
+      representative anyway.
+    - **Live-verified through the real running app** (`npm run dev`, `claude-in-chrome`,
+      no UI yet to toggle this — done via the RPC directly, then the app's own real
+      Analyze flow): a project set to `match_source` produced a **Thai** analysis run
+      (all 11 requirements written in Thai) from the Thai-heavy seeded source, and a
+      separate **English** run from the English-heavy one — confirmed both in the UI
+      and directly in `analysis_runs.output_lang` (`'th'` and `'en'` respectively). This
+      is the master plan's exact "match source picks TH for a Thai note and EN for an
+      English note" done-when line, proven end to end, not assumed from the unit tests.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (927/927, up from 914).
+    - **Residue, by design:** `reqwise-output-lang-a-*`/`-b-*@example.com` and their
+      seeded project (now holding two real analysis runs), same immutability-trigger
+      reason as every prior slice's residue.
+  - **Slice 5 — manual "add requirement", app layer + UI: done, live-verified, not yet
+    committed.** New `lib/contracts/manual-item.ts` (Zod, `strictObject`, reuses
+    `REVIEWABLE_ITEM_TYPES`/`ITEM_TITLE_MAX`/`ITEM_DESCRIPTION_MAX`/`reviewFieldErrors`
+    from `contracts/review.ts` rather than re-deriving them) and
+    `lib/review/manual-item-service.ts` (`addManualRequirement()`, same
+    parse→RPC→translate shape as `editItem()`). New Server Action
+    `addManualRequirementAction` in the run's `actions.ts`, reusing the existing
+    `ReviewFormState`/`EMPTY_REVIEW_STATE` — no new state type needed. New
+    `add-requirement-form.tsx`, mirroring `item-edit-form.tsx`'s layout/wiring exactly.
+    Both entry points wired: a general "+ Add requirement" button on the Requirements
+    tab, and the Quality tab's "Add requirement from this" (Slice 2's disabled stub, now
+    live), which pre-fills the excerpt from that finding's own citation and switches to
+    the Requirements tab to show the form. Only one source per run exists in this app
+    (multi-source is deferred), so "cite the source" needs no picker — a checkbox
+    reveals a plain excerpt textarea; unchecking/clearing after a successful add resets
+    it, rather than leaving a checked-but-empty box that would fail the "source and
+    excerpt together, or neither" refusal on the next submit.
+    - **`lib/analysis/queries.ts`'s `getAnalysisRun()` query changed**: item loading is
+      now `project_id = X AND (analysis_run_id = runId OR analysis_run_id IS NULL)` —
+      a manually-added item belongs to no run, so it's unioned into whichever run's
+      workspace is open, which is also what makes the Quality tab's score correctly
+      account for it. `tests/fake-supabase.ts` gained a minimal `.or()` implementation
+      (comma-separated `column.eq.value`/`column.is.null` conditions) to keep this
+      testable without a real Postgres.
+    - **Live-verified in the browser**, both entry points, on a fresh seeded project:
+      general "+ Add requirement" with a citation → added as `FR-001`, `draft`, excerpt
+      shows in the Evidence tab exactly like an AI-sourced item's ("Excerpt found; no
+      exact position proven · Unverified"); "Add requirement from this" on QF-001 →
+      correctly switched to the Requirements tab with "Cite the source" pre-checked;
+      submitting with the excerpt still empty was correctly refused ("Provide both a
+      source and an excerpt, or neither") — the schema's refusal actually fires end to
+      end, not just in unit tests — then typing an excerpt succeeded as `FR-002`.
+    - **Tenant isolation re-proven at the page layer, not just the RPC**: a freshly
+      created outsider account, signed in and pointed straight at this run's URL, got
+      "Analysis not found" — the page never renders for a non-member, so there is no
+      way for them to even reach a form bound to this action, on top of the RPC's own
+      refusal already proven in Slice 4's `verify:manual-add` script.
+    - 23 new unit tests (`tests/contracts/manual-item.test.ts`,
+      `tests/review/manual-item-service.test.ts`) plus 3 more in
+      `tests/analysis/queries.test.ts` for the run/no-run item union.
+      `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (914/914, up from 891).
+    - **Residue, by design:** the seeded verification project/users from this round
+      (`reqwise-slice5-check-*`, `reqwise-outsider-*@example.com`) are left in the live
+      database, same immutability-trigger reason as every prior slice's residue.
+  - **Slice 4 — manual "add requirement", schema + RPC half: done, applied,
+    live-verified, not yet committed.** Two migrations, in order (Postgres requires a
+    freshly-added enum value to commit before it's referenced):
+    `20260920000028_manual_item_origin.sql` (`alter type item_origin add value
+    'manual'`) and `20260920000029_manual_requirement.sql`
+    (`analysis_items.analysis_run_id` made nullable — the composite FK to
+    `analysis_runs(id, project_id)` already tolerates a null component; new RPC
+    `add_manual_requirement()`). Mirrors `edit_analysis_item()`'s and
+    `persist_analysis_result()`'s exact boilerplate: `auth.uid()` check →
+    `is_project_member()` → `project_is_active()` → `is_reviewable_item_type()` (refuses
+    `open_question`/`quality_finding` — those keep their own doors) → title/description
+    length checks (1–300 / 1–4000, same ceilings as `edit_analysis_item`) → an
+    `assumed`-item-with-a-citation contradiction check (same rule
+    `persist_analysis_result()` already enforces) → a cited source must belong to the
+    same project → `allocate_display_number_range()` for the display id → one insert,
+    `status`/`origin` hardcoded (never parameters — nothing a client can forge), `analysis_run_id
+    = null`, plus an optional same-transaction `item_source_references` insert (excerpt
+    pasted, no offsets, `offset_verified: false` — matches how Gemini runs already
+    behave; no new text-selection UI).
+    - **A real correctness gap found and closed in the same round, not left latent:**
+      widening `ITEM_ORIGINS` to include `'manual'` for the DB/RPC side also widened the
+      Zod schema that validates *AI provider output* (`lib/contracts/
+      provider-output.ts`), since both read the same constant — without a fix, a
+      malformed or malicious provider response could have claimed `origin: "manual"`
+      and passed validation. Fixed with `.exclude(["manual"])` on that one schema field;
+      a new test (`tests/contracts/provider-schema.test.ts`) asserts it's rejected.
+    - **A second, smaller gap**, the same shape: `ORIGIN_LABEL` exists as a *deliberate,
+      test-enforced duplicate* in two places (`app/workspace/_components/item-labels.ts`
+      for the screen, `lib/export/labels.ts` for documents —
+      `tests/export/labels.test.ts` asserts they stay equal). Adding `manual` to one
+      without the other broke that test immediately, which is exactly what the test
+      exists to catch — fixed by adding it to both. While there, promoted a
+      Quality-tab-local finding-kind label map into the shared `item-labels.ts` as
+      `FINDING_KIND_LABEL` (was about to become a second, undetected copy of
+      `lib/export/labels.ts`'s existing `FINDING_KIND_LABEL` — reused instead).
+    - **New `scripts/verify-manual-add.mts` (`npm run verify:manual-add`) — 8/8 passed
+      live**, before any app-layer/UI code exists, exactly per the slice plan: a real
+      add (draft, `origin: manual`, no run, correct display id), a linked excerpt stored
+      correctly, the assumed+citation contradiction refused, both workflow item types
+      refused, a cross-project source citation refused, a non-member refused with the
+      same generic message every other RPC uses, empty title/description both refused,
+      and an archived project refused (restored afterward, left clean).
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (888/888, up from 887).
+    - **Not done in this slice, and not blocking:** any UI or Server Action calling this
+      RPC — that's Slice 5. The Quality tab's "Add requirement from this" button
+      (Slice 2) stays disabled until then.
+  - **Slice 3 — project-card quality-score badge: done, applied, live-verified, not yet
+    committed.** New view `project_quality_scores` (migration
+    `20260920000027_project_quality_scores.sql`, applied via `npx supabase db push
+    --linked`), `with (security_invoker = true)` — **load-bearing**: without it the
+    view runs as its owner and leaks every tenant's score to every other tenant.
+    `ProjectSummary.qualityScore: number | null` (`lib/projects/types.ts`); a second,
+    separate query in `lib/projects/queries.ts` (`qualityScoresFor()`) merges it by
+    `project_id` — PostgREST can't embed a plain view the way it embeds the existing
+    `(count)` aggregates, since a view has no real foreign key to auto-detect. New
+    `QualityScoreBadge` (`app/workspace/_components/badges.tsx`), rendered on each
+    project card next to `StatusBadge`, omitted entirely (not a "—") when `null`.
+    - **Live-verified twice:** (1) a throwaway two-user script proved RLS isolation at
+      the view level — User A reads a correct score (85) for their own project; User B
+      querying A's `project_id` directly, and User B's own unfiltered select, both come
+      back with **zero** rows for A's data, only B's own. (2) In the running app
+      (`npm run dev`, `claude-in-chrome`), signed in as a real test user with two
+      differently-scored projects, both badges rendered correctly and visibly
+      different — "Quality 77" (warn/orange) and "Quality 85" (ok/green) — confirming
+      the tone bands, not just the numbers.
+    - 4 new unit tests (`tests/projects/queries.test.ts`) covering the merge-by-id,
+      null-when-no-row, and query-failure-surfaces-not-silently-drops cases; 1 existing
+      test updated for the new field. `npm run build && npm run lint && npm run
+      typecheck && npm test` all clean (887/887, up from 883).
+    - **Residue, by design, not cleaned up:** throwaway verification projects/users
+      under `reqwise-qsv-a-*`/`reqwise-qsv-b-*@example.com` — same immutability-trigger
+      reason as Slice 2's residue below. Harmless; delete by hand if unwanted.
+  - **Slice 2 — Quality tab: done, live-verified, not yet committed.** New 4th workspace
+    tab (`quality-panel.tsx`) showing the score, its per-kind breakdown, and the run's
+    open findings (each with a disabled "Add requirement from this" — wired in Slice 5)
+    plus a stated "coming in Phase 3" placeholder for the gap lists, never fabricated
+    data. Docs updated in the same commit-to-be, per the owner's pre-approval of lifting
+    the "never invent a metric" deferral for this exact case: `CLAUDE.md`,
+    `ARCHITECTURE.md` §A.4 (removed the Quality score panel row from Deferred, rewrote
+    the stale "load-bearing for Phase 5" paragraph), `INTERFACE.md` (top framing note +
+    two implementation-notes rows), plus the doc-comment echoes in `workspace-view.ts`,
+    `summary-bar.tsx`, `outstanding.ts` (the last one records, on purpose, that the
+    multi-project dashboard stays score-free — a scope cut, not an inconsistency).
+    - **Live-verified** (`npm run dev`, `claude-in-chrome`, a throwaway seeded run with
+      5 quality findings — conflicting/untestable/ambiguous/incomplete/duplicate, all
+      landed `open` regardless of the seed's intent because `enforce_insert_draft()`
+      forces that on insert, exactly as designed): Quality tab showed score **54**
+      (100 − 15 − 10 − 8 − 8 − 5), correct breakdown table, correct open-findings list.
+      Resolved QF-001 (conflicting, −15) through the **existing** Findings-tab workflow
+      (no new code) and the Quality tab's score updated to **69** on the same click, no
+      reload — this is the master plan's exact "resolving a finding raises the score
+      live" done-when, proven, not assumed.
+    - **Residue, by design, not cleaned up:** the throwaway seed project/run/user
+      (`reqwise-quality-tab-check-1789807758714@example.com`) could not be deleted —
+      `analysis_items`/`analysis_runs` are immutable/append-only even for the
+      service-role client (same behavior `scripts/verify-workflow.mts`'s own cleanup
+      notice already documents for verification rows). Harmless and isolated; delete by
+      hand via the Supabase dashboard if unwanted.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (883/883, up from 876).
+  - **Slice 1 — score computation: done, live-verified as part of Slice 2's check above**
+    (the two shipped in the same session). `qualityScore()` added beside `runSummary()`
+    in `lib/analysis/workspace-view.ts` — pure, subtracts a fixed weight per **open**
+    `quality_finding` by kind (conflicting 15, untestable 10, ambiguous 8, incomplete 8,
+    duplicate 5), floored at 0. Reads `attributes.finding` (not the wrong key
+    `attributes.finding_kind` that `lib/export/build.ts:391` has had bugged for a while —
+    flagged, not fixed, since it's out of this slice's scope). 8 new unit tests in
+    `tests/analysis/workspace-view.test.ts`.
+  - **Not yet decided: whether to commit Slices 1–7.** Same rule as every prior slice —
+    ask the owner, don't assume.
+  - **Slice 4 — the `/admin` page: done, live, verified, committed.** No design brief actually
     existed in the repo before this round (the earlier claim below that one was
     "already produced and Meejai-verified" could not be found anywhere in writing — the
     schema/RPC design was done fresh this round, informed by Slices 1/3's conventions).
@@ -72,9 +365,9 @@ any work.
       permission; Vercel itself was not touched). This is the second outstanding env-var
       step, alongside `GEMINI_KEY_ENCRYPTION_SECRET` below — do both together next time
       Vercel is open.
-    - **Not yet decided: whether to commit.** Per this repo's own precedent (Slices 1–3
-      were also left uncommitted pending the owner's decision), nothing from this round
-      has been committed — ask before committing, don't assume.
+    - **Committed** `23452e2` — "feat(reqwise): Phase 1 Slice 4 — the /admin page
+      (sign-up switch, usage view, reset)". Not pushed to `origin/main` (2 commits
+      ahead as of this handoff) — ask before pushing.
   - **Slice 1 — daily limit + counter:** done. Migration `20260917000024_daily_usage.sql`
     applied to the live Supabase project and verified there directly (11-call probe
     inside a rolled-back transaction: calls 1–10 allowed, call 11 blocked, refund

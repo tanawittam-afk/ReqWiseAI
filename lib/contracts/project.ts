@@ -14,6 +14,18 @@
 import { z } from "zod";
 import { OUTPUT_LANGS } from "./analysis-input";
 
+/**
+ * The output-language *preference* a project may be created or edited with (Phase 2,
+ * Slice 6/7) — a third value, `"match_source"`, on top of the always-binary
+ * `OUTPUT_LANGS`. Deliberately a separate constant, not a widened `OUTPUT_LANGS`:
+ * `OUTPUT_LANGS` mirrors the shared `output_lang` DB enum (also used by
+ * `profiles.ui_locale`/`source_documents.input_lang`) and `AnalysisInput.outputLang`,
+ * both of which must stay concrete — `"match_source"` is resolved away, by
+ * `buildAnalysisInput()`, before either ever sees it.
+ */
+export const PROJECT_OUTPUT_LANG_PREFERENCES = [...OUTPUT_LANGS, "match_source"] as const;
+export type ProjectOutputLangPreference = (typeof PROJECT_OUTPUT_LANG_PREFERENCES)[number];
+
 export const PROJECT_NAME_MAX = 120;
 export const PROJECT_TEXT_MAX = 2000;
 export const PROJECT_STAKEHOLDER_MAX = 120;
@@ -39,7 +51,7 @@ const optionalText = (max: number) =>
 export const createProjectInputSchema = z.strictObject({
   name: z.string().trim().min(1, "Project name is required").max(PROJECT_NAME_MAX),
   domainProfileId: z.uuid("Choose a business domain"),
-  outputLang: z.enum(OUTPUT_LANGS),
+  outputLang: z.enum(PROJECT_OUTPUT_LANG_PREFERENCES),
   description: optionalText(PROJECT_TEXT_MAX),
   businessObjective: optionalText(PROJECT_TEXT_MAX),
   knownStakeholders: z
@@ -56,6 +68,15 @@ export const archiveProjectInputSchema = z.strictObject({
 });
 
 export type ArchiveProjectInput = z.infer<typeof archiveProjectInputSchema>;
+
+/** Editing a project's output-language preference after creation (Phase 2, Slice 7) —
+ * the only project field with a real post-creation edit path today. */
+export const setOutputLanguageInputSchema = z.strictObject({
+  projectId: z.uuid(),
+  outputLang: z.enum(PROJECT_OUTPUT_LANG_PREFERENCES, { message: "Choose an output language" }),
+});
+
+export type SetOutputLanguageInput = z.infer<typeof setOutputLanguageInputSchema>;
 
 /**
  * Reads the create form. Only the fields named here are looked at, so an injected
@@ -78,6 +99,13 @@ export function readCreateProjectForm(formData: FormData): unknown {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line !== ""),
+  };
+}
+
+export function readSetOutputLanguageForm(formData: FormData): unknown {
+  return {
+    projectId: String(formData.get("projectId") ?? ""),
+    outputLang: String(formData.get("outputLang") ?? ""),
   };
 }
 

@@ -26,6 +26,7 @@ import {
   EMPTY_FILTERS,
   groupItems,
   partitionItems,
+  qualityScore,
   runSummary,
   tabForType,
   type AnalysisWorkspaceRun,
@@ -101,12 +102,21 @@ export function AnalysisWorkspace({
   const [dirty, setDirty] = useState(false);
   /** A selection deferred because an unsaved edit would have been discarded by it. */
   const [blockedSelection, setBlockedSelection] = useState<string | null>(null);
+  /** The manual "Add requirement" form (Phase 2, Slice 5). Opened either bare (the
+   * general "Add requirement" button) or pre-filled from the Quality tab's "Add
+   * requirement from this" on an open finding. */
+  const [addingRequirement, setAddingRequirement] = useState(false);
+  const [addPrefillExcerpt, setAddPrefillExcerpt] = useState<string | null>(null);
 
   const { requirements, questions, findings } = useMemo(
     () => partitionItems(run.items),
     [run.items],
   );
   const summary = useMemo(() => runSummary(run.items), [run.items]);
+  /** Feeds the Quality tab (`QualityPanel`). Computed alongside `summary`, from the same
+   * `run.items` a workflow action's existing revalidation already refreshes — this is
+   * what makes the score update live with no new fetch path. */
+  const quality = useMemo(() => qualityScore(run.items), [run.items]);
   const selected = run.items.find((item) => item.id === selectedId) ?? null;
   const blocked = run.items.find((item) => item.id === blockedSelection) ?? null;
 
@@ -157,6 +167,19 @@ export function AnalysisWorkspace({
     requestSelect(target.id);
     // Follow the link onto the tab that actually holds it, or the row stays invisible.
     changeTab(tabForType(target.type));
+  }
+
+  /** Opens the manual "Add requirement" form on the Requirements tab — bare from the
+   * general button, or pre-filled with a finding's own excerpt from the Quality tab. */
+  function openAddRequirementForm(prefillExcerpt: string | null = null) {
+    setAddPrefillExcerpt(prefillExcerpt);
+    setAddingRequirement(true);
+    changeTab("requirements");
+  }
+
+  function closeAddRequirementForm() {
+    setAddingRequirement(false);
+    setAddPrefillExcerpt(null);
   }
 
   /** Switching to a single panel re-runs the source scroll (INTERFACE §12). */
@@ -245,6 +268,7 @@ export function AnalysisWorkspace({
           requirements={requirements}
           questions={questions}
           findings={findings}
+          quality={quality}
           tab={tab}
           onTabChange={changeTab}
           groupBy={groupBy}
@@ -253,6 +277,14 @@ export function AnalysisWorkspace({
           onFiltersChange={setFilters}
           selectedId={selectedId}
           onSelect={requestSelect}
+          onSelectDisplayId={selectByDisplayId}
+          projectId={run.projectId}
+          runId={run.id}
+          sourceId={source.id}
+          addingRequirement={addingRequirement}
+          addPrefillExcerpt={addPrefillExcerpt}
+          onOpenAddRequirement={openAddRequirementForm}
+          onCloseAddRequirement={closeAddRequirementForm}
           className={`${pane === "requirements" ? "flex" : "hidden"} flex-1 lg:flex`}
         />
 

@@ -17,6 +17,7 @@ function project(overrides: Partial<Row> & { id: string; status: string }): Row 
   return {
     name: `Project ${overrides.id}`,
     output_lang: "th",
+    output_lang_mode: "fixed",
     created_at: "2026-07-20T00:00:00.000Z",
     updated_at: "2026-07-24T00:00:00.000Z",
     archived_at: null,
@@ -61,12 +62,14 @@ describe("listProjects", () => {
       name: "Project p-active-1",
       status: "active",
       outputLang: "th",
+      outputLangMode: "fixed",
       domain: BOOKING,
       createdAt: "2026-07-20T00:00:00.000Z",
       updatedAt: "2026-07-24T00:00:00.000Z",
       archivedAt: null,
       sourceDocumentCount: 0,
       analysisItemCount: 0,
+      qualityScore: null,
     });
     expect(first).not.toHaveProperty("organization_id");
     expect(first).not.toHaveProperty("created_by");
@@ -112,6 +115,57 @@ describe("listProjects", () => {
     const client = fakeSupabase({ projects: ROWS }, { failTable: "projects", failWith: "down" });
     await expect(listProjects(client, "active")).rejects.toThrow(/project list query failed/);
   });
+
+  describe("output language mode (Phase 2, Slice 6)", () => {
+    it("carries a project's match_source preference through", async () => {
+      const rows = await listProjects(
+        fakeSupabase({
+          projects: [project({ id: "p1", status: "active", output_lang_mode: "match_source" })],
+        }),
+        "active",
+      );
+      expect(rows[0].outputLangMode).toBe("match_source");
+    });
+  });
+
+  describe("quality score (Phase 2, Slice 3)", () => {
+    it("merges each project's score from the view by project id, never mixing them up", async () => {
+      const rows = await listProjects(
+        fakeSupabase({
+          projects: [
+            project({ id: "p-active-1", status: "active" }),
+            project({ id: "p-active-2", status: "active" }),
+          ],
+          project_quality_scores: [
+            { project_id: "p-active-1", quality_score: 62 },
+            { project_id: "p-active-2", quality_score: 100 },
+          ],
+        }),
+        "active",
+      );
+      expect(rows.find((r) => r.id === "p-active-1")?.qualityScore).toBe(62);
+      expect(rows.find((r) => r.id === "p-active-2")?.qualityScore).toBe(100);
+    });
+
+    it("is null, not 0, for a project with no row in the view yet", async () => {
+      const rows = await listProjects(
+        fakeSupabase({
+          projects: [project({ id: "p-no-runs", status: "active" })],
+          project_quality_scores: [],
+        }),
+        "active",
+      );
+      expect(rows[0].qualityScore).toBeNull();
+    });
+
+    it("surfaces a quality-score query failure rather than silently dropping every score", async () => {
+      const client = fakeSupabase(
+        { projects: ROWS },
+        { failTable: "project_quality_scores", failWith: "down" },
+      );
+      await expect(listProjects(client, "active")).rejects.toThrow(/quality score query failed/);
+    });
+  });
 });
 
 describe("getProject", () => {
@@ -141,6 +195,18 @@ describe("getProject", () => {
 
   it("returns null for an unknown project — the same answer another tenant's id gets", async () => {
     expect(await getProject(client(), "does-not-exist")).toBeNull();
+  });
+
+  it("carries the quality score too (Phase 2, Slice 3)", async () => {
+    const detail = await getProject(
+      fakeSupabase({
+        projects: [project({ id: "p-detail", status: "active" })],
+        analysis_runs: [{ id: "r1", project_id: "p-detail" }],
+        project_quality_scores: [{ project_id: "p-detail", quality_score: 77 }],
+      }),
+      "p-detail",
+    );
+    expect(detail?.qualityScore).toBe(77);
   });
 });
 

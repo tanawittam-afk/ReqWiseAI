@@ -63,6 +63,7 @@ export const ORIGIN_LABEL: Record<string, string> = {
   source_analysis: "Source analysis",
   domain_profile: "Domain profile",
   quality_rule: "Quality rule",
+  manual: "Added manually",
 };
 
 /**

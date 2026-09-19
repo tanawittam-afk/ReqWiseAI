@@ -61,29 +61,43 @@ Sequenced in §E.
 | General Software / Custom Domain profiles | `domain_profiles` rows; engine reads them generically |
 | Export (Markdown / JSON / CSV / print) | `analysis_items` + `item_relations` are the only inputs an exporter needs |
 | Traceability map UI, version comparison UI | `item_relations`, `item_versions` are populated from slice 6 onward |
-| Quality score panel | `quality_finding` items are generated and stored; only the aggregate view is deferred |
 | Command palette | pure UI addition |
 | Multi-source analysis runs | see DATA-MODEL §"Deliberate simplifications" |
 | PDF / DOCX ingestion | Source Input Layer boundary is format-agnostic |
 | Conflict detection between requirements | `item_relations.relation_type = 'conflicts_with'` reserved |
-| TH/EN model-output switching | `analysis_runs.output_lang` stored from slice 4; UI control deferred |
 | Product-wide user rate limiting | provider transport retries are bounded; broader per-user quotas remain deferred |
 
 **Shipped since this table was written** (kept here rather than silently deleted, so the
 original deferral and its outcome stay readable): Export, the traceability map, version
 comparison, the question/quality workflows, change requests, TH/EN chrome, a public
-`/demo`, and — in Phase 5 of the 2026-08-03 UX/UI plan — a **workspace-scope layer**
+`/demo`, — in Phase 5 of the 2026-08-03 UX/UI plan — a **workspace-scope layer**
 that did not exist in the MVP shape above: `/workspace/dashboard`,
 `/workspace/requirements` and `/workspace/reviews` read across every project the caller
 can see, on the same user-scoped client and the same RLS policies as the per-project
-queries (`lib/workspace/queries.ts`). No new table, no new policy, no new RPC.
+queries (`lib/workspace/queries.ts`), no new table, no new policy, no new RPC — and, in
+Phase 2 of the 2026-09-17 "Usable Product" plan, the **quality score**: a pure function
+over an already-loaded run's items (`lib/analysis/workspace-view.ts`'s `qualityScore()`),
+surfaced on the analysis workspace's Quality tab (later in the same phase, also as a
+small badge on each project card). No coverage percentage or trend shipped alongside
+it — those stay deferred, and the score formula itself is fixed and documented, never a
+number an AI provider supplies. The same phase also shipped **TH/EN output-language
+switching**, editable post-creation (not just at intake, where a control already existed
+since Phase 4) via `set_project_output_language()`, plus a third preference,
+`"match_source"`: `buildAnalysisInput()` resolves it to a concrete `'th'`/`'en'` per run
+using a Thai-character-ratio detector (`lib/analysis/language-detect.ts`) reading the
+source's own text — code-decided, never the AI. `analysis_runs.output_lang` itself is
+unchanged: still a plain, factual, historical record of what a specific run was actually
+written in, never `projects.output_lang`'s current (and now editable) live value —
+the export layer (`lib/export/load.ts`) was corrected in the same round to read the
+*latest run's* value for exactly this reason, since those two could now legitimately
+disagree.
 
-**Still deferred, and load-bearing for Phase 5:** the **quality score panel**. No quality
-score, coverage percentage or trend exists in the schema, so no workspace-scope view may
-render one. Every figure on the dashboard is a real `count` or the length of a real list;
-the four "outstanding work" numbers are derived by one tested predicate each
-(`lib/workspace/outstanding.ts`) and the queue they link to is filtered by the *same*
-predicates, so a count and its list cannot drift apart.
+**Still deferred:** coverage percentage and trend, everywhere. The workspace-scope
+dashboard (`/workspace/dashboard`) is a **deliberate scope cut, not an oversight**: it
+stays score-free even after Phase 2 — every figure there is still a real `count` or the
+length of a real list, and the four "outstanding work" numbers are derived by one tested
+predicate each (`lib/workspace/outstanding.ts`), so a count and its list cannot drift
+apart. A cross-project score rollup was never asked for and isn't built.
 
 ### A.5 Out of scope (not designed for)
 

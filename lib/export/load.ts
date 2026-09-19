@@ -98,7 +98,7 @@ export async function loadExportInput(
       .eq("project_id", projectId),
     client
       .from("analysis_runs")
-      .select("id, source_document_id")
+      .select("id, source_document_id, output_lang, created_at")
       .eq("project_id", projectId),
   ]);
 
@@ -107,10 +107,27 @@ export async function loadExportInput(
   if (relationResult.error) throw new Error(`item relation query failed: ${relationResult.error.message}`);
   if (runResult.error) throw new Error(`analysis run query failed: ${runResult.error.message}`);
 
-  const runRows = (runResult.data ?? []) as Array<{ id: string; source_document_id: string }>;
+  const runRows = (runResult.data ?? []) as Array<{
+    id: string;
+    source_document_id: string;
+    output_lang: string;
+    created_at: string;
+  }>;
   // Lock state is derived, exactly as `lib/sources/queries.ts` derives it: a revision is
   // frozen because an analysis cites it, and no column records that.
   const citedRevisions = new Set(runRows.map((row) => row.source_document_id));
+
+  // The export's "Output language" line (Phase 2, Slice 7 — a latent bug fixed here,
+  // not just a new feature): `projects.output_lang` is now editable and, once a project
+  // is `match_source`, only ever the *last resolved* value — it can silently drift from
+  // what an OLDER run actually contains. The export must describe what was actually
+  // written, so it uses the **latest run's own** `analysis_runs.output_lang` (a frozen,
+  // historical fact) — falling back to the project's current setting only when no run
+  // exists yet to have an opinion.
+  const latestRun = runRows.reduce<(typeof runRows)[number] | null>(
+    (latest, row) => (!latest || row.created_at > latest.created_at ? row : latest),
+    null,
+  );
 
   const sources: ExportSourceInput[] = (
     (sourceResult.data ?? []) as unknown as Array<{
@@ -223,7 +240,7 @@ export async function loadExportInput(
       businessObjective: project.business_objective,
       knownStakeholders: project.known_stakeholders ?? [],
       domain: domainRow ? { key: domainRow.key, name: domainRow.name } : null,
-      outputLang: project.output_lang,
+      outputLang: latestRun?.output_lang ?? project.output_lang,
       status: project.status,
       archiveReason: project.archive_reason,
       createdAt: project.created_at,

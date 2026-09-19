@@ -39,10 +39,23 @@ export function DomainBadge({ name }: { name: string }) {
   );
 }
 
-export function LangBadge({ lang }: { lang: string }) {
+/**
+ * `lang` is `project.output_lang` — a frozen placeholder once `mode` is
+ * `"match_source"` (Phase 2, Slice 6/7): no code path writes a run's actually-resolved
+ * language back into it, so showing it as if it were current would be a live-verified
+ * lie. Render the mode itself instead; the concrete per-run value only ever lives in
+ * `analysis_runs.output_lang`, which `lib/export/load.ts` reads separately.
+ */
+export function LangBadge({
+  lang,
+  mode = "fixed",
+}: {
+  lang: string;
+  mode?: "fixed" | "match_source";
+}) {
   return (
     <span className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-text-faint">
-      {lang === "th" ? "TH" : "EN"}
+      {mode === "match_source" ? <T en="Match source" th="ตามต้นฉบับ" /> : lang === "th" ? "TH" : "EN"}
     </span>
   );
 }
@@ -75,6 +88,27 @@ export function LockBadge({ locked }: { locked: boolean }) {
       ) : (
         <T en="Editable" th="แก้ไขได้" />
       )}
+    </span>
+  );
+}
+
+/**
+ * The latest run's quality score (Phase 2, Slice 3) — `null` (no run yet) renders
+ * nothing at all, same convention as `DomainBadge`'s caller omitting it when
+ * `project.domain` is null, rather than showing a confusing "—" badge.
+ */
+export function QualityScoreBadge({ score }: { score: number }) {
+  const tone =
+    score >= 80
+      ? "border-ok-border bg-ok-soft text-ok"
+      : score >= 50
+        ? "border-warn-border bg-warn-soft text-warn"
+        : "border-danger-border bg-danger-soft text-danger";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${tone}`}
+    >
+      <T en={`Quality ${score}`} th={`คุณภาพ ${score}`} />
     </span>
   );
 }

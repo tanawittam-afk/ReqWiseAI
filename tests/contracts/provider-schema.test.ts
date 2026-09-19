@@ -47,6 +47,25 @@ describe("provider output schema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects a provider claiming origin 'manual' (Phase 2, Slice 4 — that value is reserved for add_manual_requirement())", () => {
+    const result = providerOutputSchema.safeParse({
+      schema_version: PROVIDER_SCHEMA_VERSION,
+      items: [
+        {
+          key: "br-1",
+          type: "business_requirement",
+          title: "t",
+          description: "d",
+          evidence_class: "stated",
+          origin: "manual",
+          confidence: 0.5,
+          source_references: [],
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects attributes on an item type that does not allow them", () => {
     const result = providerOutputSchema.safeParse({
       schema_version: PROVIDER_SCHEMA_VERSION,

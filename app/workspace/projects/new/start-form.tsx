@@ -312,6 +312,7 @@ export function StartProjectForm({
                 {[
                   { value: "th", label: "ไทย · Thai" },
                   { value: "en", label: "English" },
+                  { value: "match_source", label: pick(locale, "Match source", "ตามต้นฉบับ") },
                 ].map((option) => (
                   <label
                     key={option.value}
@@ -483,7 +484,9 @@ export function StartProjectForm({
             />
             <SummaryRow
               label={<T en="Output" th="ผลลัพธ์" />}
-              value={outputLang === "th" ? "Thai" : "English"}
+              value={
+                outputLang === "th" ? "Thai" : outputLang === "en" ? "English" : "Match source"
+              }
             />
             <SummaryRow
               label={<T en="Stakeholders" th="ผู้เกี่ยวข้อง" />}

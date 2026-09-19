@@ -5,9 +5,10 @@
  * it takes is a line of requirement text someone cannot read (docs/design/INTERFACE.md
  * §6).
  *
- * Every number here is counted from the run's own items. There is no quality score and
- * no coverage percentage: neither is defined anywhere in the product, and a number
- * invented to fill a layout is exactly what this application exists to prevent.
+ * Every number here is counted from the run's own items. Coverage percentage is still
+ * undefined anywhere in the product. The quality score IS real (Phase 2, `qualityScore()`
+ * in `workspace-view.ts`) but deliberately does not appear in this bar — it lives on its
+ * own Quality tab (`quality-panel.tsx`), not squeezed into the one-row summary.
  */
 
 import type { RunSummary } from "@/lib/analysis/workspace-view";

@@ -13,7 +13,7 @@
  * requirement" is exactly the drift these tables exist to prevent.
  */
 
-import type { ItemType } from "@/lib/contracts/item-types";
+import type { ItemType, QualityFindingKind } from "@/lib/contracts/item-types";
 
 export const TYPE_LABEL: Record<ItemType, string> = {
   problem_statement: "Problem statement",
@@ -60,6 +60,22 @@ export const ORIGIN_LABEL: Record<string, string> = {
   source_analysis: "Source analysis",
   domain_profile: "Domain profile",
   quality_rule: "Quality rule",
+  manual: "Added manually",
+};
+
+/**
+ * The kind of defect a `quality_finding` names — used by the Quality tab
+ * (`quality-panel.tsx`, Phase 2). A deliberate copy of `lib/export/labels.ts`'s own
+ * `FINDING_KIND_LABEL`, same words, same reason `TYPE_LABEL`/`ORIGIN_LABEL` above are
+ * duplicated rather than imported (screen vocabulary is free to change independently
+ * of document vocabulary) — keep both in sync by hand if either changes.
+ */
+export const FINDING_KIND_LABEL: Record<QualityFindingKind, string> = {
+  ambiguous: "Ambiguous",
+  incomplete: "Incomplete",
+  conflicting: "Conflicting",
+  untestable: "Untestable",
+  duplicate: "Duplicate",
 };
 
 export const PRIORITY_LABEL: Record<string, string> = {

@@ -159,6 +159,47 @@ describe("getAnalysisRun", () => {
     const detail = await getAnalysisRun(client, PROJECT, RUN);
     expect(detail?.items.map((i) => i.id)).toEqual(["i1"]);
   });
+
+  describe("manually-added items (Phase 2, Slice 4)", () => {
+    it("includes a project-scoped item with no run — it belongs to the project, not one run", async () => {
+      const client = fakeSupabase({
+        analysis_runs: [run()],
+        analysis_items: [
+          item({ id: "i1", analysis_run_id: RUN }),
+          item({ id: "i2", analysis_run_id: null, origin: "manual", display_id: "BR-002" }),
+        ],
+      });
+
+      const detail = await getAnalysisRun(client, PROJECT, RUN);
+      expect(detail?.items.map((i) => i.id).sort()).toEqual(["i1", "i2"]);
+    });
+
+    it("never pulls in another project's manual item", async () => {
+      const client = fakeSupabase({
+        analysis_runs: [run()],
+        analysis_items: [
+          item({ id: "i1", analysis_run_id: RUN }),
+          item({ id: "other", analysis_run_id: null, project_id: "other-project", origin: "manual" }),
+        ],
+      });
+
+      const detail = await getAnalysisRun(client, PROJECT, RUN);
+      expect(detail?.items.map((i) => i.id)).toEqual(["i1"]);
+    });
+
+    it("never pulls in a sibling analysis run's items under the same project", async () => {
+      const client = fakeSupabase({
+        analysis_runs: [run()],
+        analysis_items: [
+          item({ id: "i1", analysis_run_id: RUN }),
+          item({ id: "elsewhere", analysis_run_id: "some-other-run", project_id: PROJECT }),
+        ],
+      });
+
+      const detail = await getAnalysisRun(client, PROJECT, RUN);
+      expect(detail?.items.map((i) => i.id)).toEqual(["i1"]);
+    });
+  });
 });
 
 describe("listAnalysisRuns", () => {

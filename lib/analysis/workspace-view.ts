@@ -5,12 +5,20 @@
  *
  * Pure and DB-free, like `highlight.ts` — the workspace is a client island, and every
  * decision it makes about *which* items to show is testable without a browser or a
- * database. Nothing here computes a metric the data does not contain: there is no
- * quality score and no coverage percentage, because neither exists
- * (`docs/design/INTERFACE.md` → implementation notes; ARCHITECTURE §A.4).
+ * database. Coverage percentage and trend still have no data behind them and stay out
+ * (`docs/design/INTERFACE.md` → implementation notes; ARCHITECTURE §A.4). The quality
+ * score (`qualityScore()`, below) is the one metric that IS real, computed from data
+ * already in `items` — never fabricated, never fetched separately.
  */
 
-import { ITEM_TYPES, PRIORITIES, type ItemType, type Priority } from "../contracts/item-types";
+import {
+  ITEM_TYPES,
+  PRIORITIES,
+  QUALITY_FINDING_KINDS,
+  type ItemType,
+  type Priority,
+  type QualityFindingKind,
+} from "../contracts/item-types";
 import { computeHighlightRanges } from "./highlight";
 import type { AnalysisItemView, AnalysisRunDetail } from "./queries";
 
@@ -42,7 +50,13 @@ export function toAnalysisWorkspaceRun(
  */
 export const ISSUE_TYPES: readonly ItemType[] = ["open_question", "quality_finding"];
 
-export type WorkspaceTab = "requirements" | "questions" | "findings";
+/**
+ * A 4th tab, `"quality"` (Phase 2, Slice 2), is additive and deliberately outside
+ * `tabForType()`'s mapping below: it shows an aggregate (the score and its breakdown),
+ * not a list of one item type, so no single item ever "belongs" to it and the `?item=`
+ * deep-link resolver never targets it — reached only by direct click.
+ */
+export type WorkspaceTab = "requirements" | "questions" | "findings" | "quality";
 
 export type ItemPartition = {
   requirements: AnalysisItemView[];
@@ -347,4 +361,61 @@ export function runSummary(items: readonly AnalysisItemView[]): RunSummary {
     ).length,
     citedCount: items.filter((item) => computeHighlightRanges(item).length > 0).length,
   };
+}
+
+/* ---------------------------------------------------------------- quality score */
+
+/**
+ * Points subtracted per **open** `quality_finding`, by kind (Phase 2 of the
+ * "Usable Product" master plan). A finding that has been resolved or dismissed stops
+ * subtracting; acknowledged does not — "seen" is not "fixed".
+ */
+export const QUALITY_FINDING_WEIGHTS: Record<QualityFindingKind, number> = {
+  conflicting: 15,
+  untestable: 10,
+  ambiguous: 8,
+  incomplete: 8,
+  duplicate: 5,
+};
+
+export type QualityScoreBreakdown = {
+  /** 100 minus every open finding's weight, floored at 0. */
+  score: number;
+  deductions: Record<QualityFindingKind, { count: number; points: number }>;
+  totalDeduction: number;
+};
+
+function isQualityFindingKind(value: unknown): value is QualityFindingKind {
+  return typeof value === "string" && (QUALITY_FINDING_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * Pure and DB-free, like `runSummary()` — same file, same convention. Deliberately its
+ * own `workflowState === "open"` filter rather than reusing `findingsUnresolved`
+ * (which also counts `acknowledged`): the score formula is narrower on purpose.
+ *
+ * Reads the finding kind from `item.attributes.finding` — never `finding_kind`, the
+ * wrong key `lib/export/build.ts` reads (a pre-existing, unrelated bug this must not
+ * repeat). An item with a missing or unrecognized kind is ignored (0 points), not
+ * thrown on — `attributes` is untyped JSON from the database.
+ */
+export function qualityScore(items: readonly AnalysisItemView[]): QualityScoreBreakdown {
+  const deductions = Object.fromEntries(
+    QUALITY_FINDING_KINDS.map((kind) => [kind, { count: 0, points: 0 }]),
+  ) as QualityScoreBreakdown["deductions"];
+
+  for (const item of items) {
+    if (item.type !== "quality_finding" || item.workflowState !== "open") continue;
+    const kind = item.attributes?.finding;
+    if (!isQualityFindingKind(kind)) continue;
+    deductions[kind].count += 1;
+    deductions[kind].points += QUALITY_FINDING_WEIGHTS[kind];
+  }
+
+  const totalDeduction = QUALITY_FINDING_KINDS.reduce(
+    (sum, kind) => sum + deductions[kind].points,
+    0,
+  );
+
+  return { score: Math.max(0, 100 - totalDeduction), deductions, totalDeduction };
 }

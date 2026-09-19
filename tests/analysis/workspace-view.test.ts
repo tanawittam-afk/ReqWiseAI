@@ -18,6 +18,8 @@ import {
   hasActiveFilter,
   hasSourceEvidence,
   partitionItems,
+  qualityScore,
+  QUALITY_FINDING_WEIGHTS,
   runSummary,
   tabForType,
   toAnalysisWorkspaceRun,
@@ -253,6 +255,85 @@ describe("runSummary", () => {
     ]);
     expect(summary.questionsUnresolved).toBe(0);
     expect(summary.findingsUnresolved).toBe(0);
+  });
+});
+
+describe("qualityScore", () => {
+  it("is 100 with no open findings", () => {
+    const result = qualityScore([
+      item({ type: "functional_requirement" }),
+      item({ type: "quality_finding", workflowState: "resolved", attributes: { finding: "ambiguous" } }),
+    ]);
+    expect(result).toEqual({
+      score: 100,
+      totalDeduction: 0,
+      deductions: {
+        ambiguous: { count: 0, points: 0 },
+        incomplete: { count: 0, points: 0 },
+        conflicting: { count: 0, points: 0 },
+        untestable: { count: 0, points: 0 },
+        duplicate: { count: 0, points: 0 },
+      },
+    });
+  });
+
+  it("subtracts each kind's own weight for an open finding", () => {
+    for (const [kind, weight] of Object.entries(QUALITY_FINDING_WEIGHTS)) {
+      const result = qualityScore([
+        item({ type: "quality_finding", workflowState: "open", attributes: { finding: kind } }),
+      ]);
+      expect(result.score).toBe(100 - weight);
+      expect(result.deductions[kind as keyof typeof QUALITY_FINDING_WEIGHTS]).toEqual({
+        count: 1,
+        points: weight,
+      });
+    }
+  });
+
+  it("excludes resolved, dismissed and acknowledged findings — only 'open' subtracts", () => {
+    const result = qualityScore([
+      item({ type: "quality_finding", workflowState: "resolved", attributes: { finding: "conflicting" } }),
+      item({ type: "quality_finding", workflowState: "dismissed", attributes: { finding: "conflicting" } }),
+      item({ type: "quality_finding", workflowState: "acknowledged", attributes: { finding: "conflicting" } }),
+    ]);
+    expect(result.score).toBe(100);
+    expect(result.totalDeduction).toBe(0);
+  });
+
+  it("sums multiple open findings of the same kind", () => {
+    const result = qualityScore([
+      item({ type: "quality_finding", workflowState: "open", attributes: { finding: "duplicate" } }),
+      item({ type: "quality_finding", workflowState: "open", attributes: { finding: "duplicate" } }),
+    ]);
+    expect(result.deductions.duplicate).toEqual({ count: 2, points: 10 });
+    expect(result.score).toBe(90);
+  });
+
+  it("floors at 0 rather than going negative", () => {
+    const findings = Array.from({ length: 10 }, () =>
+      item({ type: "quality_finding", workflowState: "open", attributes: { finding: "conflicting" } }),
+    );
+    const result = qualityScore(findings);
+    expect(result.score).toBe(0);
+    expect(result.totalDeduction).toBe(150);
+  });
+
+  it("ignores a missing or unrecognized finding kind rather than throwing", () => {
+    const result = qualityScore([
+      item({ type: "quality_finding", workflowState: "open", attributes: null }),
+      item({ type: "quality_finding", workflowState: "open", attributes: {} }),
+      item({ type: "quality_finding", workflowState: "open", attributes: { finding: "not-a-real-kind" } }),
+      // the wrong key — must not be read, unlike lib/export/build.ts's existing bug
+      item({ type: "quality_finding", workflowState: "open", attributes: { finding_kind: "conflicting" } }),
+    ]);
+    expect(result.score).toBe(100);
+  });
+
+  it("never reads a non-finding item's attributes into the score", () => {
+    const result = qualityScore([
+      item({ type: "risk", attributes: { finding: "conflicting" } }),
+    ]);
+    expect(result.score).toBe(100);
   });
 });
 

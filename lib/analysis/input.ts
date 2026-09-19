@@ -10,6 +10,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AnalysisInput } from "../contracts/analysis-input";
+import { detectDominantLanguage } from "./language-detect";
 import { loadDomainProfileByKey } from "../domain/load-profile";
 import { getProject } from "../projects/queries";
 import { getSource } from "../sources/queries";
@@ -53,6 +54,14 @@ export async function buildAnalysisInput(
 
   const domainProfile = await loadDomainProfileByKey(client, project.domain.key);
 
+  // "match source" (Phase 2, Slice 6) is resolved HERE, once, right before a run
+  // actually executes — never stored as a literal in `AnalysisInput.outputLang`,
+  // which must always be a concrete 'th'/'en' (the Gemini prompt and the mock
+  // provider both assume exactly that). Code-decided, never the AI: the model is told
+  // what language to write in, never asked to guess.
+  const outputLang =
+    project.outputLangMode === "match_source" ? detectDominantLanguage(source.rawText) : project.outputLang;
+
   return {
     ok: true,
     sourceTitle: source.title,
@@ -62,7 +71,7 @@ export async function buildAnalysisInput(
       sourceDocuments: [
         { key: ANALYSIS_SOURCE_KEY, id: source.id, title: source.title, text: source.rawText },
       ],
-      outputLang: project.outputLang,
+      outputLang,
       projectContext: { name: project.name, description: project.description ?? undefined },
     },
   };

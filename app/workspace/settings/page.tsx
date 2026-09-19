@@ -92,11 +92,14 @@ export default async function SettingsPage() {
         <p className="text-xs leading-relaxed text-text-faint">
           <T
             en="Interface language and the language an analysis writes in are two separate
-            controls. The output language belongs to the project and is fixed when the project
-            is created — changing the chrome never rewrites a requirement."
+            controls. The output language belongs to the project — editable any time from the
+            project's own page, including a &ldquo;match source&rdquo; option that picks Thai or
+            English per analysis based on the source's own text — and changing this chrome never
+            rewrites a requirement."
             th="ภาษาที่ใช้แสดงผลกับภาษาที่การวิเคราะห์เขียนออกมาเป็นตัวควบคุมคนละตัวกัน
-            ภาษาผลลัพธ์เป็นของโปรเจกต์และถูกกำหนดตายตัวตอนสร้างโปรเจกต์ — การเปลี่ยนภาษาหน้าจอไม่มีทาง
-            เขียนทับข้อกำหนดใหม่"
+            ภาษาผลลัพธ์เป็นของโปรเจกต์ — แก้ไขได้ทุกเมื่อจากหน้าของโปรเจกต์เอง รวมถึงตัวเลือก
+            &ldquo;ตามต้นฉบับ&rdquo; ที่จะเลือกไทยหรืออังกฤษต่อการวิเคราะห์ตามเนื้อหาต้นฉบับ —
+            และการเปลี่ยนภาษาหน้าจอไม่มีทางเขียนทับข้อกำหนดใหม่"
           />
         </p>
       </section>

@@ -64,7 +64,11 @@ const baseItemShape = {
   title: nonEmptyText(160),
   description: nonEmptyText(4000),
   evidence_class: z.enum(EVIDENCE_CLASSES),
-  origin: z.enum(ITEM_ORIGINS),
+  // `.exclude(["manual"])` — a provider output is, by definition, never manual (Phase 2,
+  // Slice 4 added that value for `add_manual_requirement()` alone). Without this, a
+  // malformed or malicious provider response could claim `origin: "manual"` and this
+  // schema would let it through.
+  origin: z.enum(ITEM_ORIGINS).exclude(["manual"]),
   confidence: z.number().min(0).max(1),
   source_references: z.array(sourceReferenceSchema).max(20).default([]),
   rationale: nonEmptyText(2000).optional(),

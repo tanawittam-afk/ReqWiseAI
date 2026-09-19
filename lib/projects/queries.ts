@@ -15,7 +15,7 @@ import type { ProjectCounts, ProjectDetail, ProjectSummary } from "./types";
 // The embedded `(count)` aggregates give each card its source and requirement totals
 // in the same round trip — the alternative is one count query per project.
 const SUMMARY_COLUMNS =
-  "id, name, status, output_lang, created_at, updated_at, archived_at, " +
+  "id, name, status, output_lang, output_lang_mode, created_at, updated_at, archived_at, " +
   "domain_profiles (key, name), source_documents (count), analysis_items (count)";
 
 const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, description, business_objective, known_stakeholders, archive_reason`;
@@ -29,6 +29,7 @@ type SummaryRow = {
   name: string;
   status: ProjectSummary["status"];
   output_lang: ProjectSummary["outputLang"];
+  output_lang_mode: ProjectSummary["outputLangMode"];
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -58,19 +59,47 @@ function toCount(value: CountRow | undefined): number {
   return row?.count ?? 0;
 }
 
-function toSummary(row: SummaryRow): ProjectSummary {
+function toSummary(row: SummaryRow, qualityScore: number | null): ProjectSummary {
   return {
     id: row.id,
     name: row.name,
     status: row.status,
     outputLang: row.output_lang,
+    outputLangMode: row.output_lang_mode,
     domain: toDomain(row.domain_profiles),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
     sourceDocumentCount: toCount(row.source_documents),
     analysisItemCount: toCount(row.analysis_items),
+    qualityScore,
   };
+}
+
+/**
+ * `project_quality_scores` (Phase 2, Slice 3) is a view, not a table with a foreign
+ * key PostgREST can embed — so it's a second, separate query, scoped to exactly the
+ * project ids the first query already returned, not one query per card. A project
+ * missing from the result (no run yet) reads as `null`, not 0.
+ */
+async function qualityScoresFor(
+  client: SupabaseClient,
+  projectIds: string[],
+): Promise<Map<string, number>> {
+  if (projectIds.length === 0) return new Map();
+
+  const { data, error } = await client
+    .from("project_quality_scores")
+    .select("project_id, quality_score")
+    .in("project_id", projectIds);
+  if (error) throw new Error(`quality score query failed: ${error.message}`);
+
+  return new Map(
+    ((data ?? []) as Array<{ project_id: string; quality_score: number }>).map((row) => [
+      row.project_id,
+      row.quality_score,
+    ]),
+  );
 }
 
 export async function listProjects(
@@ -83,7 +112,9 @@ export async function listProjects(
   const { data, error } = await query.order("updated_at", { ascending: false });
   if (error) throw new Error(`project list query failed: ${error.message}`);
 
-  return ((data ?? []) as unknown as SummaryRow[]).map(toSummary);
+  const rows = (data ?? []) as unknown as SummaryRow[];
+  const scores = await qualityScoresFor(client, rows.map((row) => row.id));
+  return rows.map((row) => toSummary(row, scores.get(row.id) ?? null));
 }
 
 /** Null means "not visible to you" — which covers both wrong id and wrong tenant. */
@@ -104,9 +135,10 @@ export async function getProject(
   // Source and item totals ride along with the row; runs are the one number the
   // summary select does not carry.
   const analysisRunCount = await countFor(client, "analysis_runs", projectId);
+  const scores = await qualityScoresFor(client, [projectId]);
 
   return {
-    ...toSummary(row),
+    ...toSummary(row, scores.get(projectId) ?? null),
     description: row.description,
     businessObjective: row.business_objective,
     knownStakeholders: row.known_stakeholders ?? [],

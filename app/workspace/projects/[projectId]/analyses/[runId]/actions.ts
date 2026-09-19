@@ -19,6 +19,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { readItemEditForm, readReviewActionForm } from "@/lib/contracts/review";
 import { editItem, reviewItem, REVIEW_MESSAGES } from "@/lib/review/service";
+import { readAddManualRequirementForm } from "@/lib/contracts/manual-item";
+import { addManualRequirement } from "@/lib/review/manual-item-service";
 import { resolveQuestion, updateFinding, WORKFLOW_MESSAGES } from "@/lib/review/workflow-service";
 import { readFindingActionForm, readQuestionActionForm } from "@/lib/contracts/workflow";
 import {
@@ -62,6 +64,36 @@ export async function editItemAction(
     message: result.data.statusReset
       ? `Saved as version ${result.data.versionNo}. The review was cleared, so this requirement is a draft again.`
       : `Saved as version ${result.data.versionNo}.`,
+    error: null,
+    fieldErrors: {},
+  };
+}
+
+/**
+ * Add a requirement directly, not from an analysis run (Phase 2, Slice 4). Reachable
+ * from the requirements panel's general "Add requirement" affordance and from the
+ * Quality tab's "Add requirement from this" button on an open finding — the latter
+ * pre-fills `sourceId`/`excerpt` from that finding but calls this same action.
+ */
+export async function addManualRequirementAction(
+  _prev: ReviewFormState,
+  formData: FormData,
+): Promise<ReviewFormState> {
+  const projectId = String(formData.get("projectId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+  if (!projectId) return { ...EMPTY_REVIEW_STATE, error: "This project is unavailable." };
+
+  const supabase = await createClient();
+  const result = await addManualRequirement(supabase, projectId, readAddManualRequirementForm(formData));
+
+  if (!result.ok) {
+    return { ok: false, message: null, error: result.error, fieldErrors: result.fieldErrors ?? {} };
+  }
+
+  revalidateRun(projectId, runId);
+  return {
+    ok: true,
+    message: `Added as ${result.data.displayId}, in draft.`,
     error: null,
     fieldErrors: {},
   };

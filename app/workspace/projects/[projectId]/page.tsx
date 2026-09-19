@@ -30,6 +30,7 @@ import {
   formatDate,
 } from "../../_components/badges";
 import { ArchiveControls } from "./archive-controls";
+import { OutputLanguageControl } from "./output-language-control";
 import { ProjectNav } from "./_components/project-nav";
 
 export const metadata = { title: "Project — ReqWise AI" };
@@ -70,7 +71,7 @@ export default async function ProjectOverviewPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {project.domain ? <DomainBadge name={project.domain.name} /> : null}
-          <LangBadge lang={project.outputLang} />
+          <LangBadge lang={project.outputLang} mode={project.outputLangMode} />
         </div>
       </header>
 
@@ -83,6 +84,11 @@ export default async function ProjectOverviewPage({
         >
           {error === "archive" ? (
             <T en="The project could not be archived." th="ไม่สามารถเก็บโปรเจกต์เข้าคลังได้" />
+          ) : error === "output-language" ? (
+            <T
+              en="The output language could not be changed. Try again."
+              th="ไม่สามารถเปลี่ยนภาษาของผลลัพธ์ได้ ลองใหม่อีกครั้ง"
+            />
           ) : error === "source" ? (
             // The intake screen created this project but could not attach the text.
             // Nothing was lost and nothing was duplicated — the project is here, and
@@ -272,10 +278,6 @@ export default async function ProjectOverviewPage({
             <dl className="mt-3 flex flex-col gap-2 text-sm">
               <Meta label={<T en="Domain" th="โดเมน" />} value={project.domain?.name ?? "—"} />
               <Meta
-                label={<T en="Output" th="ผลลัพธ์" />}
-                value={project.outputLang === "th" ? <T en="Thai" th="ไทย" /> : <T en="English" th="อังกฤษ" />}
-              />
-              <Meta
                 label={<T en="Status" th="สถานะ" />}
                 value={archived ? <T en="Archived" th="เก็บเข้าคลัง" /> : <T en="Active" th="ใช้งานอยู่" />}
               />
@@ -286,6 +288,13 @@ export default async function ProjectOverviewPage({
               ) : null}
             </dl>
           </section>
+
+          <OutputLanguageControl
+            projectId={project.id}
+            outputLang={project.outputLang}
+            outputLangMode={project.outputLangMode}
+            archived={archived}
+          />
 
           <ArchiveControls projectId={project.id} archived={archived} />
         </aside>

@@ -4,7 +4,11 @@
  * Pure and DB-free like `lib/analysis/workspace-view.ts`, so the definition of
  * "outstanding" is one testable function rather than a `WHERE` clause repeated in
  * three pages and a count. Nothing here invents a metric: every bucket is a filter
- * over rows the database already holds (CLAUDE.md → "Never invent a metric").
+ * over rows the database already holds (CLAUDE.md → "Never invent a metric"). Now
+ * that same file's `qualityScore()` is real (Phase 2), this workspace-scope layer
+ * deliberately still doesn't surface it — a per-project score needs a per-project
+ * "latest run," which this file's per-item buckets don't compute; a cross-project
+ * rollup was never asked for and stays a scope cut, not an inconsistency.
  *
  * **Archived projects are excluded from every bucket.** An archived project is
  * read-only — `edit_analysis_item`, `review_item` and the workflow RPCs all refuse it

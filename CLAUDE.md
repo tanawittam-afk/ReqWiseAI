@@ -279,9 +279,14 @@ shadow anywhere in dark mode, or a shadow heavier than `--shadow-card`/`--shadow
 light mode · a Tailwind `dark:` class on any component · decoration that costs
 readability · an action rendered as bare underlined text with no border.
 
-**Never invent a metric to fill a mockup.** The reference render shows a quality score,
-coverage percentages and sparklines; no such data exists, and the quality-score panel is
-deferred by `ARCHITECTURE.md` §A.4. Show what the database holds.
+**Never invent a metric to fill a mockup.** The reference render's coverage percentages
+and sparklines still have no data behind them and stay out of the UI — show what the
+database holds. The **quality score is the one exception**, shipped in Phase 2 of the
+"Usable Product" master plan: a pure, unit-tested function
+(`lib/analysis/workspace-view.ts`'s `qualityScore()`) subtracting fixed per-kind points
+for every **open** `quality_finding`, floored at 0. It lives only on the analysis
+workspace's Quality tab and each project card — never the one-row run summary or a
+group header, which stay exactly as metric-free as before. See `ARCHITECTURE.md` §A.4.
 
 ---
 

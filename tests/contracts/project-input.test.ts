@@ -10,6 +10,8 @@ import {
   createProjectInputSchema,
   fieldErrors,
   readCreateProjectForm,
+  readSetOutputLanguageForm,
+  setOutputLanguageInputSchema,
   PROJECT_NAME_MAX,
   PROJECT_STAKEHOLDERS_MAX_COUNT,
 } from "../../lib/contracts/project";
@@ -66,6 +68,11 @@ describe("createProjectInputSchema", () => {
 
   it("rejects an unsupported output language", () => {
     expect(createProjectInputSchema.safeParse(valid({ outputLang: "jp" })).success).toBe(false);
+  });
+
+  it("accepts 'match_source' as a creation-time preference (Phase 2, Slice 7)", () => {
+    const parsed = createProjectInputSchema.parse(valid({ outputLang: "match_source" }));
+    expect(parsed.outputLang).toBe("match_source");
   });
 
   it("rejects a domain profile id that is not a uuid", () => {
@@ -131,5 +138,55 @@ describe("readCreateProjectForm", () => {
     expect(read).not.toHaveProperty("organization_id");
     expect(read).not.toHaveProperty("created_by");
     expect(createProjectInputSchema.safeParse(read).success).toBe(true);
+  });
+});
+
+describe("setOutputLanguageInputSchema (Phase 2, Slice 7)", () => {
+  const PROJECT_ID = "3f1a9b0e-7c2d-4a55-9c31-8b0c1d2e3f55";
+
+  it("accepts a fixed language or 'match_source'", () => {
+    expect(
+      setOutputLanguageInputSchema.safeParse({ projectId: PROJECT_ID, outputLang: "th" }).success,
+    ).toBe(true);
+    expect(
+      setOutputLanguageInputSchema.safeParse({ projectId: PROJECT_ID, outputLang: "match_source" })
+        .success,
+    ).toBe(true);
+  });
+
+  it("rejects an unsupported value", () => {
+    expect(
+      setOutputLanguageInputSchema.safeParse({ projectId: PROJECT_ID, outputLang: "jp" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-uuid project id", () => {
+    expect(
+      setOutputLanguageInputSchema.safeParse({ projectId: "not-a-uuid", outputLang: "th" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an injected field (strict object)", () => {
+    expect(
+      setOutputLanguageInputSchema.safeParse({
+        projectId: PROJECT_ID,
+        outputLang: "th",
+        status: "archived",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("readSetOutputLanguageForm", () => {
+  it("reads only the two fields it owns", () => {
+    const formData = new FormData();
+    formData.set("projectId", "project-1");
+    formData.set("outputLang", "match_source");
+    formData.set("status", "archived");
+
+    expect(readSetOutputLanguageForm(formData)).toEqual({
+      projectId: "project-1",
+      outputLang: "match_source",
+    });
   });
 });

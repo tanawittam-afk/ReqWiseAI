@@ -51,8 +51,13 @@ export const DISPLAY_ID_PREFIX: Record<ItemType, string> = {
 export const EVIDENCE_CLASSES = ["stated", "inferred", "assumed"] as const;
 export type EvidenceClass = (typeof EVIDENCE_CLASSES)[number];
 
-/** Where an item came from. A domain profile is context, never evidence. */
-export const ITEM_ORIGINS = ["source_analysis", "domain_profile", "quality_rule"] as const;
+/**
+ * Where an item came from. A domain profile is context, never evidence. `manual`
+ * (Phase 2, Slice 4) is a human, typing directly — never spoofable as `source_analysis`,
+ * since the RPC that writes it (`add_manual_requirement`) hardcodes the origin, never
+ * taking it as a parameter.
+ */
+export const ITEM_ORIGINS = ["source_analysis", "domain_profile", "quality_rule", "manual"] as const;
 export type ItemOrigin = (typeof ITEM_ORIGINS)[number];
 
 export const PRIORITIES = ["critical", "high", "medium", "low", "unassigned"] as const;
@@ -71,6 +76,7 @@ export const QUALITY_FINDING_KINDS = [
   "untestable",
   "duplicate",
 ] as const;
+export type QualityFindingKind = (typeof QUALITY_FINDING_KINDS)[number];
 
 /**
  * Item types a `quality_rule`-origin item may take. A quality rule observes the
