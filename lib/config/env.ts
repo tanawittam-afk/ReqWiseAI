@@ -26,6 +26,19 @@ export type ServerEnvironment = {
     available: boolean;
     secret: string | null;
   };
+  /**
+   * The one admin's email (Phase 1, Slice 4). Unlike every other optional-but-strict
+   * field here, absence is NOT "feature unavailable" — it is "the /admin page is closed
+   * to everyone", because there is no safe default identity to fall back on. Normalized
+   * with trim + lowercase at read time so lib/admin/guard.ts's comparison against
+   * `user.email` is case-insensitive by construction, not by accident at every call
+   * site. A present-but-clearly-invalid value (no `@`) throws immediately — the same
+   * "fail loudly at read time" contract as `geminiKeyEncryption`.
+   */
+  adminEmail: {
+    available: boolean;
+    email: string | null;
+  };
 };
 
 export type ProviderOption = {
@@ -87,6 +100,24 @@ function geminiKeyEncryption(
   return { available: true, secret: raw };
 }
 
+/**
+ * Optional-but-strict, like `geminiKeyEncryption`, but with the opposite failure
+ * posture: absent entirely → `/admin` is closed to everyone (there is no safe default
+ * admin identity), not "feature not configured yet". Present but not a plausible email
+ * (no `@`) → throws immediately, a real misconfiguration.
+ */
+function adminEmail(source: Record<string, string | undefined>): ServerEnvironment["adminEmail"] {
+  const raw = source.ADMIN_EMAIL?.trim() || null;
+  if (raw === null) return { available: false, email: null };
+
+  const normalized = raw.toLowerCase();
+  if (!normalized.includes("@")) {
+    throw new Error("ADMIN_EMAIL must be a valid email address");
+  }
+
+  return { available: true, email: normalized };
+}
+
 function modelChain(source: Record<string, string | undefined>): string[] {
   const candidates = [source.GEMINI_MODEL, ...(source.GEMINI_FALLBACK_MODELS?.split(",") ?? [])]
     .map((model) => model?.trim())
@@ -113,6 +144,7 @@ export function readServerEnvironment(
       models,
     },
     geminiKeyEncryption: geminiKeyEncryption(source),
+    adminEmail: adminEmail(source),
   };
 }
 

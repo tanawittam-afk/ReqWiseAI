@@ -11,9 +11,70 @@ It covers daily limits, own Gemini keys, `/admin`, a quality score, a gap check,
 projects and a readability pass. All of it was agreed with the owner; read it before
 any work.
 
-- **Current position (2026-09-18):** Phase 0 was skipped for now (it only feeds Phase
-  5). **Phase 1 (Protection) is in progress — Slices 1–3 of 4 are built, live, and
-  verified; Slice 4 is next.**
+- **Current position (2026-09-19):** Phase 0 was skipped for now (it only feeds Phase
+  5). **Phase 1 (Protection) is now complete — all 4 slices are built, live, and
+  verified against the real Supabase project and the running app.**
+  - **Slice 4 — the `/admin` page: done, live, verified.** No design brief actually
+    existed in the repo before this round (the earlier claim below that one was
+    "already produced and Meejai-verified" could not be found anywhere in writing — the
+    schema/RPC design was done fresh this round, informed by Slices 1/3's conventions).
+    Owner-confirmed: `ADMIN_EMAIL = tanawittam@gmail.com`; a permanent
+    `scripts/verify-admin.mts` (`npm run verify:admin`) was added rather than just an ad
+    hoc probe, because this migration is the **first** in the schema to ship SECURITY
+    DEFINER functions with **zero grant to `authenticated`** (`admin_set_sign_up_enabled`,
+    `admin_list_daily_usage`, `admin_reset_daily_usage` — only the service-role client
+    can call them, and only after `lib/admin/guard.ts`'s `requireAdminUser()` has
+    verified the caller's email against `ADMIN_EMAIL` in Node on that exact request; see
+    the migration file's own header for the full reasoning). `sign_up_is_enabled()` is
+    the one exception — granted to `anon` too, since the sign-up page runs pre-session.
+    - **Built:** `supabase/migrations/20260919000026_app_settings.sql`; `lib/config/
+      env.ts`'s `adminEmail` field; `lib/admin/{guard,sign-up-toggle,usage}.ts`; the
+      `/admin` route (`app/admin/{page,actions,form-state,sign-up-toggle-section,
+      usage-table}.tsx`); the `signUp()` gate in `app/auth/actions.ts`; `/admin` added
+      to `proxy.ts`'s `PROTECTED_PREFIXES`; `lib/supabase/admin.ts`'s doc comment
+      extended to a third sanctioned use; `.env.example` gained `ADMIN_EMAIL`; unit
+      tests for all of the above (`tests/admin/*`, `tests/auth/sign-up-action.test.ts`).
+      `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (876/876 tests, up from 800).
+    - **Applied and verified live (2026-09-19):** migration applied via
+      `npx supabase db push --linked` (clean, no errors). `npm run verify:admin`:
+      **7/7 checks passed** — `sign_up_is_enabled()` works with zero session (anon
+      grant); an ordinary authenticated user's own client is refused all three
+      privileged RPCs with `permission denied`; the service-role client succeeds on all
+      three and the toggle round-trips through an anon read; a real spent slot shows up
+      correctly in `admin_list_daily_usage()` and zeroes via `admin_reset_daily_usage()`;
+      resetting a user with no usage row today is a harmless no-op.
+    - **Exercised in the running app** (`npm run dev`, `claude-in-chrome`), not just the
+      RPC layer: a **signed-out** request to `/admin` redirects to
+      `/sign-in?next=%2Fadmin` (proxy.ts). A **signed-in non-admin**
+      (`slice3.demo@reqwise.dev`) hitting `/admin` is redirected to `/workspace` with no
+      "you are not the admin" disclosure. The master plan's one explicit, hard
+      Definition-of-Done line — **"the admin switch stops new sign-ups"** — was proven
+      live end-to-end: toggled off via the RPC, then a real `/sign-up` submission showed
+      "Sign-ups are currently closed. Contact the site owner." and confirmed via
+      `auth.admin.listUsers()` that **zero** `auth.users` rows were created for that
+      email; toggled back on, and a second `/sign-up` submission correctly reached
+      Supabase's own `auth.signUp()` (proven by getting *Supabase's* "email address is
+      invalid" validation error, not this slice's block message — a pre-existing,
+      unrelated email-domain restriction on this Supabase project, not something this
+      slice introduced or should fix). The toggle was left at its default `true`.
+    - **Not exercised live, and not blocking:** actually clicking the `/admin` UI's own
+      toggle/reset buttons as the real admin — doing so would require signing in as
+      `tanawittam@gmail.com`, whose password this session does not have. The same
+      RPCs those buttons call were proven directly (`admin_set_sign_up_enabled`,
+      `admin_reset_daily_usage` — see `verify:admin` above and the live toggle
+      round-trip), and the Node-side wiring (`app/admin/actions.ts` calling them through
+      `requireAdminUser()` + the service-role client) is unit-tested
+      (`tests/admin/*`) and read line-by-line during implementation — flagged here
+      rather than silently assumed.
+    - **⚠️ Owner action still outstanding:** add `ADMIN_EMAIL=tanawittam@gmail.com` to
+      **Vercel Production + Preview** (added to local `.env.local` this session with
+      permission; Vercel itself was not touched). This is the second outstanding env-var
+      step, alongside `GEMINI_KEY_ENCRYPTION_SECRET` below — do both together next time
+      Vercel is open.
+    - **Not yet decided: whether to commit.** Per this repo's own precedent (Slices 1–3
+      were also left uncommitted pending the owner's decision), nothing from this round
+      has been committed — ask before committing, don't assume.
   - **Slice 1 — daily limit + counter:** done. Migration `20260917000024_daily_usage.sql`
     applied to the live Supabase project and verified there directly (11-call probe
     inside a rolled-back transaction: calls 1–10 allowed, call 11 blocked, refund

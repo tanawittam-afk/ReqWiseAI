@@ -137,4 +137,30 @@ describe("server environment", () => {
       expect(env.geminiKeyEncryption).toEqual({ available: false, secret: null });
     });
   });
+
+  describe("adminEmail (Phase 1, Slice 4)", () => {
+    it("is unavailable, not a throw, when entirely unset — /admin is closed to everyone", () => {
+      const env = readServerEnvironment(requiredSource);
+
+      expect(env.adminEmail).toEqual({ available: false, email: null });
+    });
+
+    it("is available and lowercased once a plausible email is set", () => {
+      const env = readServerEnvironment({ ...requiredSource, ADMIN_EMAIL: "Owner@Example.com" });
+
+      expect(env.adminEmail).toEqual({ available: true, email: "owner@example.com" });
+    });
+
+    it("throws loudly when present but not a plausible email", () => {
+      expect(() =>
+        readServerEnvironment({ ...requiredSource, ADMIN_EMAIL: "not-an-email" }),
+      ).toThrow(/ADMIN_EMAIL/);
+    });
+
+    it("treats a whitespace-only value the same as unset", () => {
+      const env = readServerEnvironment({ ...requiredSource, ADMIN_EMAIL: "   " });
+
+      expect(env.adminEmail).toEqual({ available: false, email: null });
+    });
+  });
 });

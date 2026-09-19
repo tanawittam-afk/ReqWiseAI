@@ -163,6 +163,9 @@ export function fakeSupabase(
     failTable?: string;
     failWith?: string;
     userId?: string | null;
+    /** Included on the fake user returned by `auth.getUser()` when `userId` is set —
+     * only `lib/admin/guard.ts`'s tests need this; every other caller ignores it. */
+    userEmail?: string;
     /** Canned response for `client.rpc(name, args)`, keyed by function name. */
     rpc?: Record<string, { data?: unknown; error?: { message: string } | null }>;
   } = {},
@@ -186,7 +189,8 @@ export function fakeSupabase(
     },
     auth: {
       async getUser() {
-        return { data: { user: userId ? { id: userId } : null }, error: null };
+        const user = userId ? { id: userId, email: options.userEmail } : null;
+        return { data: { user }, error: null };
       },
     },
   } as unknown as FakeClient;

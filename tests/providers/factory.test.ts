@@ -14,6 +14,7 @@ const noGeminiEnv: ServerEnvironment = {
   defaultProvider: "mock",
   gemini: { available: false, apiKey: null, models: [] },
   geminiKeyEncryption: { available: false, secret: null },
+  adminEmail: { available: false, email: null },
 };
 
 const geminiEnv: ServerEnvironment = {

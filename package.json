@@ -22,7 +22,8 @@
     "verify:traceability": "node scripts/verify-traceability.mts",
     "verify:export": "node scripts/verify-export.mts",
     "verify:change-requests": "node scripts/verify-change-requests.mts",
-    "verify:workspace": "node scripts/verify-workspace.mts"
+    "verify:workspace": "node scripts/verify-workspace.mts",
+    "verify:admin": "node scripts/verify-admin.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

@@ -12,6 +12,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isSignUpEnabled } from "@/lib/admin/sign-up-toggle";
 import type { AuthState } from "./state";
 
 /** Only allow relative paths back into this app — never an open redirect. */
@@ -45,6 +46,15 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (!email || !password) return { error: "Email and password are required.", notice: null };
 
   const supabase = await createClient();
+
+  // Phase 1, Slice 4 — the admin sign-up switch. A deliberate `enabled: false` blocks;
+  // an RPC failure (outage, not a toggle) fails open rather than silently freezing
+  // sign-up indefinitely — see lib/admin/sign-up-toggle.ts.
+  const toggle = await isSignUpEnabled(supabase);
+  if (toggle.ok && !toggle.enabled) {
+    return { error: "Sign-ups are currently closed. Contact the site owner.", notice: null };
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,

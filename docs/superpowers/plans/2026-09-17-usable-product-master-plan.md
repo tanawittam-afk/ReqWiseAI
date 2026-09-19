@@ -17,7 +17,7 @@ Timeline: 2–4 weeks. Each phase ends deployed and working.
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Real-notes test (owner) | Not started — skipped ahead to Phase 1; only Phase 5 depends on it |
-| 1 | Protection | **In progress — Slices 1–3 of 4 shipped, live, and verified. Slice 4 (`/admin`) not started.** |
+| 1 | Protection | **Shipped, live, and verified (2026-09-19) — all 4 slices done. `ADMIN_EMAIL` on Vercel is the one outstanding step; see HANDOFF.md.** |
 | 2 | Forecast — quality score | Not started |
 | 3 | Gap check | Not started |
 | 4 | Sharing | Not started |

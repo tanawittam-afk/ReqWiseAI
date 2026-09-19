@@ -19,7 +19,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED_PREFIXES = ["/workspace"];
+const PROTECTED_PREFIXES = ["/workspace", "/admin"];
 const AUTH_PATHS = ["/sign-in", "/sign-up"];
 
 export async function proxy(request: NextRequest) {
