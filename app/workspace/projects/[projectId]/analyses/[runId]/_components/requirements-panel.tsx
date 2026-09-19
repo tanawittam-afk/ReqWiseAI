@@ -64,6 +64,8 @@ export function RequirementsPanel({
   questions,
   findings,
   quality,
+  weaklySupported,
+  gaps,
   tab,
   onTabChange,
   groupBy,
@@ -86,6 +88,8 @@ export function RequirementsPanel({
   questions: AnalysisItemView[];
   findings: AnalysisItemView[];
   quality: QualityScoreBreakdown;
+  weaklySupported: AnalysisItemView[];
+  gaps: AnalysisItemView[];
   tab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
   groupBy: GroupMode;
@@ -154,6 +158,8 @@ export function RequirementsPanel({
         <QualityPanel
           breakdown={quality}
           findings={findings}
+          weaklySupported={weaklySupported}
+          gaps={gaps}
           onSelectDisplayId={onSelectDisplayId}
           onAddFromFinding={(excerpt) => onOpenAddRequirement(excerpt)}
         />

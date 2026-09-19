@@ -92,6 +92,30 @@ the export layer (`lib/export/load.ts`) was corrected in the same round to read 
 *latest run's* value for exactly this reason, since those two could now legitimately
 disagree.
 
+Phase 3 of the same plan (Gap check) then shipped the two remaining Quality-tab lists:
+**"weakly supported"** (`weaklySupportedItems()`, same file — a requirement with no
+citation, or an `evidence_strength` under 0.5, no new schema) and **"discussed but not
+written"**, backed by a genuinely new pipeline (`lib/analysis/coverage-gaps.ts`):
+`coveredRanges()`/`segmentStatements()`/`uncoveredStatements()` locate every citation
+and split the source into statement-level spans (pure, code-only — never a semantic
+judgment); `computeCoverageGapItems()` then asks the provider to filter the uncovered
+candidates down to genuine gaps via a **second, independent provider call**
+(`AiProvider.filterCoverageGaps()`, its own contract in `lib/contracts/
+gap-filter-output.ts`, never merged into the main analysis call or its schema) and
+shapes survivors as a new first-class item type, `coverage_gap` — full workflow parity
+with `quality_finding` (open/acknowledged/resolved/dismissed via a sibling RPC,
+`update_coverage_gap()`), persisted in the **same transaction** as the main analysis
+(appended into `persist_analysis_result()`'s existing `p_items` array, no new
+persistence RPC). Deliberately kept out of `QUALITY_FINDING_KINDS`/
+`QUALITY_FINDING_WEIGHTS` — the quality score's formula did not change, and
+TypeScript's own `Record<QualityFindingKind, …>` typing makes a silent 6th deduction
+impossible, not just discouraged. The whole gap-check step is fail-open by design: any
+failure (a thrown provider error, output that fails schema validation, an empty
+source) is caught and logged, and the main analysis is never affected — proven both by
+unit test and live, across four runs against the real database, including the
+unmodified canonical fixture producing genuine gaps on its own, with no test-specific
+edits at all.
+
 **Still deferred:** coverage percentage and trend, everywhere. The workspace-scope
 dashboard (`/workspace/dashboard`) is a **deliberate scope cut, not an oversight**: it
 stays score-free even after Phase 2 — every figure there is still a real `count` or the

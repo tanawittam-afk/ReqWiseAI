@@ -5,14 +5,17 @@
  * `lib/analysis/workspace-view.ts`'s `qualityScore()` computes, its breakdown by
  * finding kind, and the run's open findings, each linking back into the Findings tab.
  *
- * The gap lists ("discussed but not written", "weakly supported") that the master plan
- * also names for this tab are Phase 3 (Gap check) work — the machinery that produces
- * them (excerpt location, statement segmentation) doesn't exist yet, so they render as
- * a stated placeholder here rather than fabricated data (CLAUDE.md → "never invent a
- * metric to fill a mockup" — the same rule the score itself just stopped being subject
- * to, still applies to data nothing yet computes). "Add requirement from this" (Phase
- * 2, Slice 5) opens the manual "Add requirement" form on the Requirements tab,
- * pre-filled with that finding's own excerpt — it never writes anything itself.
+ * "Weakly supported" (Phase 3, Slice 1) is real data — `weaklySupportedItems()`
+ * (`lib/analysis/workspace-view.ts`), a requirement with no source citation or one
+ * whose `evidence_strength` is under 0.5. "Discussed but not written" (Phase 3,
+ * Slices 2–6) is real data too — `coverage_gap` items the code-locate → segment →
+ * AI-filter pipeline (`lib/analysis/coverage-gaps.ts`) found and persisted in the same
+ * transaction as the run itself; only the *open* ones show here, the same convention
+ * "Open findings" already uses. Dismissing or resolving one is the same workflow a
+ * quality finding gets, one level down in the inspector (Resolution tab) — clicking a
+ * row selects it there. "Add requirement from this" (Phase 2, Slice 5) opens the
+ * manual "Add requirement" form on the Requirements tab, pre-filled with that item's
+ * own excerpt — it never writes anything itself.
  */
 
 import type { AnalysisItemView } from "@/lib/analysis/queries";
@@ -34,11 +37,15 @@ function scoreTone(score: number): { className: string; en: string; th: string }
 export function QualityPanel({
   breakdown,
   findings,
+  weaklySupported,
+  gaps,
   onSelectDisplayId,
   onAddFromFinding,
 }: {
   breakdown: QualityScoreBreakdown;
   findings: AnalysisItemView[];
+  weaklySupported: AnalysisItemView[];
+  gaps: AnalysisItemView[];
   onSelectDisplayId: (displayId: string) => void;
   /** Opens the manual "Add requirement" form (Slice 5), pre-filled with this finding's
    * own excerpt — "this" in "Add requirement from this". */
@@ -47,6 +54,7 @@ export function QualityPanel({
   const locale = useLocale();
   const tone = scoreTone(breakdown.score);
   const openFindings = findings.filter((item) => item.workflowState === "open");
+  const openGaps = gaps.filter((item) => item.workflowState === "open");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
@@ -148,16 +156,88 @@ export function QualityPanel({
         )}
       </section>
 
+      <section aria-labelledby="quality-weak-heading" className="flex flex-col gap-2">
+        <h3 id="quality-weak-heading" className="text-sm font-semibold text-text">
+          <T en="Weakly supported" th="มีหลักฐานอ่อน" />
+        </h3>
+        {weaklySupported.length === 0 ? (
+          <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
+            <T
+              en="Every requirement has a citation with reasonable confidence."
+              th="ข้อกำหนดทุกข้อมีการอ้างอิงที่มั่นใจได้ในระดับหนึ่ง"
+            />
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {weaklySupported.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2"
+              >
+                <button
+                  type="button"
+                  onClick={() => onSelectDisplayId(item.displayId)}
+                  className="flex flex-1 items-center gap-2 text-left"
+                >
+                  <span className="font-mono text-xs text-text-faint">{item.displayId}</span>
+                  <span className="truncate text-sm text-text">{item.title}</span>
+                  <span className="shrink-0 rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-1.5 py-0.5 text-[11px] text-text-muted">
+                    {item.sourceReferences.length === 0 ? (
+                      <T en="No citation" th="ไม่มีการอ้างอิง" />
+                    ) : (
+                      <T en="Low evidence" th="หลักฐานต่ำ" />
+                    )}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section aria-labelledby="quality-gaps-heading" className="flex flex-col gap-2">
         <h3 id="quality-gaps-heading" className="text-sm font-semibold text-text">
-          <T en="Coverage gaps" th="ช่องว่างความครอบคลุม" />
+          <T en="Discussed but not written" th="พูดถึงแต่ยังไม่เขียน" />
         </h3>
-        <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
-          <T
-            en="“Discussed but not written” and “weakly supported” gap lists arrive with Phase 3 (Gap check) — not built yet, so nothing is shown here rather than a guess."
-            th="รายการ “พูดถึงแต่ยังไม่เขียน” และ “มีหลักฐานอ่อน” จะมาพร้อม Phase 3 (ตรวจช่องว่าง) — ยังไม่ได้สร้าง จึงยังไม่แสดงผลใด ๆ แทนการเดา"
-          />
-        </p>
+        {openGaps.length === 0 ? (
+          <p className="rounded-[var(--radius-card)] border border-border-soft bg-surface-muted px-3 py-2 text-[12px] leading-relaxed text-text-muted">
+            <T
+              en="No open gaps — nothing the source discusses is currently uncovered."
+              th="ไม่มีช่องว่างที่เปิดอยู่ — ไม่มีสิ่งที่ต้นฉบับพูดถึงแล้วยังไม่มีข้อกำหนดครอบคลุมตอนนี้"
+            />
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {openGaps.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-border-soft bg-surface px-3 py-2"
+              >
+                <button
+                  type="button"
+                  onClick={() => onSelectDisplayId(item.displayId)}
+                  className="flex flex-1 items-center gap-2 text-left"
+                >
+                  <span className="font-mono text-xs text-text-faint">{item.displayId}</span>
+                  <span className="truncate text-sm text-text">{item.title}</span>
+                </button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onAddFromFinding(item.sourceReferences[0]?.excerpt ?? "")}
+                  title={pick(
+                    locale,
+                    "Opens the Add requirement form, pre-filled with this gap's excerpt",
+                    "เปิดฟอร์มเพิ่มข้อกำหนด พร้อมข้อความอ้างอิงจากช่องว่างนี้",
+                  )}
+                >
+                  <T en="Add requirement from this" th="เพิ่มข้อกำหนดจากข้อนี้" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

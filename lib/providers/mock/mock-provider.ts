@@ -23,7 +23,8 @@
  */
 
 import type { AnalysisInput } from "../../contracts/analysis-input";
-import type { AiProvider, ProviderGeneration } from "../types";
+import type { AiProvider, GapCandidate, ProviderGeneration } from "../types";
+import { filterGapCandidates } from "./runtime/gap-filter.ts";
 import { generateRuntimeAnalysis } from "./runtime/strategy.ts";
 
 export function createMockProvider(): AiProvider {
@@ -33,6 +34,16 @@ export function createMockProvider(): AiProvider {
     async generate(input: AnalysisInput): Promise<ProviderGeneration> {
       return {
         raw: generateRuntimeAnalysis(input),
+        metadata: {
+          provider: "mock",
+          model: null,
+          promptVersion: null,
+        },
+      };
+    },
+    async filterCoverageGaps(candidates: GapCandidate[]): Promise<ProviderGeneration> {
+      return {
+        raw: filterGapCandidates(candidates),
         metadata: {
           provider: "mock",
           model: null,

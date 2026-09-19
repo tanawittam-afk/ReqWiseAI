@@ -33,6 +33,7 @@ export type WorkflowResult = {
 export const WORKFLOW_MESSAGES = {
   questionUnavailable: "This question is unavailable.",
   findingUnavailable: "This finding is unavailable.",
+  gapUnavailable: "This gap is unavailable.",
   readOnlyProject: "This project is archived and read-only. Restore it to make changes.",
   conflict: "This item changed while you were working. Reload the latest state before continuing.",
   transition: "This workflow transition is not allowed.",
@@ -62,7 +63,9 @@ function failure(context: string, detail: string, message: string): ServiceResul
 export function translateWorkflowError(detail: string, fallback: string): string {
   if (/workflow conflict/i.test(detail)) return WORKFLOW_MESSAGES.conflict;
   if (/archived/i.test(detail)) return WORKFLOW_MESSAGES.readOnlyProject;
-  if (/not a stakeholder question|not a quality finding/i.test(detail)) return WORKFLOW_MESSAGES.wrongType;
+  if (/not a stakeholder question|not a quality finding|not a coverage gap/i.test(detail)) {
+    return WORKFLOW_MESSAGES.wrongType;
+  }
   if (/different workflow/i.test(detail)) return WORKFLOW_MESSAGES.wrongType;
   if (/follow-up date/i.test(detail)) return WORKFLOW_MESSAGES.followUp;
   if (/answer or reason is required/i.test(detail)) return WORKFLOW_MESSAGES.answerRequired;
@@ -70,6 +73,7 @@ export function translateWorkflowError(detail: string, fallback: string): string
   if (/invalid workflow transition/i.test(detail)) return WORKFLOW_MESSAGES.transition;
   if (/question not found|question .*not visible/i.test(detail)) return WORKFLOW_MESSAGES.questionUnavailable;
   if (/finding not found|finding .*not visible/i.test(detail)) return WORKFLOW_MESSAGES.findingUnavailable;
+  if (/gap not found|gap .*not visible/i.test(detail)) return WORKFLOW_MESSAGES.gapUnavailable;
   if (/authentication required/i.test(detail)) return WORKFLOW_MESSAGES.expired;
   return fallback;
 }
@@ -135,6 +139,46 @@ export async function updateFinding(
 
   if (error) {
     return failure("finding", error.message, translateWorkflowError(error.message, WORKFLOW_MESSAGES.failed));
+  }
+
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    ok: true,
+    data: {
+      itemId,
+      fromState: (row.from_state as WorkflowState) ?? input.expectedState,
+      toState: (row.to_state as WorkflowState) ?? input.toState,
+    },
+  };
+}
+
+/**
+ * Coverage-gap workflow (Phase 3, Slice 6) — a direct sibling of `updateFinding()`,
+ * "the same shape, different rules" (the pattern `20260725000016`'s own comment
+ * already uses for `quality_finding`/`open_question`). Reuses `findingActionSchema`
+ * as-is: `coverage_gap` shares `quality_finding`'s exact state set and note rules,
+ * only the RPC differs.
+ */
+export async function updateCoverageGap(
+  client: SupabaseClient,
+  itemId: string,
+  rawInput: FindingActionInput | unknown,
+): Promise<ServiceResult<WorkflowResult>> {
+  const parsed = findingActionSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { ok: false, error: WORKFLOW_MESSAGES.invalid, fieldErrors: reviewFieldErrors(parsed.error) };
+  }
+  const input = parsed.data;
+
+  const { data, error } = await client.rpc("update_coverage_gap", {
+    p_item_id: itemId,
+    p_expected_state: input.expectedState,
+    p_to_state: input.toState,
+    p_note: input.note,
+  });
+
+  if (error) {
+    return failure("gap", error.message, translateWorkflowError(error.message, WORKFLOW_MESSAGES.failed));
   }
 
   const row = (data ?? {}) as Record<string, unknown>;

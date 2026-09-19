@@ -67,6 +67,7 @@ export function WorkflowTab({
 }) {
   const locale = useLocale();
   const isQuestion = item.type === "open_question";
+  const isGap = item.type === "coverage_gap";
   const state = (item.workflowState ?? "open") as WorkflowState;
   const decided = item.resolutionText !== null && item.resolutionText.trim() !== "";
 
@@ -85,6 +86,8 @@ export function WorkflowTab({
               )
             ) : state === "resolved" ? (
               <T en="How this was resolved" th="วิธีการแก้ไข" />
+            ) : isGap ? (
+              <T en="Why this gap does not stand" th="เหตุผลที่ช่องว่างนี้ไม่ยืนยัน" />
             ) : (
               <T en="Why this finding does not stand" th="เหตุผลที่ข้อค้นพบนี้ไม่ยืนยัน" />
             )}
@@ -113,20 +116,37 @@ export function WorkflowTab({
 
       {state === "acknowledged" ? (
         <p className="rounded-[var(--radius-card)] border border-signal-border bg-signal-soft px-3 py-2 text-[12px] leading-relaxed text-signal">
-          <T
-            en={
-              <>
-                Acknowledged means somebody has seen this finding. It is <strong>not</strong>{" "}
-                fixed — the finding stays open until it is resolved or dismissed.
-              </>
-            }
-            th={
-              <>
-                รับทราบหมายถึงมีคนเห็นข้อค้นพบนี้แล้ว แต่<strong>ไม่ได้</strong>
-                หมายความว่าแก้ไขแล้ว — ข้อค้นพบยังคงเปิดอยู่จนกว่าจะถูกแก้ไขหรือยกเลิก
-              </>
-            }
-          />
+          {isGap ? (
+            <T
+              en={
+                <>
+                  Acknowledged means somebody has seen this gap. It is <strong>not</strong>{" "}
+                  fixed — the gap stays open until it is resolved or dismissed.
+                </>
+              }
+              th={
+                <>
+                  รับทราบหมายถึงมีคนเห็นช่องว่างนี้แล้ว แต่<strong>ไม่ได้</strong>
+                  หมายความว่าแก้ไขแล้ว — ช่องว่างยังคงเปิดอยู่จนกว่าจะถูกแก้ไขหรือยกเลิก
+                </>
+              }
+            />
+          ) : (
+            <T
+              en={
+                <>
+                  Acknowledged means somebody has seen this finding. It is <strong>not</strong>{" "}
+                  fixed — the finding stays open until it is resolved or dismissed.
+                </>
+              }
+              th={
+                <>
+                  รับทราบหมายถึงมีคนเห็นข้อค้นพบนี้แล้ว แต่<strong>ไม่ได้</strong>
+                  หมายความว่าแก้ไขแล้ว — ข้อค้นพบยังคงเปิดอยู่จนกว่าจะถูกแก้ไขหรือยกเลิก
+                </>
+              }
+            />
+          )}
         </p>
       ) : null}
 
@@ -144,6 +164,11 @@ export function WorkflowTab({
           <T
             en="The question, its evidence, its origin and its confidence are what the analysis produced and are never edited by this workflow."
             th="คำถาม หลักฐาน ที่มา และความมั่นใจ คือสิ่งที่การวิเคราะห์ผลิตออกมาและจะไม่ถูกแก้ไขโดยขั้นตอนนี้"
+          />
+        ) : isGap ? (
+          <T
+            en="The gap, its evidence, its origin and its confidence are what the analysis produced and are never edited by this workflow. Resolving one changes no requirement — add one from the Quality tab if this gap should become one."
+            th="ช่องว่าง หลักฐาน ที่มา และความมั่นใจ คือสิ่งที่การวิเคราะห์ผลิตออกมาและจะไม่ถูกแก้ไขโดยขั้นตอนนี้ การแก้ไขช่องว่างไม่เปลี่ยนแปลงข้อกำหนดใด ๆ — เพิ่มข้อกำหนดจากแท็บคุณภาพหากช่องว่างนี้ควรกลายเป็นข้อกำหนด"
           />
         ) : (
           <T

@@ -47,6 +47,25 @@ describe("provider output schema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects a provider claiming item type 'coverage_gap' (Phase 3, Slice 3 — reserved for the code+AI gap-check pipeline, never a provider's own analysis output)", () => {
+    const result = providerOutputSchema.safeParse({
+      schema_version: PROVIDER_SCHEMA_VERSION,
+      items: [
+        {
+          key: "gap-1",
+          type: "coverage_gap",
+          title: "t",
+          description: "d",
+          evidence_class: "stated",
+          origin: "quality_rule",
+          confidence: 0.5,
+          source_references: [],
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects a provider claiming origin 'manual' (Phase 2, Slice 4 — that value is reserved for add_manual_requirement())", () => {
     const result = providerOutputSchema.safeParse({
       schema_version: PROVIDER_SCHEMA_VERSION,

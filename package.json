@@ -25,7 +25,8 @@
     "verify:workspace": "node scripts/verify-workspace.mts",
     "verify:admin": "node scripts/verify-admin.mts",
     "verify:manual-add": "node scripts/verify-manual-add.mts",
-    "verify:output-language": "node scripts/verify-output-language.mts"
+    "verify:output-language": "node scripts/verify-output-language.mts",
+    "verify:coverage-gap": "node scripts/verify-coverage-gap.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

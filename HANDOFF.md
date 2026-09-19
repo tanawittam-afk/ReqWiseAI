@@ -11,12 +11,364 @@ It covers daily limits, own Gemini keys, `/admin`, a quality score, a gap check,
 projects and a readability pass. All of it was agreed with the owner; read it before
 any work.
 
-- **Current position (2026-09-21):** Phase 0 was skipped for now (it only feeds Phase
+- **Current position (2026-09-20):** Phase 0 was skipped for now (it only feeds Phase
   5). **Phase 1 (Protection) is complete** — all 4 slices built, applied, live-verified,
-  and committed (`23452e2`). **Phase 2 (Forecast: quality score) is now fully shipped,
-  live, and verified (2026-09-21) — all 7 slices done.** Full slice plan:
-  `C:\Users\User\.claude\plans\rancandel-reqwise-ai-squishy-blanket.md`.
-  - **Slice 7 — output-language: settings UI + export fix + doc updates: done, applied,
+  and committed (`23452e2`). **Phase 2 (Forecast: quality score) is fully shipped,
+  live, verified, and committed (`6decd48`) — all 7 slices done.** **Phase 3 (Gap
+  check) is fully shipped, live, and verified end to end — all 6 slices done, not yet
+  committed.** Full slice plan for both phases:
+  `C:\Users\User\.claude\plans\rancandel-reqwise-ai-squishy-blanket.md` (Phase 3's own
+  plan now lives at that same path, overwriting Phase 2's — Phase 2's own record stays
+  here in HANDOFF.md).
+  - **Slice 1 (Phase 3) — weakly supported: done, live-verified, not yet committed.**
+    New `weaklySupportedItems()` in `lib/analysis/workspace-view.ts`, beside
+    `qualityScore()`, same pure/DB-free convention. Requirements only
+    (business/functional/non-functional) — mirrors `lib/traceability/coverage.ts`'s
+    existing `requirement_without_evidence` rule, extended with the
+    `evidence_strength < 0.5` half that rule doesn't check. Reads the item's **first**
+    source reference only (single-source-per-run, same assumption Phase 2 Slice 5 made
+    explicit). An unmeasured (`null`) `evidence_strength` is left alone — "unmeasured"
+    is not "weak", and the rule must not guess. No migration, no new query —
+    `AnalysisItemView.sourceReferences` already carries `evidenceStrength`.
+    - **`workspace.tsx`** — new `weaklySupported` memo beside `quality`, same
+      live-updating convention (no new fetch path). Threaded through
+      `RequirementsPanel` → `QualityPanel`.
+    - **`quality-panel.tsx`** — the old single "Coverage gaps" placeholder section
+      split into two: a real "Weakly supported" section (item rows, "No citation" /
+      "Low evidence" badge, links to `selectByDisplayId()`) and a narrower
+      "Discussed but not written" placeholder — copy corrected to no longer claim
+      *neither* list exists.
+    - 6 new unit tests (`tests/analysis/workspace-view.test.ts`): no citation, under
+      threshold, at/above threshold (boundary), unmeasured (`null`) left alone,
+      non-requirement types never flagged even with no citation (an assumption with no
+      citation is *correct* per AI-OUTPUT-CONTRACT §D.6 — must not false-flag it),
+      multiple qualifying items across kinds.
+    - **Live-verified** (`npm run dev`, `claude-in-chrome`, the existing "Slice 7
+      verify - match source EN" project from Phase 2): `NFR-001` (origin `domain
+      profile`, evidence class `assumed`, no citation) correctly appeared in the new
+      "Weakly supported" section tagged "No citation"; clicking it correctly switched
+      to the Requirements tab and selected it in the inspector, confirming the
+      citation-based reasoning matches what the inspector itself shows.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (945/945, up from 939).
+  - **Slice 2 (Phase 3) — excerpt-location + statement segmentation: done, not yet
+    committed.** New `lib/analysis/coverage-gaps.ts` — pure, no AI/DB, no UI (by design,
+    same as Phase 2 Slice 1's own groundwork slice):
+    - `locateExcerpt(excerpt, rawText)` — every occurrence via repeated `indexOf`, not
+      just the first (the master plan's own "an excerpt found in several places counts
+      as covering all of them"); empty string in, empty array out (never matches
+      everywhere); not-found returns empty, never throws.
+    - `coveredRanges(items, rawText)` — aggregates `locateExcerpt()` across every
+      item's every source reference.
+    - `segmentStatements(rawText)` — regex `[^.!?\n]+[.!?]?`, so a newline is always a
+      hard boundary (meeting notes here are one topic per line, and Thai text commonly
+      carries no sentence-ending punctuation at all — a Thai paragraph with none
+      becomes one whole-line statement, the correct granularity for this corpus,
+      verified against the real `booking-smart-space.source.ts` fixture text in the
+      test suite) while `.`/`!`/`?` still split multi-sentence English paragraphs.
+      Trims whitespace, drops spans under 3 characters as noise.
+    - `uncoveredStatements(statements, covered)` — a statement counts as covered only
+      once some single covered range overlaps ≥50% of its own length; a statement with
+      no overlap or only a small fraction cited still counts as a gap candidate.
+    - 16 new unit tests (`tests/analysis/coverage-gaps.test.ts`), including a
+      dedicated Thai-newline-boundary case reproducing the real fixture text. **Three
+      of my own first-draft tests had hand-computed offset arithmetic errors** (not
+      code bugs) — fixed by deriving expected offsets with `rawText.indexOf(...)`
+      instead of counting characters by hand.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (961/961, up from 945).
+  - **Slice 3 (Phase 3) — `coverage_gap` schema: done, applied, live-verified end to
+    end, not yet committed.** Four migrations in the end, not the three planned —
+    two real gaps were found live and fixed in a follow-up migration rather than by
+    editing an already-applied one (see below).
+    - `20260921000031_coverage_gap_item_type.sql` — `alter type item_type add value
+      'coverage_gap'`, its own migration (a transaction cannot use an enum value it
+      just added).
+    - `20260921000032_coverage_gap_activity_types.sql` — `gap_acknowledged` /
+      `gap_resolved` / `gap_dismissed` / `gap_reopened` added to
+      `review_activity_type`, mirroring `quality_*`'s own migration exactly.
+    - `20260921000033_coverage_gap_workflow.sql` — `enforce_insert_draft()` extended
+      (assigns `workflow_state := 'open'` for a new `coverage_gap` row, same as
+      `open_question`/`quality_finding`); **`is_reviewable_item_type()` extended too —
+      a real correctness gap found and closed in the same round**: without it,
+      `coverage_gap` would have silently been "reviewable", meaning
+      `add_manual_requirement()` (Phase 2) would have let a human manually fake a
+      "coverage gap" by hand, and the general edit/approve workflow would have applied
+      to it. New `update_coverage_gap()` RPC, a direct sibling of
+      `update_quality_finding()` — "the same shape, different rules", the established
+      convention extended, not a new one invented.
+    - **`lib/contracts/item-types.ts`** — `ITEM_TYPES` gains `coverage_gap`;
+      `DISPLAY_ID_PREFIX.coverage_gap = "GAP"`; `QUALITY_RULE_ITEM_TYPES` extended.
+      **`QUALITY_FINDING_KINDS`/`QUALITY_FINDING_WEIGHTS` deliberately untouched** —
+      TypeScript's own `Record<QualityFindingKind, ...>` typing makes a silent 6th
+      entry impossible, checked explicitly this slice.
+    - **`lib/contracts/review.ts`** — `REVIEWABLE_ITEM_TYPES` also excludes
+      `coverage_gap` now, the TS-side mirror of the `is_reviewable_item_type()` fix
+      above — the same class of bug Phase 2 Slice 4 already hit once for
+      `ITEM_ORIGINS`/`provider-output.ts`, caught this time by `tsc --noEmit` itself
+      (every `Record<ItemType, string>` label map across the codebase failed to
+      compile until `coverage_gap` was added to each: `item-labels.ts` (×2),
+      `lib/export/labels.ts`, `lib/analysis/workspace-view.ts`'s `TYPE_GROUP_LABEL`).
+    - **`providerItemSchema` (`lib/contracts/provider-output.ts`) needed no change** —
+      it's a `z.discriminatedUnion` built from explicit named arms, not generated from
+      `ITEM_TYPES`, so a provider claiming `type: "coverage_gap"` is rejected by
+      construction. Proved with a new dedicated test (`tests/contracts/
+      provider-schema.test.ts`), the same discipline as the existing `origin: "manual"`
+      rejection test.
+    - **Two more real gaps found live via `npm run verify:coverage-gap`, not caught by
+      build/lint/typecheck/test (database constraints, invisible to all four) — fixed
+      in a new `20260921000034_coverage_gap_workflow_state_check.sql` rather than
+      editing the already-applied `20260921000033`:**
+      1. `analysis_items_workflow_state_by_type` — a second, independent CHECK
+         constraint from 20260725000016 encoding the same open_question/
+         quality_finding list `enforce_insert_draft()` does. Extending the trigger
+         without also extending this constraint meant the trigger assigned
+         `workflow_state := 'open'` and the constraint immediately rejected that exact
+         row.
+      2. `analysis_items_resolution_by_type` — same shape, gating whether
+         `resolution_text`/`resolved_at`/`resolved_by` may be non-null.
+      Also proactively fixed in the same follow-up migration, found by reasoning
+      through Slice 5's own call path rather than by a live failure: `display_id_prefix()`
+      had no `coverage_gap` case (a `case ... end` with no `else` returns SQL `NULL`,
+      not an error) — `persist_analysis_result()` calls this for every item in
+      `p_items`, so Slice 5 appending `coverage_gap` items into that same array would
+      have broken display-id allocation for the **whole** analysis run, not just the
+      gap items (no partial write — DATA-MODEL §C.13).
+    - **New `scripts/verify-coverage-gap.mts` (`npm run verify:coverage-gap`) — 9/9
+      passed live** (against the real Supabase project, after all four migrations):
+      insert → `workflow_state='open'` confirmed; acknowledge (no note) → resolve
+      (note required) → reopen → dismiss, each activity type recorded correctly;
+      resolving without a note refused; calling `update_coverage_gap()` on a
+      `quality_finding` refused ("this item is not a coverage gap"); a non-member
+      refused with the generic "not found" message; `display_id_prefix('coverage_gap')`
+      returns `'GAP'`; `add_manual_requirement()` refuses `item_type: 'coverage_gap'`.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (962/962, up from 961).
+    - **Residue, by design:** `reqwise-coverage-gap-a-*`/`-b-*@example.com` and their
+      seeded project/items, same immutability-trigger reason as every prior slice's
+      residue.
+  - **Slice 4 (Phase 3) — AI provider gap-filter capability (mock + Gemini): done, not
+    yet committed.** No migration, no live UI check (mirrors how Phase 1/2 unit-test
+    the Gemini adapter's schema/prompt shape without spending a real quota call).
+    - **`lib/providers/types.ts`** — `AiProvider` gains `filterCoverageGaps(candidates,
+      input)`, a genuinely separate call from `generate()` (never a field bolted onto
+      its output) — this is what makes the "second call" real rather than a same-call
+      pretense. New `GapCandidate = { key, text }`.
+    - **New `lib/contracts/gap-filter-output.ts`** — the call's own Zod contract,
+      sibling to `provider-output.ts`, never merged into it. `is_gap: true` requires
+      `title`+`description` via `.refine()`; `is_gap: false` must omit both.
+    - **Mock provider** — new `lib/providers/mock/runtime/gap-filter.ts`
+      (`filterGapCandidates()`): deterministic, rule-based (a small Thai+English
+      chit-chat/logistics lexicon plus a minimum-length floor), same "no Date.now, no
+      Math.random" discipline as `strategy.ts`. Wired into `mock-provider.ts`.
+    - **Gemini provider** — new `lib/providers/gemini/gap-filter-prompt.ts`
+      (`buildGapFilterPrompt()`, its own prompt version
+      `reqwise-gemini-gap-filter/1.0`, deliberately different from the main analysis
+      prompt's `reqwise-gemini/1.1`), reusing the **same** `createGeminiClient()`
+      instance `provider.ts` already builds — no new client, no new retry/model-
+      fallback logic, just a different prompt string through the existing one. New
+      `filterCoverageGaps()` method added to `createGeminiProvider()`'s returned
+      object; the pre-existing `generate()` method's body was **not** touched
+      (surgical — a shared `parseGeminiJson()` helper was added and used only by the
+      new method, leaving the old, already-tested inline logic exactly as it was).
+    - **17 new unit tests**: `tests/contracts/gap-filter-output.test.ts` (schema
+      accept/reject, including the `is_gap`-conditional-required-fields refinement),
+      `tests/providers/mock-gap-filter.test.ts` (keeps genuine candidates, drops short
+      fragments and Thai/English chit-chat, deterministic, one result per candidate in
+      order), `tests/providers/gemini-gap-filter-prompt.test.ts` (candidates verbatim
+      in the prompt, contract embedded, never merged into the main prompt's own
+      content), plus two new cases appended to the existing
+      `tests/providers/gemini-provider.test.ts` (parsed output + correct prompt
+      version; malformed JSON passed through unchanged for validation to reject, same
+      as `generate()`'s own contract).
+    - Three pre-existing inline test-double `AiProvider` objects
+      (`tests/providers/provider-contract.test.ts` ×3, `scripts/verify-analysis.mts`
+      ×1) needed a stub `filterCoverageGaps()` added to keep compiling — `tsc --noEmit`
+      caught all four immediately, the same exhaustiveness safety net that caught the
+      label-map gaps in Slice 3.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (979/979, up from 962).
+  - **Slice 5 (Phase 3) — orchestration: done, live-verified end to end against the
+    real database, not yet committed.** No migration.
+    - **`lib/analysis/persist.ts`** — `ItemPayload` type exported (`ReturnType<typeof
+      toItemPayload>`); `persistAnalysisResult()` gains an optional `gapItems:
+      ItemPayload[] = []` parameter, spread into the **same** `p_items` array as the
+      main analysis items on the `"valid"` branch — one RPC call, one transaction, no
+      new RPC. Every existing caller (tests included) keeps working unchanged, since
+      the parameter defaults to empty.
+    - **`lib/analysis/coverage-gaps.ts`** — new `computeCoverageGapItems(provider,
+      input, result)`: code-locate → segment → find uncovered candidates → (skip the
+      AI call entirely if there are none) → `provider.filterCoverageGaps()` →
+      `gapFilterOutputSchema.safeParse()` → shape survivors as `ItemPayload`s
+      (`origin: "quality_rule"`, `confidence: 1.0` — "a binary yes/no judgment, not a
+      graded extraction", same reasoning `add_manual_requirement()` already applies to
+      a human's own judgment). **Fail-open everywhere**, per the owner's decision: a
+      non-"valid" run, empty source text, a thrown provider error, or output that
+      fails schema validation all return `[]` rather than touching the main run —
+      wrapped in one `try/catch`. A result key the provider invented (matching no real
+      candidate) is dropped rather than guessed into a fabricated citation.
+    - **Both call sites** — `app/workspace/projects/actions.ts` (the combined intake
+      form) and `.../sources/[sourceId]/analyze/actions.ts` (the re-run screen), one
+      new line each, right after `runAnalysis()` and before `persistAnalysisResult()`.
+      The intake-form call site needed a small refactor first: it previously created
+      the provider *inline* inside the `runAnalysis()` call with no named variable, so
+      there was nothing to pass to the gap-check step — hoisted into `let provider:
+      AiProvider;` assigned inside the existing try/catch, `runAnalysis(provider, ...)`
+      afterward. No behavior change, same catch semantics.
+    - **No daily-usage bookkeeping change** — the existing single increment/decrement
+      pair already covers this; a gap-filter failure never triggers a refund (a real
+      run happened).
+    - **7 new unit tests** (`tests/analysis/coverage-gaps.test.ts`, appended):
+      `computeCoverageGapItems()` — never calls the provider when the run isn't valid
+      or there are zero candidates (both proven with a call-tracking fake provider);
+      builds the correct `ItemPayload` shape from a genuine gap; drops an
+      `is_gap: false` result; fails open on schema-invalid output; fails open on a
+      throwing provider; drops a hallucinated result key. All passed on the first run.
+    - **Live-verified against the real Supabase project** (`npm run dev`,
+      `claude-in-chrome`, mock provider, 4 separate runs) — **and this verification
+      took three attempts to get right, worth recording accurately:**
+      1. A short synthetic English note produced **0** gap items. Investigated via a
+         throwaway diagnostic script reading the run's actual persisted citations
+         directly: the mock's Problem Statement / Business Objective / Business
+         Requirement items all cited the **entire 261-character source** as one
+         excerpt (a legitimate mock fallback for a short, thin note it can't segment
+         meaningfully) — correctly leaving nothing "uncovered" at the statement level.
+         Not a bug; a real, disclosed limit of line/sentence-level segmentation
+         against citations broader than one statement.
+      2. Two follow-up attempts added a trailing sentence to the **real, unmodified**
+         `bookingMeetingNotes` fixture, each time checking only the Quality tab's
+         "Discussed but not written" section — which stayed empty both times, wrongly
+         read as "still zero candidates." **The actual bug was in the verification
+         method, not the code**: that section is still `quality-panel.tsx`'s Slice-1
+         placeholder (Slice 6's job, not yet built) — it cannot show anything yet
+         regardless of what is in the database. Re-checked by querying
+         `analysis_items` directly instead of trusting the UI, and found the pipeline
+         had been working correctly the entire time.
+      3. **Confirmed directly against the database, across all 4 runs**: the
+         unmodified canonical fixture (run via the existing "Try an example" button,
+         *no test-specific edits at all*) produced **3 genuine `coverage_gap` items**
+         on its own — including the exact customer-data/consent sentence flagged as a
+         candidate gap during this phase's original research round — proving the
+         pipeline finds real gaps in already-existing content, not only artificially
+         injected ones. Two further runs, each adding one deliberately unaddressed
+         sentence to the same fixture (a "team hasn't decided about parking
+         integration" sentence, then a plain declarative "the building has two
+         basement parking floors" sentence with no clarification framing at all),
+         each correctly added exactly one more gap item for the new sentence, on top
+         of the same 1–2 gaps the unmodified fixture already produces. All items:
+         `item_type: coverage_gap`, `workflow_state: open`, `origin: quality_rule`,
+         `status: draft`, display ids allocated sequentially per project
+         (`GAP-001`, `GAP-002`, `GAP-003`). This is the master plan's exact "a topic
+         deliberately planted in a test note, with no requirement for it, shows up as
+         a gap" done-when line, proven directly against persisted rows, not assumed
+         from a UI screen that cannot yet display it.
+      4. Every run's main analysis also completed normally throughout (14–21 items,
+         no failures) — the gap-check step never affected the primary run, live proof
+         of the fail-open design alongside the unit tests.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (986/986, up from 979).
+    - **Residue, by design:** four throwaway projects under the
+      `reqwise-output-lang-...` test account from this round's live checks (`"Slice 5
+      verify - gap check"`, `"Slice 5 verify - standalone gap"`, `"Slice 5 verify -
+      declarative gap"`, plus one "Try an example" project), same
+      immutability-trigger reason as every prior slice's residue.
+  - **Slice 6 (Phase 3) — UI: Quality tab gap list, workflow, "Add requirement from
+    this", doc updates: done, live-verified end to end, not yet committed. Closes
+    Phase 3.** No migration.
+    - **`quality-panel.tsx`** — "Discussed but not written" now renders open
+      `coverage_gap` items, same row shape as "Open findings": displayId, title,
+      click-to-select, and "Add requirement from this" (identical wiring to the
+      quality-finding version — `onAddFromFinding`, pre-filling the manual-add form's
+      excerpt).
+    - **`lib/analysis/workspace-view.ts`** — `ItemPartition` gains a `gaps` bucket;
+      `partitionItems()` now routes `coverage_gap` items there instead of the default
+      `else → requirements` branch — **a real gap this slice closes, not a stylistic
+      addition**: without this fix, every persisted gap item (already flowing in since
+      Slice 5) would have silently shown up mixed into the main Requirements list,
+      undetected until Slice 6 actually rendered the Quality tab and exposed the
+      mismatch. `tabForType("coverage_gap")` resolves to `"quality"` — the one tab a
+      gap's own row lives on; selecting one still opens the inspector regardless of
+      which tab is active.
+    - **The Inspector's existing generic workflow machinery turned out to need very
+      little new code** — `isWorkflowItemType()` already gated Details/tabs rendering
+      generically, so extending it (`lib/contracts/workflow.ts`) to recognize
+      `coverage_gap` (routed through the exact same `FINDING_TRANSITIONS`/state set
+      `quality_finding` already uses — `transitionsFor()`'s own `else` branch handles
+      it for free) turned on the Resolution tab, the workflow chip, and the
+      acknowledge/resolve/dismiss/reopen buttons with no new UI built from scratch.
+      What *did* need new code, each a direct sibling of the `quality_finding`
+      equivalent ("the same shape, different rules"):
+      - `lib/review/workflow-service.ts` — new `updateCoverageGap()`, calling
+        `update_coverage_gap()` (not `update_quality_finding()`), reusing
+        `findingActionSchema` as-is (the input shape is identical). New
+        `WORKFLOW_MESSAGES.gapUnavailable` and two new `translateWorkflowError()`
+        patterns ("not a coverage gap" → wrong-type, "gap not found|not visible" →
+        the new message).
+      - `app/workspace/projects/[projectId]/analyses/[runId]/actions.ts` — new
+        `updateCoverageGapAction`, same shape as `updateFindingAction`. Runs on the
+        same user-scoped `createClient()` every other action in this file already
+        uses — no service-role client anywhere in this path.
+      - `workflow-actions.tsx` — 3-way dispatch
+        (`isQuestion ? resolveQuestionAction : isGap ? updateCoverageGapAction :
+        updateFindingAction`); everything else in that component (transitions,
+        button labels, note requirements) was already generic over item type.
+      - `workflow-tab.tsx` / `inspector.tsx` — three small copy branches added
+        (`isGap`) so the acknowledged banner, the dismissed-reason heading, and the
+        bottom disclaimer paragraph say "gap" instead of defaulting to "finding"
+        wording; `tabsFor()` and the panel title ternary extended for `coverage_gap`.
+    - **Docs**: `docs/design/INTERFACE.md`'s Quality-tab row rewritten (the old
+      "Coverage-gap lists ... are a stated placeholder" sentence is gone; a new row
+      describes both real lists). `docs/architecture/ARCHITECTURE.md` §A.4 — a new
+      paragraph in the "Shipped since this table was written" note (no stale
+      placeholder text existed there to rewrite — this phase never got one). No
+      `CLAUDE.md` change — its "never invent a metric" rule is about numeric
+      metrics (coverage %, sparklines), not about the gap *lists* themselves, which
+      were never a fabricated number to begin with.
+    - **14 new/updated unit tests**: `tests/review/workflow-service.test.ts` (new
+      `describe("updateCoverageGap", ...)`, 5 cases mirroring `updateFinding`'s own —
+      correct RPC name and params, null-note-for-acknowledge, note-required-for-
+      resolve, wrong-type and not-found translation); `tests/contracts/
+      workflow-input.test.ts` (extended the activity-label count check from 8→12,
+      added `coverage_gap` to the `isWorkflowItemType`/transition assertions);
+      `tests/analysis/workspace-view.test.ts` (`partitionItems()` now proven to keep
+      a `coverage_gap` out of `requirements`; `tabForType("coverage_gap")` → `quality`
+      added to the existing table-style assertion).
+    - **Live-verified in the running app** (`npm run dev`, `claude-in-chrome`, the
+      same project from Slice 5's live checks, which already held 3 real persisted
+      gap items from that round): opened the Quality tab — "Discussed but not
+      written" correctly listed `GAP-001`/`GAP-002`/`GAP-003` with real titles;
+      selected `GAP-001` — inspector correctly read "Gap inspector", chip "Coverage
+      gap" / "Open" / "Confidence 100%", origin "Quality rule", and the exact source
+      excerpt highlighted in the left panel; opened its Resolution tab — state chip,
+      Acknowledge/Resolve/Dismiss buttons, and the gap-specific disclaimer text all
+      correct; **dismissed it with a note** — activity recorded with actor/timestamp,
+      state moved to `dismissed`, and **the "Discussed but not written" list updated
+      live, GAP-001 gone, no reload** — the direct analogue of Phase 2's own "resolving
+      raises the score live" proof, this time "resolving removes it from the open gap
+      list". Then clicked "Add requirement from this" on `GAP-002` — switched to the
+      Requirements tab, opened the manual-add form pre-filled with `GAP-002`'s own
+      excerpt and "Cite the source" pre-checked; filled in a statement/description and
+      submitted — **`FR-002` created successfully** ("Added as FR-002, in draft."),
+      requirement count went 12→13, and `GAP-002`/`GAP-003` both correctly remained
+      open afterward (adding a requirement from a gap does not auto-resolve it,
+      matching the identical, already-established `quality_finding` behavior).
+    - **Second-user proof**: the RPC-level refusal for `update_coverage_gap()` was
+      already live-verified in Slice 3 (`verify:coverage-gap` check 7 — a non-member
+      gets "gap not found or not visible"). `updateCoverageGapAction` adds nothing
+      between the action and that RPC — confirmed by reading the file's own imports:
+      the same user-scoped `createClient()` from `@/lib/supabase/server` every other
+      action in that file already uses, no service-role client anywhere — so the
+      Slice 3 RPC proof already covers the action, the same reasoning Phase 2 Slice 7
+      used rather than re-fighting Node's raw-ESM-extension issue with a new
+      integration script.
+    - `npm run build && npm run lint && npm run typecheck && npm test` all clean
+      (993/993, up from 986).
+  - **Phase 3 (Gap check) — all 6 slices done, live-verified end to end, not yet
+    committed.** Every migration applied to the live Supabase project; nothing left
+    to build against this master-plan phase.
+  - **Not yet decided: whether to commit Phase 3's Slices 1–6.** Same rule as every
+    prior slice — ask the owner, don't assume.
+  - **Slice 7 (Phase 2) — output-language: settings UI + export fix + doc updates: done, applied,
     live-verified end to end, committed (`6decd48`).** Closes Phase 2.
     - **Creation form** (`app/workspace/projects/new/start-form.tsx`) — the two-radio
       Output language group extended to three: Thai, English, **Match source**.

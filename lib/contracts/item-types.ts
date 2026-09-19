@@ -21,6 +21,7 @@ export const ITEM_TYPES = [
   "constraint",
   "open_question",
   "quality_finding",
+  "coverage_gap",
 ] as const;
 
 export type ItemType = (typeof ITEM_TYPES)[number];
@@ -45,6 +46,7 @@ export const DISPLAY_ID_PREFIX: Record<ItemType, string> = {
   constraint: "CON",
   open_question: "Q",
   quality_finding: "QF",
+  coverage_gap: "GAP",
 };
 
 /** How well the source text supports an item. Drives the evidence rules. */
@@ -80,9 +82,17 @@ export type QualityFindingKind = (typeof QUALITY_FINDING_KINDS)[number];
 
 /**
  * Item types a `quality_rule`-origin item may take. A quality rule observes the
- * requirements; it never asserts a business fact.
+ * requirements; it never asserts a business fact. `coverage_gap` (Phase 3) belongs
+ * here for the same reason — a gap-check observation, never a business fact — and is
+ * deliberately kept out of `QUALITY_FINDING_KINDS`/`QUALITY_FINDING_WEIGHTS`
+ * (`lib/analysis/workspace-view.ts`): the quality score's formula is fixed and must
+ * never silently grow a 6th deduction.
  */
-export const QUALITY_RULE_ITEM_TYPES: readonly ItemType[] = ["quality_finding", "open_question"];
+export const QUALITY_RULE_ITEM_TYPES: readonly ItemType[] = [
+  "quality_finding",
+  "open_question",
+  "coverage_gap",
+];
 
 /** Provider-scoped key format: readable, kebab-case, no collision with display IDs. */
 export const PROVIDER_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

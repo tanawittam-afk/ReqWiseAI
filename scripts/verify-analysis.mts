@@ -86,6 +86,9 @@ function brokenProvider(): AiProvider {
         metadata: MOCK_METADATA,
       };
     },
+    async filterCoverageGaps(): Promise<ProviderGeneration> {
+      return { raw: { results: [] }, metadata: MOCK_METADATA };
+    },
   };
 }
 

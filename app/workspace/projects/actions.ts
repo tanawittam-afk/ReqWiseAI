@@ -21,6 +21,7 @@ import type { SourceContentInput } from "@/lib/contracts/source";
 import { readStartForm } from "@/lib/contracts/start";
 import { archiveProject, createProject, restoreProject, setOutputLanguage } from "@/lib/projects/service";
 import { createSource } from "@/lib/sources/service";
+import { computeCoverageGapItems } from "@/lib/analysis/coverage-gaps";
 import { buildAnalysisInput } from "@/lib/analysis/input";
 import { productionPorts } from "@/lib/analysis/production-ports";
 import { persistAnalysisResult } from "@/lib/analysis/persist";
@@ -31,6 +32,7 @@ import { DAILY_ANALYSIS_LIMIT } from "@/lib/config/limits";
 import { availableDefaultProvider, readServerEnvironment } from "@/lib/config/env";
 import { unavailableProviderMessage } from "@/lib/providers/errors";
 import { createProvider } from "@/lib/providers/factory";
+import type { AiProvider } from "@/lib/providers/types";
 import { listDomainProfileOptions } from "@/lib/domain/load-profile";
 import {
   bookingMeetingNotes,
@@ -261,13 +263,11 @@ async function createSourceAndAnalyse(
     return `${sourceHref}?error=analysis`;
   }
 
+  let provider: AiProvider;
   let result;
   try {
-    result = await runAnalysis(
-      createProvider(providerKey, readServerEnvironment(), undefined, apiKeyOverride),
-      built.input,
-      productionPorts(),
-    );
+    provider = createProvider(providerKey, readServerEnvironment(), undefined, apiKeyOverride);
+    result = await runAnalysis(provider, built.input, productionPorts());
   } catch (error) {
     // An unavailable provider is a configuration fact, not something the user typed.
     // The source is saved; the re-run screen is where it can be tried again.
@@ -276,6 +276,11 @@ async function createSourceAndAnalyse(
     await refundOnFailure?.();
     return `${sourceHref}?error=analysis`;
   }
+
+  // Phase 3 (Gap check) — code-locate → segment → AI-filter, fail-open (see the
+  // function's own doc comment). Counts as part of this same analysis: no second
+  // daily-usage slot is spent, and a gap-filter failure never affects the run above.
+  const gapItems = await computeCoverageGapItems(provider, built.input, result);
 
   // An `invalid` or `provider_error` run is persisted with a run id and shown honestly —
   // that is designed behaviour, not a failure path, so the slot is *not* refunded past
@@ -288,6 +293,7 @@ async function createSourceAndAnalyse(
     requestKey,
     built.input,
     result,
+    gapItems,
   );
   if (!outcome.ok) {
     await refundOnFailure?.();

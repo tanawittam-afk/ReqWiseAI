@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { readAnalysisActionInput } from "@/lib/analysis/action-input";
+import { computeCoverageGapItems } from "@/lib/analysis/coverage-gaps";
 import { buildAnalysisInput } from "@/lib/analysis/input";
 import { productionPorts } from "@/lib/analysis/production-ports";
 import { persistAnalysisResult } from "@/lib/analysis/persist";
@@ -82,6 +83,10 @@ export async function analyzeSourceAction(
     return { error: usingOwnKey ? OWN_KEY_UNUSABLE_MESSAGE : unavailableProviderMessage(error) };
   }
   const result = await runAnalysis(provider, built.input, productionPorts());
+  // Phase 3 (Gap check) — code-locate → segment → AI-filter, fail-open (see the
+  // function's own doc comment). Counts as part of this same analysis: no second
+  // daily-usage slot is spent, and a gap-filter failure never affects the run above.
+  const gapItems = await computeCoverageGapItems(provider, built.input, result);
 
   const outcome = await persistAnalysisResult(
     supabase,
@@ -90,6 +95,7 @@ export async function analyzeSourceAction(
     requestKey,
     built.input,
     result,
+    gapItems,
   );
   if (!outcome.ok) {
     if (!usingOwnKey) await decrementDailyUsage(supabase);

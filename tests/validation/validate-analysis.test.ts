@@ -13,9 +13,13 @@ describe("validateAnalysis — valid fixture", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("covers all 14 item types", () => {
+  it("covers all 14 provider-facing item types", () => {
+    // `coverage_gap` (Phase 3) is deliberately excluded — a provider can never emit
+    // it (`providerItemSchema` has no arm for it), so a provider-output fixture
+    // legitimately never contains one.
+    const providerFacingTypes = ITEM_TYPES.filter((type) => type !== "coverage_gap");
     const present = new Set(bookingValidOutput.items.map((i) => i.type));
-    for (const type of ITEM_TYPES) {
+    for (const type of providerFacingTypes) {
       expect(present.has(type), `missing item type: ${type}`).toBe(true);
     }
     expect(present.size).toBe(14);

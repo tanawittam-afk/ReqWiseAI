@@ -62,24 +62,36 @@ export type ItemPartition = {
   requirements: AnalysisItemView[];
   questions: AnalysisItemView[];
   findings: AnalysisItemView[];
+  /** `coverage_gap` items (Phase 3) — surfaced only inside the Quality tab's own
+   *  "Discussed but not written" list, never mixed into `requirements`. */
+  gaps: AnalysisItemView[];
 };
 
 export function partitionItems(items: readonly AnalysisItemView[]): ItemPartition {
   const requirements: AnalysisItemView[] = [];
   const questions: AnalysisItemView[] = [];
   const findings: AnalysisItemView[] = [];
+  const gaps: AnalysisItemView[] = [];
   for (const item of items) {
     if (item.type === "open_question") questions.push(item);
     else if (item.type === "quality_finding") findings.push(item);
+    else if (item.type === "coverage_gap") gaps.push(item);
     else requirements.push(item);
   }
-  return { requirements, questions, findings };
+  return { requirements, questions, findings, gaps };
 }
 
-/** Which tab holds a given item — the one place that mapping is written down. */
+/**
+ * Which tab holds a given item — the one place that mapping is written down.
+ * `coverage_gap` resolves to `"quality"` — it has no dedicated tab of its own (its
+ * only list lives inside the Quality tab, same reasoning that already keeps the
+ * score itself out of `tabForType()`'s domain) — selecting one still opens it in the
+ * inspector, since selection is independent of which tab is active.
+ */
 export function tabForType(type: string): WorkspaceTab {
   if (type === "open_question") return "questions";
   if (type === "quality_finding") return "findings";
+  if (type === "coverage_gap") return "quality";
   return "requirements";
 }
 
@@ -243,6 +255,7 @@ export const TYPE_GROUP_LABEL: Record<ItemType, string> = {
   constraint: "Constraints",
   open_question: "Open questions",
   quality_finding: "Quality findings",
+  coverage_gap: "Coverage gaps",
 };
 
 /* ----------------------------------------------------------------- filtering */
@@ -418,4 +431,36 @@ export function qualityScore(items: readonly AnalysisItemView[]): QualityScoreBr
   );
 
   return { score: Math.max(0, 100 - totalDeduction), deductions, totalDeduction };
+}
+
+/* -------------------------------------------------------------- weakly supported */
+
+/**
+ * Requirements only — mirrors `lib/traceability/coverage.ts`'s
+ * `requirement_without_evidence` rule exactly (an assumption with no citation is
+ * *correct*, per AI-OUTPUT-CONTRACT §D.6, so it must never be flagged here).
+ */
+const WEAKLY_SUPPORTED_TYPES: readonly ItemType[] = [
+  "business_requirement",
+  "functional_requirement",
+  "non_functional_requirement",
+];
+
+/** Phase 3's own threshold — the master plan's wording verbatim. */
+const WEAK_EVIDENCE_THRESHOLD = 0.5;
+
+/**
+ * Pure and DB-free, like `qualityScore()` above. Reads the item's **first** source
+ * reference only — this app's items carry at most one today (single-source-per-run,
+ * the same assumption Phase 2 Slice 5 already made explicit for excerpt citation). A
+ * reference with no recorded `evidenceStrength` (`null`) is left alone rather than
+ * treated as weak — an unmeasured strength is not evidence of a weak one.
+ */
+export function weaklySupportedItems(items: readonly AnalysisItemView[]): AnalysisItemView[] {
+  return items.filter((item) => {
+    if (!WEAKLY_SUPPORTED_TYPES.includes(item.type)) return false;
+    if (item.sourceReferences.length === 0) return true;
+    const strength = item.sourceReferences[0]?.evidenceStrength;
+    return strength !== null && strength !== undefined && strength < WEAK_EVIDENCE_THRESHOLD;
+  });
 }

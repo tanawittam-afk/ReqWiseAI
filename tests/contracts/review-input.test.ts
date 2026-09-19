@@ -214,18 +214,20 @@ describe("status workflow", () => {
 });
 
 describe("reviewable item types", () => {
-  it("covers the twelve requirement types and excludes the two deferred ones", () => {
+  it("covers the twelve requirement types and excludes the three deferred ones", () => {
     expect(REVIEWABLE_ITEM_TYPES).toHaveLength(12);
-    expect(ITEM_TYPES).toHaveLength(14);
+    expect(ITEM_TYPES).toHaveLength(15);
     expect(isReviewableItemType("functional_requirement")).toBe(true);
     expect(isReviewableItemType("risk")).toBe(true);
   });
 
-  it("excludes open questions and quality findings", () => {
+  it("excludes open questions, quality findings, and coverage gaps", () => {
     expect(isReviewableItemType("open_question")).toBe(false);
     expect(isReviewableItemType("quality_finding")).toBe(false);
+    expect(isReviewableItemType("coverage_gap")).toBe(false);
     expect(REVIEWABLE_ITEM_TYPES).not.toContain("open_question");
     expect(REVIEWABLE_ITEM_TYPES).not.toContain("quality_finding");
+    expect(REVIEWABLE_ITEM_TYPES).not.toContain("coverage_gap");
   });
 
   it("names the workflow each deferred type is waiting for", () => {

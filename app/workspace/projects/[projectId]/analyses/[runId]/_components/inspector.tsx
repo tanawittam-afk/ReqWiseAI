@@ -59,7 +59,9 @@ type InspectorTab =
  */
 function tabsFor(type: string, hasChangeRequests: boolean): InspectorTab[] {
   if (type === "open_question") return ["details", "evidence", "answer", "history"];
-  if (type === "quality_finding") return ["details", "evidence", "resolution", "history"];
+  if (type === "quality_finding" || type === "coverage_gap") {
+    return ["details", "evidence", "resolution", "history"];
+  }
   const base: InspectorTab[] = ["details", "evidence", "relations"];
   if (hasChangeRequests) base.push("changeRequests");
   base.push("history");
@@ -200,7 +202,9 @@ export function Inspector({
         ? { en: "Question inspector", th: "แผงตรวจสอบคำถาม" }
         : item.type === "quality_finding"
           ? { en: "Finding inspector", th: "แผงตรวจสอบข้อค้นพบ" }
-          : { en: "Requirement inspector", th: "แผงตรวจสอบข้อกำหนด" };
+          : item.type === "coverage_gap"
+            ? { en: "Gap inspector", th: "แผงตรวจสอบช่องว่าง" }
+            : { en: "Requirement inspector", th: "แผงตรวจสอบข้อกำหนด" };
 
   return (
     <section

@@ -47,6 +47,8 @@ function parsePersistSuccessRow(data: unknown): PersistSuccessRow | null {
 }
 
 /** One element of the RPC's `p_items` array. Field names match the SQL side exactly. */
+export type ItemPayload = ReturnType<typeof toItemPayload>;
+
 function toItemPayload(item: NormalizedItem) {
   return {
     local_key: item.id,
@@ -107,6 +109,16 @@ export async function persistAnalysisResult(
   requestKey: string,
   input: AnalysisInput,
   result: RunAnalysisResult,
+  /**
+   * `coverage_gap` items (Phase 3, Slice 5), already shaped like `toItemPayload()`'s
+   * own output — never full `NormalizedItem`s, since their `id`/`displayId`/
+   * `versionNo` would be meaningless before this same RPC assigns the real ones.
+   * Appended into the **same** `p_items` array as the main analysis items, so they
+   * ride in the exact same run/transaction — this is what makes the master plan's
+   * "its AI step counts as part of the same analysis" literal, not a billing
+   * convention. Ignored when `result.status !== "valid"` (nothing to attach a gap to).
+   */
+  gapItems: ItemPayload[] = [],
 ): Promise<PersistOutcome> {
   const common = {
     p_project: projectId,
@@ -128,7 +140,7 @@ export async function persistAnalysisResult(
       p_raw_output: result.raw,
       p_validated_output: result.analysis,
       p_error: null,
-      p_items: result.analysis.items.map(toItemPayload),
+      p_items: [...result.analysis.items.map(toItemPayload), ...gapItems],
       p_relations: result.analysis.relations.map(toRelationPayload),
     };
   } else if (result.status === "invalid") {

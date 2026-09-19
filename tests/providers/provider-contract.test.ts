@@ -9,6 +9,9 @@ describe("provider execution contract", () => {
     const provider: AiProvider = {
       name: "gemini",
       deterministic: false,
+      async filterCoverageGaps() {
+        return { raw: { results: [] }, metadata: { provider: "gemini", model: null, promptVersion: null } };
+      },
       async generate() {
         const { bookingValidOutput } = await import(
           "../../lib/providers/mock/fixtures/booking-smart-space.valid"
@@ -37,6 +40,9 @@ describe("provider execution contract", () => {
     const provider: AiProvider = {
       name: "gemini",
       deterministic: false,
+      async filterCoverageGaps() {
+        return { raw: { results: [] }, metadata: { provider: "gemini", model: null, promptVersion: null } };
+      },
       async generate() {
         throw new ProviderExecutionError(
           "rate_limited",
@@ -70,6 +76,9 @@ describe("provider execution contract", () => {
     const provider: AiProvider = {
       name: "gemini",
       deterministic: false,
+      async filterCoverageGaps() {
+        return { raw: { results: [] }, metadata: { provider: "gemini", model: null, promptVersion: null } };
+      },
       async generate() {
         throw new ProviderExecutionError(
           "rate_limited",

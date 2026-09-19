@@ -32,11 +32,13 @@ export type ItemStatus = (typeof ITEM_STATUSES)[number];
  *
  * `open_question` and `quality_finding` are observations *about* the analysis, not
  * claims it makes: a question is answered and a finding is acknowledged, neither is
- * "approved". Their workflows are a later slice; until then they are read-only and
- * say so. Mirrors `is_reviewable_item_type()`.
+ * "approved". `coverage_gap` (Phase 3) joins them for the same reason — it moves only
+ * through `update_coverage_gap()`, never the general review workflow, and must never
+ * be creatable via the manual-add path (`add_manual_requirement()` checks this exact
+ * list server-side too). Mirrors `is_reviewable_item_type()`.
  */
 export const REVIEWABLE_ITEM_TYPES: readonly ItemType[] = ITEM_TYPES.filter(
-  (type) => type !== "open_question" && type !== "quality_finding",
+  (type) => type !== "open_question" && type !== "quality_finding" && type !== "coverage_gap",
 );
 
 export function isReviewableItemType(type: string): type is ItemType {

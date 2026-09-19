@@ -31,7 +31,7 @@ import {
 } from "@/lib/contracts/workflow";
 import { isReviewableItemType, isTerminalStatus } from "@/lib/contracts/review";
 import { CHANGE_REQUEST_ACTION_LABEL } from "@/lib/contracts/change-requests";
-import { resolveQuestionAction, updateFindingAction } from "../actions";
+import { resolveQuestionAction, updateCoverageGapAction, updateFindingAction } from "../actions";
 import { EMPTY_REVIEW_STATE } from "../form-state";
 import { ChangeRequestForm, type ChangeRequestCandidate } from "./change-request-form";
 
@@ -84,8 +84,9 @@ export function WorkflowActions({
 }) {
   const locale = useLocale();
   const isQuestion = item.type === "open_question";
+  const isGap = item.type === "coverage_gap";
   const [state, formAction] = useActionState(
-    isQuestion ? resolveQuestionAction : updateFindingAction,
+    isQuestion ? resolveQuestionAction : isGap ? updateCoverageGapAction : updateFindingAction,
     EMPTY_REVIEW_STATE,
   );
   const [pending, setPending] = useState<WorkflowState | null>(null);

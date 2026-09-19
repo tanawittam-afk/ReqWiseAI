@@ -19,7 +19,7 @@ Timeline: 2–4 weeks. Each phase ends deployed and working.
 | 0 | Real-notes test (owner) | Not started — skipped ahead to Phase 1; only Phase 5 depends on it |
 | 1 | Protection | **Shipped, live, and verified (2026-09-19) — all 4 slices done. `ADMIN_EMAIL` on Vercel is the one outstanding step; see HANDOFF.md.** |
 | 2 | Forecast — quality score | **Shipped, live, and verified (2026-09-21) — all 7 slices done: quality score + Quality tab + project-card badge, manual "add requirement", and editable output language (match-source detection, settings UI, export fix). Not yet committed.** See HANDOFF.md and the slice plan at `C:\Users\User\.claude\plans\rancandel-reqwise-ai-squishy-blanket.md`. |
-| 3 | Gap check | Not started |
+| 3 | Gap check | **Shipped, live, and verified (2026-09-20) — all 6 slices done: weakly-supported list, excerpt-location/segmentation, `coverage_gap` schema + workflow, AI gap-filter capability, orchestration, and the Quality tab UI. Not yet committed.** See HANDOFF.md and the slice plan at `C:\Users\User\.claude\plans\rancandel-reqwise-ai-squishy-blanket.md`. |
 | 4 | Sharing | Not started |
 | 5 | Readability | Not started — design questions wait on Phase 0 findings |
 

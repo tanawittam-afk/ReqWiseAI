@@ -29,6 +29,7 @@ export const TYPE_LABEL: Record<ItemType, string> = {
   constraint: "Constraint",
   open_question: "Open question",
   quality_finding: "Quality finding",
+  coverage_gap: "Coverage gap",
 };
 
 /**

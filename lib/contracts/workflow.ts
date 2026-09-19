@@ -40,11 +40,18 @@ export const FINDING_STATES: readonly WorkflowState[] = [
   "dismissed",
 ];
 
-/** The two item types this workflow applies to — the exact complement of `review.ts`. */
-export const WORKFLOW_ITEM_TYPES: readonly ItemType[] = ["open_question", "quality_finding"];
+/**
+ * The item types this workflow applies to — the exact complement of `review.ts`.
+ * `coverage_gap` (Phase 3) shares `quality_finding`'s exact state set and transition
+ * table — `transitionsFor()` below already routes it there via its `else` branch —
+ * it just needs its own RPC (`update_coverage_gap()`) at the service layer.
+ */
+export const WORKFLOW_ITEM_TYPES: readonly ItemType[] = ["open_question", "quality_finding", "coverage_gap"];
 
-export function isWorkflowItemType(type: string): type is "open_question" | "quality_finding" {
-  return type === "open_question" || type === "quality_finding";
+export function isWorkflowItemType(
+  type: string,
+): type is "open_question" | "quality_finding" | "coverage_gap" {
+  return type === "open_question" || type === "quality_finding" || type === "coverage_gap";
 }
 
 export const QUESTION_TRANSITIONS: Record<WorkflowState, readonly WorkflowState[]> = {
@@ -248,4 +255,8 @@ export const WORKFLOW_ACTIVITY_LABEL: Record<string, string> = {
   quality_resolved: "Resolved quality finding",
   quality_dismissed: "Dismissed quality finding",
   quality_reopened: "Reopened quality finding",
+  gap_acknowledged: "Acknowledged coverage gap",
+  gap_resolved: "Resolved coverage gap",
+  gap_dismissed: "Dismissed coverage gap",
+  gap_reopened: "Reopened coverage gap",
 };

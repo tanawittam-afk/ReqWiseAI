@@ -27,9 +27,20 @@ export type ProviderGeneration = {
   metadata: ProviderMetadata;
 };
 
+/** One candidate statement the code-only gap-check step found uncovered by any
+ *  citation — text only; the provider never sees offsets or item ids. */
+export type GapCandidate = { key: string; text: string };
+
 export interface AiProvider {
   readonly name: ProviderKey;
   /** True when the same input always produces byte-identical output. */
   readonly deterministic: boolean;
   generate(input: AnalysisInput): Promise<ProviderGeneration>;
+  /**
+   * Phase 3's gap-filter step — a second, independent call, not a field on
+   * `generate()`'s output. `raw` is validated against `gapFilterOutputSchema`
+   * (`lib/contracts/gap-filter-output.ts`) by the caller, exactly like `generate()`'s
+   * output is validated by `validateAnalysis` — no fast path for either provider.
+   */
+  filterCoverageGaps(candidates: GapCandidate[], input: AnalysisInput): Promise<ProviderGeneration>;
 }

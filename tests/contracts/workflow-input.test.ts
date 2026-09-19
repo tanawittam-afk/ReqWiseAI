@@ -196,6 +196,14 @@ describe("finding transitions", () => {
     expect(isWorkflowItemType("functional_requirement")).toBe(false);
     expect(isWorkflowItemType("open_question")).toBe(true);
     expect(isWorkflowItemType("quality_finding")).toBe(true);
+    expect(isWorkflowItemType("coverage_gap")).toBe(true);
+  });
+
+  it("routes coverage_gap through the same transitions as quality_finding (Phase 3)", () => {
+    expect(isAllowedWorkflowTransition("coverage_gap", "open", "acknowledged")).toBe(true);
+    expect(isAllowedWorkflowTransition("coverage_gap", "open", "resolved")).toBe(true);
+    expect(isAllowedWorkflowTransition("coverage_gap", "open", "dismissed")).toBe(true);
+    expect(isAllowedWorkflowTransition("coverage_gap", "open", "answered")).toBe(false);
   });
 });
 
@@ -224,8 +232,8 @@ describe("note rules", () => {
 });
 
 describe("activity labels", () => {
-  it("gives all eight workflow actions a human sentence", () => {
-    expect(Object.keys(WORKFLOW_ACTIVITY_LABEL)).toHaveLength(8);
+  it("gives all twelve workflow actions a human sentence", () => {
+    expect(Object.keys(WORKFLOW_ACTIVITY_LABEL)).toHaveLength(12);
     expect(WORKFLOW_ACTIVITY_LABEL.question_answered).toBe("Answered stakeholder question");
     expect(WORKFLOW_ACTIVITY_LABEL.question_deferred).toBe("Deferred stakeholder question");
     expect(WORKFLOW_ACTIVITY_LABEL.question_not_applicable).toBe("Marked question as not applicable");
@@ -234,6 +242,10 @@ describe("activity labels", () => {
     expect(WORKFLOW_ACTIVITY_LABEL.quality_resolved).toBe("Resolved quality finding");
     expect(WORKFLOW_ACTIVITY_LABEL.quality_dismissed).toBe("Dismissed quality finding");
     expect(WORKFLOW_ACTIVITY_LABEL.quality_reopened).toBe("Reopened quality finding");
+    expect(WORKFLOW_ACTIVITY_LABEL.gap_acknowledged).toBe("Acknowledged coverage gap");
+    expect(WORKFLOW_ACTIVITY_LABEL.gap_resolved).toBe("Resolved coverage gap");
+    expect(WORKFLOW_ACTIVITY_LABEL.gap_dismissed).toBe("Dismissed coverage gap");
+    expect(WORKFLOW_ACTIVITY_LABEL.gap_reopened).toBe("Reopened coverage gap");
   });
 
   it("never leaves a raw enum as the label", () => {

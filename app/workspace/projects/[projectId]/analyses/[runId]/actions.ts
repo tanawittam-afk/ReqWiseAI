@@ -21,7 +21,7 @@ import { readItemEditForm, readReviewActionForm } from "@/lib/contracts/review";
 import { editItem, reviewItem, REVIEW_MESSAGES } from "@/lib/review/service";
 import { readAddManualRequirementForm } from "@/lib/contracts/manual-item";
 import { addManualRequirement } from "@/lib/review/manual-item-service";
-import { resolveQuestion, updateFinding, WORKFLOW_MESSAGES } from "@/lib/review/workflow-service";
+import { resolveQuestion, updateCoverageGap, updateFinding, WORKFLOW_MESSAGES } from "@/lib/review/workflow-service";
 import { readFindingActionForm, readQuestionActionForm } from "@/lib/contracts/workflow";
 import {
   readOpenChangeRequestForm,
@@ -200,6 +200,40 @@ const FINDING_OUTCOME: Record<string, string> = {
   resolved: "Finding resolved.",
   dismissed: "Finding dismissed.",
   open: "Finding reopened.",
+};
+
+/** Coverage-gap workflow (Phase 3, Slice 6) — a direct sibling of
+ *  `updateFindingAction`, same shape, different RPC and outcome copy. */
+export async function updateCoverageGapAction(
+  _prev: ReviewFormState,
+  formData: FormData,
+): Promise<ReviewFormState> {
+  const projectId = String(formData.get("projectId") ?? "");
+  const runId = String(formData.get("runId") ?? "");
+  const itemId = String(formData.get("itemId") ?? "");
+  if (!itemId) return { ...EMPTY_REVIEW_STATE, error: WORKFLOW_MESSAGES.gapUnavailable };
+
+  const supabase = await createClient();
+  const result = await updateCoverageGap(supabase, itemId, readFindingActionForm(formData));
+
+  if (!result.ok) {
+    return { ok: false, message: null, error: result.error, fieldErrors: result.fieldErrors ?? {} };
+  }
+
+  revalidateRun(projectId, runId);
+  return {
+    ok: true,
+    message: GAP_OUTCOME[result.data.toState] ?? "Gap updated.",
+    error: null,
+    fieldErrors: {},
+  };
+}
+
+const GAP_OUTCOME: Record<string, string> = {
+  acknowledged: "Gap acknowledged. It is still open until it is resolved or dismissed.",
+  resolved: "Gap resolved.",
+  dismissed: "Gap dismissed.",
+  open: "Gap reopened.",
 };
 
 /**

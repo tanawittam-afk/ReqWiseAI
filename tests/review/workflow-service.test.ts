@@ -12,6 +12,7 @@ import {
   WORKFLOW_MESSAGES,
   resolveQuestion,
   translateWorkflowError,
+  updateCoverageGap,
   updateFinding,
 } from "../../lib/review/workflow-service";
 
@@ -197,6 +198,70 @@ describe("updateFinding", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toBe(WORKFLOW_MESSAGES.transition);
+  });
+});
+
+describe("updateCoverageGap", () => {
+  const acknowledge = { expectedState: "open", toState: "acknowledged", note: "" };
+  const okGap = {
+    rpc: {
+      update_coverage_gap: {
+        data: { item_id: "gap-1", from_state: "open", to_state: "acknowledged" },
+        error: null,
+      },
+    },
+  };
+
+  it("calls update_coverage_gap, not update_quality_finding", async () => {
+    const client = fakeSupabase({}, okGap);
+    const result = await updateCoverageGap(client, "gap-1", acknowledge);
+
+    expect(result.ok).toBe(true);
+    expect(client.rpcCalls[0].name).toBe("update_coverage_gap");
+    expect(Object.keys(client.rpcCalls[0].args).sort()).toEqual([
+      "p_expected_state",
+      "p_item_id",
+      "p_note",
+      "p_to_state",
+    ]);
+  });
+
+  it("sends a null note for an acknowledgement rather than an empty string", async () => {
+    const client = fakeSupabase({}, okGap);
+    await updateCoverageGap(client, "gap-1", acknowledge);
+    expect(client.rpcCalls[0].args.p_note).toBeNull();
+  });
+
+  it("refuses a resolution with no note before the database is asked", async () => {
+    const client = fakeSupabase({}, okGap);
+    const result = await updateCoverageGap(client, "gap-1", { ...acknowledge, toState: "resolved" });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.fieldErrors?.note).toBe("A resolution note is required");
+    expect(client.rpcCalls).toHaveLength(0);
+  });
+
+  it("turns a wrong-type refusal into the other-workflow sentence", async () => {
+    const client = fakeSupabase(
+      {},
+      { rpc: { update_coverage_gap: { data: null, error: { message: "this item is not a coverage gap" } } } },
+    );
+    const result = await updateCoverageGap(client, "gap-1", acknowledge);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toBe(WORKFLOW_MESSAGES.wrongType);
+  });
+
+  it("reports a missing gap as unavailable rather than confirming it exists elsewhere", async () => {
+    const client = fakeSupabase(
+      {},
+      { rpc: { update_coverage_gap: { data: null, error: { message: "gap not found or not visible" } } } },
+    );
+    const result = await updateCoverageGap(client, "gap-1", acknowledge);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toBe(WORKFLOW_MESSAGES.gapUnavailable);
   });
 });
 

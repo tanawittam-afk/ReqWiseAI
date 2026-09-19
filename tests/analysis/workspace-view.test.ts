@@ -23,6 +23,7 @@ import {
   runSummary,
   tabForType,
   toAnalysisWorkspaceRun,
+  weaklySupportedItems,
 } from "../../lib/analysis/workspace-view";
 import type { ItemType } from "../../lib/contracts/item-types";
 
@@ -81,6 +82,16 @@ describe("partitionItems", () => {
     expect(requirements).toHaveLength(1);
     expect(questions).toHaveLength(0);
     expect(findings).toHaveLength(0);
+  });
+
+  it("routes a coverage_gap into its own bucket, never into requirements (Phase 3)", () => {
+    const items = [
+      item({ type: "functional_requirement" }),
+      item({ type: "coverage_gap" }),
+    ];
+    const { requirements, gaps } = partitionItems(items);
+    expect(requirements.map((entry) => entry.type)).toEqual(["functional_requirement"]);
+    expect(gaps.map((entry) => entry.type)).toEqual(["coverage_gap"]);
   });
 });
 
@@ -337,6 +348,59 @@ describe("qualityScore", () => {
   });
 });
 
+function referenceWith(evidenceStrength: number | null): AnalysisItemView["sourceReferences"] {
+  return [{ excerpt: "excerpt", startOffset: 0, endOffset: 5, evidenceStrength, offsetVerified: true }];
+}
+
+describe("weaklySupportedItems", () => {
+  it("flags a requirement with no citation at all", () => {
+    const result = weaklySupportedItems([
+      item({ type: "functional_requirement", sourceReferences: [] }),
+    ]);
+    expect(result).toHaveLength(1);
+  });
+
+  it("flags a requirement whose evidence strength is under the threshold", () => {
+    const result = weaklySupportedItems([
+      item({ type: "business_requirement", sourceReferences: referenceWith(0.4) }),
+    ]);
+    expect(result).toHaveLength(1);
+  });
+
+  it("does not flag a requirement at or above the threshold", () => {
+    const result = weaklySupportedItems([
+      item({ type: "non_functional_requirement", sourceReferences: referenceWith(0.5) }),
+      item({ type: "non_functional_requirement", sourceReferences: referenceWith(0.6) }),
+    ]);
+    expect(result).toHaveLength(0);
+  });
+
+  it("leaves an unmeasured (null) evidence strength alone — unmeasured is not weak", () => {
+    const result = weaklySupportedItems([
+      item({ type: "functional_requirement", sourceReferences: referenceWith(null) }),
+    ]);
+    expect(result).toHaveLength(0);
+  });
+
+  it("never flags a non-requirement type, even with no citation", () => {
+    const result = weaklySupportedItems([
+      item({ type: "assumption", sourceReferences: [] }),
+      item({ type: "risk", sourceReferences: [] }),
+      item({ type: "quality_finding", sourceReferences: [] }),
+    ]);
+    expect(result).toHaveLength(0);
+  });
+
+  it("collects multiple qualifying items across kinds", () => {
+    const result = weaklySupportedItems([
+      item({ type: "business_requirement", sourceReferences: [] }),
+      item({ type: "functional_requirement", sourceReferences: referenceWith(0.1) }),
+      item({ type: "non_functional_requirement", sourceReferences: referenceWith(0.9) }),
+    ]);
+    expect(result).toHaveLength(2);
+  });
+});
+
 describe("toAnalysisWorkspaceRun", () => {
   it("projects only the fields consumed by the client workspace", () => {
     const fullRun: AnalysisRunDetail = {
@@ -376,6 +440,7 @@ describe("workflow tabs and evidence (slice 6A)", () => {
     expect(tabForType("quality_finding")).toBe("findings");
     expect(tabForType("functional_requirement")).toBe("requirements");
     expect(tabForType("risk")).toBe("requirements");
+    expect(tabForType("coverage_gap")).toBe("quality");
   });
 
   it("counts each tab from the partition, not from a hand-maintained total", () => {

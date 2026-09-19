@@ -29,6 +29,7 @@ import {
   qualityScore,
   runSummary,
   tabForType,
+  weaklySupportedItems,
   type AnalysisWorkspaceRun,
   type GroupMode,
   type ItemFilters,
@@ -108,7 +109,7 @@ export function AnalysisWorkspace({
   const [addingRequirement, setAddingRequirement] = useState(false);
   const [addPrefillExcerpt, setAddPrefillExcerpt] = useState<string | null>(null);
 
-  const { requirements, questions, findings } = useMemo(
+  const { requirements, questions, findings, gaps } = useMemo(
     () => partitionItems(run.items),
     [run.items],
   );
@@ -117,6 +118,9 @@ export function AnalysisWorkspace({
    * `run.items` a workflow action's existing revalidation already refreshes — this is
    * what makes the score update live with no new fetch path. */
   const quality = useMemo(() => qualityScore(run.items), [run.items]);
+  /** Feeds the Quality tab's "Weakly supported" section (Phase 3, Slice 1) — same
+   * live-updating convention as `quality` above, no new fetch path. */
+  const weaklySupported = useMemo(() => weaklySupportedItems(run.items), [run.items]);
   const selected = run.items.find((item) => item.id === selectedId) ?? null;
   const blocked = run.items.find((item) => item.id === blockedSelection) ?? null;
 
@@ -269,6 +273,8 @@ export function AnalysisWorkspace({
           questions={questions}
           findings={findings}
           quality={quality}
+          weaklySupported={weaklySupported}
+          gaps={gaps}
           tab={tab}
           onTabChange={changeTab}
           groupBy={groupBy}

@@ -30,6 +30,7 @@ export const TYPE_LABEL: Record<ItemType, string> = {
   constraint: "Constraint",
   open_question: "Open question",
   quality_finding: "Quality finding",
+  coverage_gap: "Coverage gap",
 };
 
 /** Short forms for the compact row, where a full type name would crowd the title out. */
@@ -48,6 +49,7 @@ export const TYPE_SHORT_LABEL: Record<ItemType, string> = {
   constraint: "Constraint",
   open_question: "Question",
   quality_finding: "Finding",
+  coverage_gap: "Gap",
 };
 
 export const EVIDENCE_LABEL: Record<string, string> = {
