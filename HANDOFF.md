@@ -5,6 +5,20 @@ definition of done. This file holds *state*: where the build actually is right n
 
 ## ▶ RESUME HERE — "Usable Product" Master Plan (active since 2026-09-17)
 
+**Phase 4 (Sharing) design complete, Meejai-QA'd PASS (2026-09-21).** Full design at
+[`docs/superpowers/plans/2026-09-21-phase4-sharing-design.md`](docs/superpowers/plans/2026-09-21-phase4-sharing-design.md)
+— a new project-scoped `project_members`/`project_role`/`project_invites` schema (not
+a reuse of `organization_members`/`org_role`, which would have leaked a user's other
+projects to an invitee), zero changes to the ~15 existing `is_project_member()`/
+`is_project_owner()` call sites, a 9-step ordered migration sequence, and Noey's full
+Members-screen spec. Produced by a joint ArchitectTam+DataTam+Noey discussion (3
+rounds) per the owner's standing request that 2-3 relevant team members discuss a
+plan together before implementation, not just hand off sequentially; Meejai's first
+QA pass found 4 real gaps (missing remove/role-change RPC, no migration sequence, a
+naming drift between two functions, no last-Owner-lockout rule), all closed and
+re-verified PASS. **Not yet built** — next step is DevBAmooTam vertical slices, owner
+approval required before any migration applies to the live Supabase project.
+
 **Deployed to production (2026-09-20).** `vercel deploy --prod --yes` from local HEAD
 `ae364bc` (Phase 1 Slice 4 + all of Phase 2 + all of Phase 3, all committed but never
 pushed to `origin/main` — deployed via the CLI upload path, same as the 2026-08-02
