@@ -5,6 +5,42 @@ definition of done. This file holds *state*: where the build actually is right n
 
 ## ▶ RESUME HERE — "Usable Product" Master Plan (active since 2026-09-17)
 
+**Deployed to production (2026-09-20).** `vercel deploy --prod --yes` from local HEAD
+`ae364bc` (Phase 1 Slice 4 + all of Phase 2 + all of Phase 3, all committed but never
+pushed to `origin/main` — deployed via the CLI upload path, same as the 2026-08-02
+deploy, not a git-triggered one; there is still no Vercel Git integration switched on).
+Deployment `dpl_2rTpx7d2EykwJFKePPYhPVMzWnxZ`, `readyState: READY`, `target:
+production`, aliased to `reqwise-ai.vercel.app`. Build succeeded clean (TypeScript,
+all 25 routes generated, including every Phase 2/3 addition). Smoke-tested: `/` → 200,
+`/admin` → 307 (redirects unauthenticated rather than erroring — correct, and confirms
+`ADMIN_EMAIL` is actually live).
+
+**Before deploying, added the two outstanding env vars from Phase 1** (owner-approved
+this round — see the Phase 1 Slice 3/4 entries below for why they'd been missing since
+2026-07-30): `ADMIN_EMAIL=tanawittam@gmail.com` and a freshly generated
+`GEMINI_KEY_ENCRYPTION_SECRET` (32 raw bytes via `openssl rand -base64 32`), both added
+to **Production and Preview** via `vercel env add <name> <environment>` (value piped
+through stdin, never printed by any tool call or written to a file). `/admin` and
+"save your own Gemini key" are consequently live in production for the first time —
+**no saved keys existed before this secret was set, so nothing needed re-encrypting.**
+**The generated secret value was given to the owner directly in chat this session —
+save a copy in a password manager; if it's ever lost, every key saved after this point
+becomes permanently undecryptable.** `vercel env ls production`/`preview` both confirm
+the two new names now exist alongside the pre-existing two Supabase public keys, all
+`Encrypted`. `AI_PROVIDER`/`GEMINI_API_KEY`/etc. remain deliberately unset — production
+still runs on the deterministic mock provider, unchanged from the 2026-08-02 posture;
+Gemini going live in production is still a separate, not-yet-taken decision.
+
+**Not done as part of this deploy, flagged rather than silently skipped:** local
+`main` is still 6 commits ahead of `origin/main` (nothing pushed to GitHub this
+round — a deploy here never required a push, per the established CLI-upload
+workflow); no live sign-in/click-through smoke test was run against production
+(would need the owner's real account); the new Vercel env vars were not proven
+end-to-end against a real `/admin` toggle or a real saved-key round-trip on
+production, only smoke-tested via HTTP status.
+
+---
+
 The active body of work is
 [`docs/superpowers/plans/2026-09-17-usable-product-master-plan.md`](docs/superpowers/plans/2026-09-17-usable-product-master-plan.md).
 It covers daily limits, own Gemini keys, `/admin`, a quality score, a gap check, shared
